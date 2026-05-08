@@ -1,19 +1,18 @@
-import numpy as np
 import glob
-from matplotlib import pyplot as plt
-import os
 import math
-from geomfitty import geom3d, fit3d
-from VicPy import *
-#from Blender import *
-import time
+import os
+# from Blender import *
 from multiprocessing import Process, Value, shared_memory, Lock, Condition, Queue, Semaphore
+
 import easygui
 import pandas as pd
+from VicPy import *  # FIXME: Unlabeled import is not recommended, affetcs code readibility.
+from geomfitty import geom3d, fit3d
+from matplotlib import pyplot as plt
 
 # Pfad zum Ordner, im welchen sich die Out-Datein befinden, welche direkt nach der Triangulation in Vic-3D generiert wurden. 
 # Wenn None, dann wird ein File-Picker Dialog angezeigt (ist zu bevorzugen). 
-input_folder = None
+input_folder = None # TODO: move all input fields together.
 
 # Anzahl an Prozessoren zum Einlesen der Datein
 number_of_processes = 8
@@ -24,7 +23,7 @@ number_of_marked_blades = 3
 # Liste mit den Variablen, welche in die einzelnen CSV-Datein abgespeichert werden sollen. Der Index ist immer dabei und an ersten Stelle
 variables_export_name_out_file = ["X", "Y", "Z", "U", "V", "W", "SIGMA_X", "SIGMA_Y", "SIGMA_Z", "sigma"]
 
-# Liste mit den Benennung der Variablen in der CSV-Datei
+# Liste mit der Benennung der Variablen in der CSV-Datei
 variables_export_name_csv_file = ['"Index [1]"', '"X [mm]"', '"Y [mm]"', '"Z [mm]"', '"U [mm]"', '"V [mm]"','"W [mm]"', '"Sigma_X [mm]"', '"Sigma_Y [mm]"', '"Sigma_Z [mm]"', '"sigma [pixel]"']
 
 
