@@ -52,14 +52,15 @@ def read_file(file_name, subset_index, check_aoi_is_empty = False):
         subset_index - Gibt an, welche Subsets zurueckgegeben werden sollen
     """
 
-    data = VicDataSet()
-    if (data.load(file_name) == False):
+    data = VicDataSet() # Creates an instance of a VicDataSet() class
+
+    if (data.load(file_name) == False): # Tries to load a .out file into the VicDataSet() instance, it exits if it fails
         print("Could not load data set\n\n")
         exit(-1)
 
     size = 0
-    for aoi in range(data.numData()):
-        d = data.data(aoi)
+    for aoi in range(data.numData()): # The numData() method returns the number of areas of interest in the dataset
+        d = data.data(aoi) # Returns a pointer to  VicData objet for the specific AOI in the dataset
         size += d.matrixSize()
 
     found_array = np.empty((size), int) # gibt an, ob ein Subset gefunden wurde. 1 wenn gefunden, sonst 0
@@ -71,7 +72,7 @@ def read_file(file_name, subset_index, check_aoi_is_empty = False):
     index = 0
     for aoi in range(data.numData()):
         d = data.data(aoi)
-        rows = d.asArray(["sigma", "X", "Y", "Z", "U", "V", "W", "SIGMA_X", "SIGMA_Y", "SIGMA_Z"])
+        rows = d.asArray(["sigma", "X", "Y", "Z", "U", "V", "W", "SIGMA_X", "SIGMA_Y", "SIGMA_Z"]) #TODO: This array is the same as the hardcoded one on top?
         rows = rows.view(np.float32).reshape(rows.shape[0], -1)
 
         rows = rows.T
@@ -612,49 +613,49 @@ if __name__ == '__main__':
 
     # Alle Messpunkte in der ersten Out-Datei einlesen. Von diesen wird dann eine Untermenge ausgewaehlt, welche im weiteren Verlauf verarbeitet wird (z.B. zur Ermittlung, welcher Punkt die Kreisbahn
     # zur Ausrichtung des Koordinatensystems beschreiben koennte)
-    sum_found_array = None
-    sum_xyz_sigmas = None
-    test_frame_number = 200
-    frame_test_list = range(0, test_frame_number, int(test_frame_number / 10))
-    for frame in frame_test_list:
-        #print("FRAME: ", frame)
-        found_array, coordinates, xyz_sigmas, aoi_number, index_in_aoi = read_file(input_out_file_folder[frame], None, frame == 0)
-        sigma_correction = np.max(np.linalg.norm(xyz_sigmas, axis=1))# + np.mean(np.linalg.norm(xyz_sigmas, axis=1))) / 2
-        xyz_sigmas_norm = np.linalg.norm(xyz_sigmas, axis=1) + np.where(found_array == 0, sigma_correction, 0)
+    # FIXME: This for loop is not used anymore ----------------------------------------------------
+    # sum_found_array = None
+    # sum_xyz_sigmas = None
+    # test_frame_number = 200
+    # frame_test_list = range(0, test_frame_number, int(test_frame_number / 10))
+    # for frame in frame_test_list:
+    #     #print("FRAME: ", frame)
+    #     found_array, coordinates, xyz_sigmas, aoi_number, index_in_aoi = read_file(input_out_file_folder[frame], None, frame == 0)
+    #     sigma_correction = np.max(np.linalg.norm(xyz_sigmas, axis=1))# + np.mean(np.linalg.norm(xyz_sigmas, axis=1))) / 2
+    #     xyz_sigmas_norm = np.linalg.norm(xyz_sigmas, axis=1) + np.where(found_array == 0, sigma_correction, 0)
+    #
+    #     if sum_found_array is None:
+    #         sum_found_array = found_array
+    #         sum_xyz_sigmas = xyz_sigmas_norm
+    #     else:
+    #         sum_found_array += found_array
+    #         sum_xyz_sigmas += xyz_sigmas_norm
+    #
+    # points_per_aoi = len(np.unique(aoi_number)) * 200
+    # mean_found_points_list =  []
+    # for aoi_id in np.unique(aoi_number):
+    #     found_indices = np.where(aoi_number == aoi_id)[0]
+    #     mean_found_points_list.append(int(np.sum(sum_found_array[found_indices]) / 5))
+    # mean_found_points_list = np.array(mean_found_points_list)
+    #
+    # diffs = max(mean_found_points_list - points_per_aoi, 0)
+    #
+    # found_array, coordinates, xyz_sigmas, aoi_number, index_in_aoi = read_file(input_out_file_folder[0], None)
+    # test_subsets_list = [] # Die Subsets in dieser Liste werden im weiteren Verlauf betrachtet
+    #
+    # points_per_aoi = int(len(np.where(found_array == 1)[0]) / len(np.unique(aoi_number)))
+    #
+    #
+    # for aoi_id in np.unique(aoi_number):
+    #     found_indices = np.where(aoi_number == aoi_id)[0]
+    #     print("====> ", aoi_id, np.unique(sum_found_array[found_indices], return_counts=True), int(np.sum(sum_found_array[found_indices]) / 5), np.sum(found_array[found_indices]))
+    #
+    # exit()
+    # FIXME: -----------------------------------------------------------------------
 
-        if sum_found_array is None:
-            sum_found_array = found_array
-            sum_xyz_sigmas = xyz_sigmas_norm
-        else:
-            sum_found_array += found_array
-            sum_xyz_sigmas += xyz_sigmas_norm
 
-
-    """
-    points_per_aoi = len(np.unique(aoi_number)) * 200
-    mean_found_points_list =  []
-    for aoi_id in np.unique(aoi_number):
-        found_indices = np.where(aoi_number == aoi_id)[0]
-        mean_found_points_list.append(int(np.sum(sum_found_array[found_indices]) / 5))
-    mean_found_points_list = np.array(mean_found_points_list)
-
-    diffs = max(mean_found_points_list - points_per_aoi, 0)
-
-    found_array, coordinates, xyz_sigmas, aoi_number, index_in_aoi = read_file(input_out_file_folder[0], None)
     test_subsets_list = [] # Die Subsets in dieser Liste werden im weiteren Verlauf betrachtet
-
-    points_per_aoi = int(len(np.where(found_array == 1)[0]) / len(np.unique(aoi_number)))
-
-
-    for aoi_id in np.unique(aoi_number):
-        found_indices = np.where(aoi_number == aoi_id)[0]
-        print("====> ", aoi_id, np.unique(sum_found_array[found_indices], return_counts=True), int(np.sum(sum_found_array[found_indices]) / 5), np.sum(found_array[found_indices]))
-
-    exit()
-
-    """
-    test_subsets_list = [] # Die Subsets in dieser Liste werden im weiteren Verlauf betrachtet
-    if False:
+    if False: #FIXME: this code is unreachable
         for aoi_id in np.unique(aoi_number):
             found_indices = np.where((sum_found_array >= len(frame_test_list) - 3) & (aoi_number == aoi_id))[0]
             sum_good_xyz_sigmas = sum_xyz_sigmas[found_indices]
