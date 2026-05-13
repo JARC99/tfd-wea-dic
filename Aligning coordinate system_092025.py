@@ -817,7 +817,7 @@ if __name__ == '__main__':
     plt.legend()
     ax.set_aspect('equal', adjustable='box')
     fig.show()
-    plt.pause(10000)
+    plt.pause(1)
 
 
     #index_least_movement = 225
@@ -882,7 +882,7 @@ if __name__ == '__main__':
     ax.set_zlabel('z-Achse')
     ax = plt.gca()
     fig.show()
-    plt.pause(10000)
+    plt.pause(1)
 
 
     circle_center = circle.center
@@ -972,7 +972,7 @@ if __name__ == '__main__':
     ax.set_zlabel('z-Achse')
     ax = plt.gca()
     fig.show()
-    plt.pause(10000)
+    plt.pause(1)
 
 
     print('\r', "Step 4/5: Search points for rotor blade torsion calculation...", end='')
@@ -1032,7 +1032,7 @@ if __name__ == '__main__':
     ax.set_xlim((-60000,60000))
     plt.legend()
     fig.show()
-    plt.pause(10000)
+    plt.pause(1)
 
 
 
