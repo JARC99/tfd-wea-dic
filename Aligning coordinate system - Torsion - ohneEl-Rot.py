@@ -58,7 +58,7 @@ def read_file(file_name, subset_index, check_aoi_is_empty = False):
     """
 
     data = VicDataSet()
-    if (data.load(file_name) == False):
+    if not data.load(file_name):
         print("Could not load data set\n\n")
         exit(-1)
 

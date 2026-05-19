@@ -54,13 +54,13 @@ def read_file(file_name, subset_index, check_aoi_is_empty = False):
 
     data = VicDataSet() # Creates an instance of a VicDataSet() class
 
-    if (data.load(file_name) == False): # Tries to load a .out file into the VicDataSet() instance, it exits if it fails
+    if not data.load(file_name): # Tries to load a .out file into the VicDataSet() instance, it exits if it fails
         print("Could not load data set\n\n")
         exit(-1)
 
     size = 0
     for aoi in range(data.numData()): # The numData() method returns the number of areas of interest in the dataset
-        d = data.data(aoi) # Returns a pointer to  VicData objet for the specific AOI in the dataset
+        d = data.data(aoi) # Returns a pointer to VicData objet for the specific AOI in the dataset
         size += d.matrixSize()
 
     found_array = np.empty((size), int) # gibt an, ob ein Subset gefunden wurde. 1 wenn gefunden, sonst 0
@@ -83,9 +83,7 @@ def read_file(file_name, subset_index, check_aoi_is_empty = False):
 
 
         if check_aoi_is_empty:
-            assert len(np.where(found_array_for_aoi == 1)[0]) > 0, f"In AOI {aoi} sind keine sichtbaren Punkte zu Beginn vorhanden"
-
-
+            assert len(np.where(found_array_for_aoi == 1)[0]) > 0, f"No visible points were found in AoI {aoi}."
 
 
         found_array[index : index + len(found_array_for_aoi)] = found_array_for_aoi
@@ -602,18 +600,16 @@ def calculate_circle_rotation_matrix(circle_direction, direction):
 if __name__ == '__main__':
 
 
-    # Den Benutzer den Eingabeordner waehlen lassen...
+    # Let the user choose the folder containing the .out files
     if input_folder is None:
         input_folder = easygui.diropenbox("Select Folder with out-Files")
     print("Inputfolder: ", input_folder)
     input_out_file_folder = glob.glob(input_folder + '/*.out')
-    #input_out_file_folder = input_out_file_folder[:200]
 
-    #print("Step 1/5: Search for suitable measurement points...", end="\r")
     print('\r', "Step 1/5: Search for suitable measurement points...", end='')
 
     # Alle Messpunkte in der ersten Out-Datei einlesen. Von diesen wird dann eine Untermenge ausgewaehlt, welche im weiteren Verlauf verarbeitet wird (z.B. zur Ermittlung, welcher Punkt die Kreisbahn
-    # zur Ausrichtung des Koordinatensystems beschreiben koennte)
+    # zur Ausrichtung des Koordinatensystems beschreiben könnte)
     # FIXME: This for loop is not used anymore ----------------------------------------------------
     # sum_found_array = None
     # sum_xyz_sigmas = None
@@ -654,7 +650,7 @@ if __name__ == '__main__':
     # exit()
 
 
-    test_subsets_list = [] # Die Subsets in dieser Liste werden im weiteren Verlauf betrachtet
+    #test_subsets_list = [] # Die Subsets in dieser Liste werden im weiteren Verlauf betrachtet
     if False: # FIXME: this code is unreachable
         for aoi_id in np.unique(aoi_number):
             found_indices = np.where((sum_found_array >= len(frame_test_list) - 3) & (aoi_number == aoi_id))[0]
