@@ -15,7 +15,7 @@ from matplotlib import pyplot as plt
 input_folder = None # TODO: move all input fields together.
 
 # Anzahl an Prozessoren zum Einlesen der Datein
-number_of_processes = 8
+number_of_processes = 16
 
 # Gibt an, wie viele Rotorblaetter ausgewertet werden sollen/können. Dient zur Identifikation der Wurzel-ROI. Ist z.B. nur ein Blatt beklebt, dann eine eins eintregen
 number_of_marked_blades = 3
@@ -165,8 +165,11 @@ def read_file_pos_2d_at_index(file_name, interesting_subsets_id_vicpy):
 
 class SharedMemory:
     """
-    Klasse, welche aehnliche Schnittstellen wie eine Queue von multiprocessing hat. Wurde allerdings mit SharedMemory implementiert und ist deshalb schneller.
-    Wird benutzt, um den Inhalt der Out-Dateien schnell zum Hauptprozess zu uebermitteln.
+    Klasse, welche ähnliche Schnittstellen wie eine Queue von multiprocessing hat. Wurde allerdings mit SharedMemory implementiert und ist deshalb schneller.
+    Wird benutzt, um den Inhalt der Out-Dateien schnell zum Hauptprozess zu übermitteln.
+
+    A class with a similar interfaces to those of the Queue class from multiprocessing package. The main difference being the implementation using SharedMemory that makes it faster.
+    It is used to feed the contents of the .out files to the main process.
     """
 
     def __init__(self, content):
@@ -665,23 +668,23 @@ if __name__ == '__main__':
 
     else:
         test_subsets_list = [] # Die Subsets in dieser Liste werden im weiteren Verlauf betrachtet
-        found_array, coordinates, xyz_sigmas, aoi_number, index_in_aoi = read_file(input_out_file_folder[0], None)
-        found_indices = np.where(found_array == 1)[0]
-        for i in range(0, len(found_indices), 10):
-            test_subsets_list.append(found_indices[i])
+        found_array, coordinates, xyz_sigmas, aoi_number, index_in_aoi = read_file(input_out_file_folder[0], None) # Reads the first .out file from the folder.
+        found_indices = np.where(found_array == 1)[0] # Extracts the indeces of the points tht are visbible throughout the different AoIs
+        for i in range(0, len(found_indices), 10): # Creates an index array to get one out of 10 values.
+            test_subsets_list.append(found_indices[i]) # Fills the subset list with these 1 out of 10 values.
 
     test_subsets_list = np.array(test_subsets_list)
 
 
 
-    visible_counter = np.ones(len(test_subsets_list), int) # zaehlt, wie haeufig ein Messpunkt sichtbar war
-    sigmas = np.zeros(len(test_subsets_list), float) # Der Betrag der Messunsicherheit der einzelnen Messpunkte wird hier fuer jedes Bild addiert
-    distance = np.ones(len(test_subsets_list), float) # Zurueckgelegte Distanz des Messpunktes. Daran wird erkannt, welcher Messpunkt an der Blattspitze ist und welche innen liegen
-    last_coordinates = None # Enthaelt die Koordiaten der Messpunkte aus dem vorherigen Frame
-    found_last_time = None # Enthaelt die Info welcher Messpunkt in vorherigen Bild sichtbar war und welcher nicht. Nur wenn im vorherigen Frame und im aktuellen Frame der Messpunkt sichtbar ist wird die Distanz berechnet
+    visible_counter = np.ones(len(test_subsets_list), int) # Counts how many times a point was visible
+    sigmas = np.zeros(len(test_subsets_list), float) # The maganitude of the uncertainty of the individual poihts is added for every picture.
+    distance = np.ones(len(test_subsets_list), float) # Traveled distance for the point in question.  This is used to determine which point is at the blade tip and which one is in the inner region.
+    last_coordinates = None # Contains the point's coordinates in the previous frame.
+    found_last_time = None # Contains the information of wether or not a point was visible in the previous image. Only when a point is visible in the current an previous images is the distance calculatesd
 
 
-    shared_mem = SharedMemory([found_array[test_subsets_list], coordinates[test_subsets_list], xyz_sigmas[test_subsets_list], aoi_number[test_subsets_list]])
+    shared_mem = SharedMemory([found_array[test_subsets_list], coordinates[test_subsets_list], xyz_sigmas[test_subsets_list], aoi_number[test_subsets_list]]) # Initiates an instance of the SharedMemory class
     file_path_queue = Queue(maxsize=30)
 
     # Prozess, welcher die Pfade der Out-Dateien in eine Queue packt. Aus dieser Queue wird von den verarbeitenden Prozesses dann gelesen
