@@ -75,7 +75,7 @@ def read_file(file_name, subset_index, check_aoi_is_empty = False):
         rows = d.asArray(["sigma", "X", "Y", "Z", "U", "V", "W", "SIGMA_X", "SIGMA_Y", "SIGMA_Z"]) #TODO: This array is the same as the hardcoded one on top?
         rows = rows.view(np.float32).reshape(rows.shape[0], -1)
 
-        rows = rows.T
+        rows = rows.T # TODO: I'm pretty sure this transpose is not needed
         found_array_for_aoi = np.where(rows[0] < 0, 0, 1)
 
         coordinates_for_aoi = (rows[1:4] + rows[4:7]).T
@@ -109,7 +109,7 @@ def read_file(file_name, subset_index, check_aoi_is_empty = False):
 
 def read_file_mean_aoi_pos_2d(file_name):
     """
-    Liest eine out-Datei ein und gibt die 2d Durchschnittskoordinate im Referenzbild jeder AOI zurueck.
+    Liest eine out-Datei ein und gibt die 2d Durchschnittskoordinate im Referenzbild jeder AOI zurück.
 
         file_name - Pfad zu der Out-Datei
     """
@@ -117,6 +117,7 @@ def read_file_mean_aoi_pos_2d(file_name):
     if (data.load(file_name) == False):
         print("Could not load data set\n\n")
         exit(-1)
+
     coordinates = np.empty((data.numData(),2), float) # enthaelt die Koordinaten der Subsets
     for aoi in range(data.numData()):
         d = data.data(aoi)
@@ -525,21 +526,21 @@ def find_rotation(right_co, left_co):
 
 
 
-def find_scale(right_co, left_co_temp, rot_mat):
-    """        
-    Berechnet einen Skalierungsvektor, um Punkte aus dem Koordinatensystem left_co_temp in Punkte nach dem Koordinatensystem right_co zu ueberfuehren
-
-        right_co - Punkte im ersten Koordinatensystem (Referenz)
-        left_co_temp - Die gleichen Punkte mit den Koordinaten nach dem zweiten Koordinatensystem
-        rot_mat - Rotationsmatrix, welche mit der Funktion find_rotation gefunden wurde
-    """
-    mean_right = np.mean(right_co, axis=0)
-    mean_left = np.mean(left_co_temp, axis=0)
-    right_co = right_co - mean_right
-    left_co_temp = left_co_temp - mean_left
-    D = np.sum(right_co.T * np.dot(rot_mat, left_co_temp.T), axis=1)
-    S = np.sum(left_co_temp.T * left_co_temp.T, axis=1)
-    return D / S
+# def find_scale(right_co, left_co_temp, rot_mat): # FIXME: this funtion is not used anywhere.
+#     """
+#     Berechnet einen Skalierungsvektor, um Punkte aus dem Koordinatensystem left_co_temp in Punkte nach dem Koordinatensystem right_co zu ueberfuehren
+#
+#         right_co - Punkte im ersten Koordinatensystem (Referenz)
+#         left_co_temp - Die gleichen Punkte mit den Koordinaten nach dem zweiten Koordinatensystem
+#         rot_mat - Rotationsmatrix, welche mit der Funktion find_rotation gefunden wurde
+#     """
+#     mean_right = np.mean(right_co, axis=0)
+#     mean_left = np.mean(left_co_temp, axis=0)
+#     right_co = right_co - mean_right
+#     left_co_temp = left_co_temp - mean_left
+#     D = np.sum(right_co.T * np.dot(rot_mat, left_co_temp.T), axis=1)
+#     S = np.sum(left_co_temp.T * left_co_temp.T, axis=1)
+#     return D / S
 
 
 
@@ -651,11 +652,10 @@ if __name__ == '__main__':
     #     print("====> ", aoi_id, np.unique(sum_found_array[found_indices], return_counts=True), int(np.sum(sum_found_array[found_indices]) / 5), np.sum(found_array[found_indices]))
     #
     # exit()
-    # FIXME: -----------------------------------------------------------------------
 
 
     test_subsets_list = [] # Die Subsets in dieser Liste werden im weiteren Verlauf betrachtet
-    if False: #FIXME: this code is unreachable
+    if False: # FIXME: this code is unreachable
         for aoi_id in np.unique(aoi_number):
             found_indices = np.where((sum_found_array >= len(frame_test_list) - 3) & (aoi_number == aoi_id))[0]
             sum_good_xyz_sigmas = sum_xyz_sigmas[found_indices]
@@ -673,7 +673,6 @@ if __name__ == '__main__':
         found_indices = np.where(found_array == 1)[0]
         for i in range(0, len(found_indices), 10):
             test_subsets_list.append(found_indices[i])
-
 
     test_subsets_list = np.array(test_subsets_list)
 
@@ -702,7 +701,7 @@ if __name__ == '__main__':
         workers.append(worker)
 
 
-    # Verarbeiten der Daten in den Out-Datein. Ueber shared_mem.get() werden die Daten aus den Out-Dateien in dem Hauptprozess zur Verfuegung gestellt
+    # Verarbeiten der Daten in den Out-Datein. Über shared_mem.get() werden die Daten aus den Out-Dateien in dem Hauptprozess zur Verfuegung gestellt
     file_counter = 0
     for file_path  in input_out_file_folder:
         found_array, coordinates, xyz_sigmas, aoi_number  = shared_mem.get()
@@ -784,7 +783,7 @@ if __name__ == '__main__':
     for aoi_id in roi_ids_near_center:
         indices_of_inner_subsets = np.append(indices_of_inner_subsets, np.where(aoi_number == aoi_id)[0])
 
-    # Erzeuge eine Liste, welche fuer jede AOI die id des Rotorblattes enthaelt. Die id 0 muss nicht dem Rotorblatt A entsprechen. 
+    # Erzeuge eine Liste, welche für jede AOI die id des Rotorblattes enthält. Die id 0 muss nicht dem Rotorblatt A entsprechen.
     blade_number_of_aoi = np.empty((len(available_aoi_ids)))
     for aoi_id in range(len(available_aoi_ids)):
         blade_number_of_aoi[aoi_id] = np.argmin(np.linalg.norm(mean_position_array[aoi_id] - mean_position_array[roi_ids_near_center], axis=1))
@@ -1058,7 +1057,7 @@ if __name__ == '__main__':
     ax.scatter(two_d_coordinates.T[0], np.max(two_d_coordinates.T[1]) -  two_d_coordinates.T[1])
     plt.title("Bennenung der gefundenen AOI (zum Bild 0 der Kamera 0)")
     for aoi_id in range(len(two_d_coordinates)):
-        annotation = "B: " + str(int(blade_number_of_aoi[aoi_id])) + "  A: " + str(int(aoi_to_blade_aoi[aoi_id]))
+        annotation = "Blade: " + str(int(blade_number_of_aoi[aoi_id])) + "  AoI: " + str(int(aoi_to_blade_aoi[aoi_id])) #TODO: use formated strings
         ax.annotate(annotation, (two_d_coordinates.T[0][aoi_id], np.max(two_d_coordinates.T[1]) -  two_d_coordinates.T[1][aoi_id]))
     plt.show()
     fig.savefig(input_folder +'/AOI Benennung.png', dpi=fig.dpi)
