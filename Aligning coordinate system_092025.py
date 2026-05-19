@@ -613,65 +613,13 @@ if __name__ == '__main__':
 
     # Alle Messpunkte in der ersten Out-Datei einlesen. Von diesen wird dann eine Untermenge ausgewaehlt, welche im weiteren Verlauf verarbeitet wird (z.B. zur Ermittlung, welcher Punkt die Kreisbahn
     # zur Ausrichtung des Koordinatensystems beschreiben könnte)
-    # FIXME: This for loop is not used anymore ----------------------------------------------------
-    # sum_found_array = None
-    # sum_xyz_sigmas = None
-    # test_frame_number = 200
-    # frame_test_list = range(0, test_frame_number, int(test_frame_number / 10))
-    # for frame in frame_test_list:
-    #     #print("FRAME: ", frame)
-    #     found_array, coordinates, xyz_sigmas, aoi_number, index_in_aoi = read_file(input_out_file_folder[frame], None, frame == 0)
-    #     sigma_correction = np.max(np.linalg.norm(xyz_sigmas, axis=1))# + np.mean(np.linalg.norm(xyz_sigmas, axis=1))) / 2
-    #     xyz_sigmas_norm = np.linalg.norm(xyz_sigmas, axis=1) + np.where(found_array == 0, sigma_correction, 0)
-    #
-    #     if sum_found_array is None:
-    #         sum_found_array = found_array
-    #         sum_xyz_sigmas = xyz_sigmas_norm
-    #     else:
-    #         sum_found_array += found_array
-    #         sum_xyz_sigmas += xyz_sigmas_norm
-    #
-    # points_per_aoi = len(np.unique(aoi_number)) * 200
-    # mean_found_points_list =  []
-    # for aoi_id in np.unique(aoi_number):
-    #     found_indices = np.where(aoi_number == aoi_id)[0]
-    #     mean_found_points_list.append(int(np.sum(sum_found_array[found_indices]) / 5))
-    # mean_found_points_list = np.array(mean_found_points_list)
-    #
-    # diffs = max(mean_found_points_list - points_per_aoi, 0)
-    #
-    # found_array, coordinates, xyz_sigmas, aoi_number, index_in_aoi = read_file(input_out_file_folder[0], None)
-    # test_subsets_list = [] # Die Subsets in dieser Liste werden im weiteren Verlauf betrachtet
-    #
-    # points_per_aoi = int(len(np.where(found_array == 1)[0]) / len(np.unique(aoi_number)))
-    #
-    #
-    # for aoi_id in np.unique(aoi_number):
-    #     found_indices = np.where(aoi_number == aoi_id)[0]
-    #     print("====> ", aoi_id, np.unique(sum_found_array[found_indices], return_counts=True), int(np.sum(sum_found_array[found_indices]) / 5), np.sum(found_array[found_indices]))
-    #
-    # exit()
 
 
-    #test_subsets_list = [] # Die Subsets in dieser Liste werden im weiteren Verlauf betrachtet
-    if False: # FIXME: this code is unreachable
-        for aoi_id in np.unique(aoi_number):
-            found_indices = np.where((sum_found_array >= len(frame_test_list) - 3) & (aoi_number == aoi_id))[0]
-            sum_good_xyz_sigmas = sum_xyz_sigmas[found_indices]
-            good_found = sum_found_array[found_indices]
-            step = min(10, int(len(sum_good_xyz_sigmas) / 40))
-            for i in range(0, len(found_indices)-step, step):
-                best_point_offset = np.argmin([sum_good_xyz_sigmas[i : i+step]])
-                test_subsets_list.append(found_indices[i +  best_point_offset])
-                #print("Offset: ", best_point_offset, "   Sigma: ", good_found[i +  best_point_offset], "   SumFound: ", sum_good_xyz_sigmas[i +  best_point_offset])
-            print(aoi_id, len(found_indices), len(range(0, len(found_indices)-step, step)))
-
-    else:
-        test_subsets_list = [] # Die Subsets in dieser Liste werden im weiteren Verlauf betrachtet
-        found_array, coordinates, xyz_sigmas, aoi_number, index_in_aoi = read_file(input_out_file_folder[0], None) # Reads the first .out file from the folder.
-        found_indices = np.where(found_array == 1)[0] # Extracts the indeces of the points tht are visbible throughout the different AoIs
-        for i in range(0, len(found_indices), 10): # Creates an index array to get one out of 10 values.
-            test_subsets_list.append(found_indices[i]) # Fills the subset list with these 1 out of 10 values.
+    test_subsets_list = [] # Die Subsets in dieser Liste werden im weiteren Verlauf betrachtet
+    found_array, coordinates, xyz_sigmas, aoi_number, index_in_aoi = read_file(input_out_file_folder[0], None) # Reads the first .out file from the folder.
+    found_indices = np.where(found_array == 1)[0] # Extracts the indeces of the points tht are visbible throughout the different AoIs
+    for i in range(0, len(found_indices), 10): # Creates an index array to get one out of 10 values.
+        test_subsets_list.append(found_indices[i]) # Fills the subset list with these 1 out of 10 values.
 
     test_subsets_list = np.array(test_subsets_list)
 
