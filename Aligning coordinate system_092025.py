@@ -755,16 +755,17 @@ if __name__ == '__main__':
     fig.show()
     plt.pause(1)
 
-    #index_least_movement = 225
 
-    # Die Koordinaten des Ermittelten Punktes zur Beschreibung der Kreisbahn werden nun ueber die ganze Messung hinweg eingelesen
+    # As opposed to the previous case, the coordinates of the point used to define the circular path of the rotor are
+    # extracted from the complete dataset.
     print('\r', "Step 2/5: Create circle... ", end='')
 
-    # SharedMemory, in welchem die Koordinaten dieses Messpunktes abgespeichert werden, um sie im Hauptprozess zu verarbeiten
+    # SharedMemory object were the coordinate of the point are to be stored for later use by the main process and
+    # definition of the queue size
     shared_mem = SharedMemory([found_array[[0]], coordinates[[0]]])
     file_path_queue = Queue(maxsize=30)
 
-    # Prozess zum Bereitstellen der Pfade zu den Out-Datein
+    # Process that feeds the .out files into the queue
     put_to_queue_process = Process(target=put_to_queue,
                                    args=(input_out_file_folder, file_path_queue, number_of_processes))
     put_to_queue_process.start()
@@ -777,12 +778,12 @@ if __name__ == '__main__':
         worker.start()
         workers.append(worker)
 
-    # Array erzeugen, in welchem die Koordinaten abgelegt werden. Wenn der Messpunkt in einem Frame nicht sichtbar ist wird Nichts abgespeichert
+    # Create an array where the point coordinates should be stored. If the chosen point is not visible in a certain frame, nothing is stored.
     coordinates = np.zeros((len(input_out_file_folder), 3), float)
     file_counter = 0
     not_found_counter = 0
 
-    # Abspeichern der Koordinaten 
+    # Store the coordinates for each .out file contianed in the folder.
     for file_path in input_out_file_folder:
         found_array, real_points = shared_mem.get()
         if found_array[0] == 1:
@@ -797,10 +798,8 @@ if __name__ == '__main__':
         worker.join()
 
     print('\r', "Step 2/5: Create circle...  100 % ")
-    # Array auf die Stelle kuerzen, bis zu welcher die Messpunkt abgespeichert worden sind
-    #coordinates = coordinates[0 : file_counter - not_found_counter]
-
-    coordinates = coordinates[0:400]  # TODO: Wieder entfernen
+    # Array auf die Stelle kürzen, bis zu welcher die Messpunkte abgespeichert worden sind
+    coordinates = coordinates[0 : file_counter - not_found_counter]
 
     # Parameter des Kreises berechnen. Hierfuer wird die Bibliothek geomfitty verwendet. Diese muss allerdings minimal angepasst werden. Die direkte Version von GitHub kann Probleme bereiten
     print('\r', "Step 3/5: Calculate circle...", end='')
@@ -834,7 +833,7 @@ if __name__ == '__main__':
     for i in range(len(coordinates_temp) - 1):
         pt = coordinates_temp[i]
         v = pt - coordinates_temp[i - 1]
-        c = np.cross(pt, v)
+        c = np.cross(pt, v) # TODO: I think that starting from the first and using the last is  mistake
     if c[0] < 0:
         direction_array[i] = -1
     else:
@@ -848,30 +847,10 @@ if __name__ == '__main__':
     # Die Rotationsmatrix wird erneut berechnet, dieses Mal wird jedoch die Richtung der x-Achse mit berücksichtigt
     rotation_matrix = calculate_circle_rotation_matrix(circle_direction, x_axis_alignment)
 
-    """
-    # Ab hier Rechnung aus der Dissertation um Rotationsmatrix zu bestimmen
-    circle_direction = np.array(circle_direction )
-    k = (x_axis_alignment * circle_direction) / (np.linalg.norm(circle_direction)) # Manchmal zeigt der Rotor in die falsche Richtung. Dann muss das Vorzeichen von k angepasst werden
-    n = np.array([1,0,0])
-    
-    v = np.cross(k, n)
-    s = np.linalg.norm(v)
-    c = np.dot(k, n)
-
-    vx = np.array([[0,      -v[2],  v[1]],
-                    [v[2],   0,      -v[0]],
-                    [-v[1],  v[0],   0]])
-
-    # finale Rotationsmatrix, die num immer zum Ausrichten des Koordinatensystems verwendet wird
-    rotation_matrix = np.identity(3) + vx + np.dot(vx, vx) * ((1-c) / s**2)
-    ## Ende Rechnung
-    """
-
     # Messpunkte aus dem ersten Frame einlesen, um diese zu visualisieren. Hierdurch kann erkannt werden, ob die Messdaten korrekt ausgerichtet werden oder nicht
-    found_array, real_points, xyz_sigmas, aoi_number, _ = read_file(input_out_file_folder[0], test_subsets_list)
+    found_array, real_points, xyz_sigmas, aoi_number, _ = read_file(input_out_file_folder[0], test_subsets_list) # TODO: it's like the fourth time it does this, I'm pretty sure we could just doit once and reuse the values
 
     # Berechne Rotationsmatrix um die x-Achse, damit das Rotorblatt nach oben zeigt
-    #most_moved_point = np.dot(rotation_matrix, (real_points[test_subsets_list[index_most_movement]] - circle_center).T).T
     most_moved_point = np.dot(rotation_matrix, (real_points[index_most_movement] - circle_center).T).T
 
     diff = most_moved_point / np.linalg.norm(most_moved_point)
