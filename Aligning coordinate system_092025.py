@@ -89,7 +89,8 @@ def read_file(file_name, subset_index, check_aoi_is_empty = False):
         found_array[index : index + len(found_array_for_aoi)] = found_array_for_aoi
         coordinates[index : index + len(coordinates_for_aoi)] = coordinates_for_aoi
         xyz_sigmas[index : index + len(xyz_sigma_for_aoi)] = xyz_sigma_for_aoi
-        aoi_number[index : index + len(xyz_sigma_for_aoi)] = np.full((len(xyz_sigma_for_aoi)), aoi)
+        aoi_number[index : index + len(xyz_sigma_for_aoi)] = np.full((len(xyz_sigma_for_aoi)),
+                                                                     aoi)
         index_in_aoi[index : index + len(xyz_sigma_for_aoi)] = np.arange(len(found_array_for_aoi))
 
         index += len(found_array_for_aoi)
@@ -102,7 +103,6 @@ def read_file(file_name, subset_index, check_aoi_is_empty = False):
         index_in_aoi = index_in_aoi[subset_index]
 
     return found_array, coordinates, xyz_sigmas, aoi_number, index_in_aoi
-
 
 
 def read_file_mean_aoi_pos_2d(file_name):
@@ -127,8 +127,6 @@ def read_file_mean_aoi_pos_2d(file_name):
         coordinates_for_aoi = (rows[1:3] + rows[3:5]).T
         coordinates[aoi] = np.mean(coordinates_for_aoi[indices_found_temp], axis=0)
     return coordinates
-
-
 
 
 def read_file_pos_2d_at_index(file_name, interesting_subsets_id_vicpy):
@@ -159,8 +157,6 @@ def read_file_pos_2d_at_index(file_name, interesting_subsets_id_vicpy):
         coordinates = np.append(coordinates, values, axis=0)
 
     return coordinates
-
-
 
 
 class SharedMemory:
@@ -228,8 +224,6 @@ class SharedMemory:
 
         return return_list
 
-
-
 def read_file_point_loop(file_name_queue, shared_memory : SharedMemory, subset_index):
     """
     Liest die vorgegebenen Punkte aus den vorgegebenen Dateien und packt sie in den SharedMemory. Dient zum schnellen Einlesen des Punktes, welcher die Kreisbahn beschreibt.
@@ -278,7 +272,6 @@ def read_file_point_loop(file_name_queue, shared_memory : SharedMemory, subset_i
         assert coordinate is not None, "Index Error"
 
         shared_memory.put(file_number, [values[0] > 0, coordinate])
-
 
 
 def read_file_loop(file_name_queue, shared_memory : SharedMemory, subset_index):
@@ -339,7 +332,6 @@ def read_file_loop(file_name_queue, shared_memory : SharedMemory, subset_index):
             aoi_number = aoi_number[subset_index]
 
         shared_memory.put(file_number, [found_array, coordinates, xyz_sigmas, aoi_number])
-
 
 
 def process_out_files(file_path_queue, output_path1, output_path2, translation_vector_arg, rotation_matrix_arg, roi_ids_near_center, found_array_first_frame, coordinates_first_frame, shared_mem : SharedMemory, interesting_subsets_id_vicpy):
@@ -469,7 +461,6 @@ def process_out_files(file_path_queue, output_path1, output_path2, translation_v
         shared_mem.put(file_number, [coordinates_for_ret])
 
 
-
 def quaternion_to_rotation_matrix(Q):
     q0 = Q[0]
     qx = Q[1]
@@ -492,7 +483,6 @@ def quaternion_to_rotation_matrix(Q):
                            [r10, r11, r12],
                            [r20, r21, r22]])
     return rot_matrix
-
 
 
 def find_rotation(right_co, left_co):
@@ -526,25 +516,6 @@ def find_rotation(right_co, left_co):
     return quaternion_to_rotation_matrix(test)
 
 
-
-# def find_scale(right_co, left_co_temp, rot_mat): # FIXME: this funtion is not used anywhere.
-#     """
-#     Berechnet einen Skalierungsvektor, um Punkte aus dem Koordinatensystem left_co_temp in Punkte nach dem Koordinatensystem right_co zu ueberfuehren
-#
-#         right_co - Punkte im ersten Koordinatensystem (Referenz)
-#         left_co_temp - Die gleichen Punkte mit den Koordinaten nach dem zweiten Koordinatensystem
-#         rot_mat - Rotationsmatrix, welche mit der Funktion find_rotation gefunden wurde
-#     """
-#     mean_right = np.mean(right_co, axis=0)
-#     mean_left = np.mean(left_co_temp, axis=0)
-#     right_co = right_co - mean_right
-#     left_co_temp = left_co_temp - mean_left
-#     D = np.sum(right_co.T * np.dot(rot_mat, left_co_temp.T), axis=1)
-#     S = np.sum(left_co_temp.T * left_co_temp.T, axis=1)
-#     return D / S
-
-
-
 def find_translation(right_co, left_co_temp):
     """        
     Berechnet einen Translationsvektor, um Punkte aus dem Koordinatensystem left_co_temp in Punkte nach dem Koordinatensystem right_co zu ueberfuehren.
@@ -556,7 +527,6 @@ def find_translation(right_co, left_co_temp):
     mean_right = np.mean(right_co, axis=0)
     mean_left = np.mean(left_co_temp, axis=0)
     return mean_right - mean_left
-
 
 
 def find_x_rotation_matrix(point):
@@ -577,7 +547,6 @@ def find_x_rotation_matrix(point):
     return np.array([[1,   0,                      0],
                     [0,    math.cos(x_rot_angle),  -math.sin(x_rot_angle)],
                     [0,    math.sin(x_rot_angle),  math.cos(x_rot_angle)]])
-
 
 
 def calculate_circle_rotation_matrix(circle_direction, direction):
@@ -602,8 +571,7 @@ def calculate_circle_rotation_matrix(circle_direction, direction):
 
 if __name__ == '__main__':
 
-
-    # Let the user choose the folder containing the .out files
+    # Let the user choose the folder containing the Vic3D .out files
     if input_folder is None:
         input_folder = easygui.diropenbox("Select Folder with out-Files")
     print("Inputfolder: ", input_folder)
@@ -611,18 +579,15 @@ if __name__ == '__main__':
 
     print('\r', "Step 1/5: Search for suitable measurement points...", end='')
 
-    # Alle Messpunkte in der ersten Out-Datei einlesen. Von diesen wird dann eine Untermenge ausgewaehlt, welche im weiteren Verlauf verarbeitet wird (z.B. zur Ermittlung, welcher Punkt die Kreisbahn
-    # zur Ausrichtung des Koordinatensystems beschreiben könnte)
 
-
+    # Read all the points in the first .out file. A subset of these will be selected and subsequently used for the
+    # remaining calculations.
     test_subsets_list = [] # Die Subsets in dieser Liste werden im weiteren Verlauf betrachtet
-    found_array, coordinates, xyz_sigmas, aoi_number, index_in_aoi = read_file(input_out_file_folder[0], None) # Reads the first .out file from the folder.
-    found_indices = np.where(found_array == 1)[0] # Extracts the indeces of the points tht are visbible throughout the different AoIs
+    found_array, coordinates, xyz_sigmas, aoi_number, index_in_aoi = read_file(input_out_file_folder[0], None) # Reads the first .out file from the folder
+    found_indices = np.where(found_array == 1)[0] # Extracts the indexes of the points tht are visible throughout the different AoIs
     for i in range(0, len(found_indices), 10): # Creates an index array to get one out of 10 values.
         test_subsets_list.append(found_indices[i]) # Fills the subset list with these 1 out of 10 values.
-
     test_subsets_list = np.array(test_subsets_list)
-
 
 
     visible_counter = np.ones(len(test_subsets_list), int) # Counts how many times a point was visible
@@ -630,7 +595,6 @@ if __name__ == '__main__':
     distance = np.ones(len(test_subsets_list), float) # Traveled distance for the point in question.  This is used to determine which point is at the blade tip and which one is in the inner region.
     last_coordinates = None # Contains the point's coordinates in the previous frame.
     found_last_time = None # Contains the information of wether or not a point was visible in the previous image. Only when a point is visible in the current an previous images is the distance calculatesd
-
 
     shared_mem = SharedMemory([found_array[test_subsets_list], coordinates[test_subsets_list], xyz_sigmas[test_subsets_list], aoi_number[test_subsets_list]]) # Initiates an instance of the SharedMemory class
     file_path_queue = Queue(maxsize=30)
@@ -678,29 +642,29 @@ if __name__ == '__main__':
     for worker in workers:
         worker.join()
 
-    # Messpunkt ermitteln, welcher zur Ermittlung der Kreisbahn benutzt wird. Der Messpunkt sollte haeufig sichbar sein und eine geringe Messunsicherheit haben
+    # Messpunkt ermitteln, welcher zur Ermittlung der Kreisbahn benutzt wird. Der Messpunkt sollte haeufig sichbar
+    # sein und eine geringe Messunsicherheit haben
     print('\r', "Step 1/5: Search for suitable measurement points...  100 %")
-    index_least_movement = np.argmin((distance / visible_counter) * (sigmas / visible_counter) + np.where(visible_counter >= np.max(visible_counter) * 0.9, 1, np.max(distance) * 1000))
+    index_least_movement = np.argmin((distance / visible_counter) * (sigmas / visible_counter) + np.where(
+        visible_counter >= np.max(visible_counter) * 0.9,
+        1,
+        np.max(distance) * 1000))
     index_bad_point = np.argmin((distance / visible_counter) * (1/(sigmas / visible_counter)))
     index_most_movement = np.argmin((1000/(distance / visible_counter)) * (sigmas / visible_counter) + np.where(visible_counter >= np.max(visible_counter) * 0.9, 1, np.max(distance) * 1000))
-    #index_least_movement = index_bad_point
 
     interesting_subsets = []
     available_aoi_ids = np.unique(ar=aoi_number, return_counts=False)
 
-    # Ermittle fuer jede AOI einen Messpunkt, welcher zur Berechnung der Verformung der AOI gut genutzt werden kann. Dieser sollte haeufig sichtbar sein und die Messunsicherheit sollte gering sein
+    # Ermittle fuer jede AOI einen Messpunkt, welcher zur Berechnung der Verformung der AOI gut genutzt werden kann. Dieser sollte häufig sichtbar sein und die Messunsicherheit sollte gering sein
     list_max_points = []
     id_counter = 0
     for local_aoi_id in available_aoi_ids:
         local_sub_ids = np.where(aoi_number == local_aoi_id)[0]
         id_of_good_subset = id_counter + np.argmin((sigmas[local_sub_ids] / visible_counter[local_sub_ids]) + np.where(visible_counter[local_sub_ids] >= np.max(visible_counter[local_sub_ids]) * 0.9, 1, np.max(distance[local_sub_ids]) * 1000))
-        #id_of_good_subset = id_counter + np.argmin((1/(sigmas[local_sub_ids]) / visible_counter[local_sub_ids]) + np.where(visible_counter[local_sub_ids] >= np.max(visible_counter[local_sub_ids]) * 0.9, 1, np.max(distance[local_sub_ids]) * 1000))
         interesting_subsets.append(id_of_good_subset)
         id_counter += len(local_sub_ids)
         list_max_points.append(np.max(visible_counter[local_sub_ids]))
     interesting_subsets = np.array(interesting_subsets)
-
-    #interesting_subsets = [  25,  162,  287,  505,  573,  708,  816,  895, 1096, 1349, 1444, 1530, 1715, 1832, 1927]
 
     distance_per_frame = distance / visible_counter
     found_array, coordinates, xyz_sigmas, aoi_number, index_in_aoi = read_file(input_out_file_folder[0], test_subsets_list)
@@ -881,7 +845,6 @@ if __name__ == '__main__':
     rotation_matrix = np.identity(3) + vx + np.dot(vx, vx) * ((1-c) / s**2)
     ## Ende Rechnung
     """
-
 
     # Messpunkte aus dem ersten Frame einlesen, um diese zu visualisieren. Hierdurch kann erkannt werden, ob die Messdaten korrekt ausgerichtet werden oder nicht
     found_array, real_points, xyz_sigmas, aoi_number, _  = read_file(input_out_file_folder[0], test_subsets_list)
