@@ -10,6 +10,7 @@ from VicPy import *  # FIXME: Unlabeled import is not recommended, affetcs code 
 from geomfitty import geom3d, fit3d
 from matplotlib import pyplot as plt
 
+
 # Pfad zum Ordner, im welchen sich die Out-Datein befinden, welche direkt nach der Triangulation in Vic-3D generiert wurden. 
 # Wenn None, dann wird ein File-Picker Dialog angezeigt (ist zu bevorzugen). 
 input_folder = None  # TODO: move all input fields together.
@@ -620,8 +621,8 @@ if __name__ == '__main__':
         worker.start()
         workers.append(worker)
 
-    # We extract a representatibe subset of the data of each an every .out file in the selected directory. This
-    # information is initially foung in the shared_mem (filled during the multiprocessing process).
+    # We extract a representative subset of the data of each an every .out file in the selected directory. This
+    # information is initially found in the shared_mem (filled during the multiprocessing process).
     file_counter = 0
     for file_path in input_out_file_folder:
         found_array, coordinates, xyz_sigmas, aoi_number = shared_mem.get()
@@ -685,7 +686,7 @@ if __name__ == '__main__':
 
     distance_per_frame = distance / visible_counter # Compute the average speed of each of the analyzed points.
 
-    found_array, coordinates, xyz_sigmas, aoi_number, index_in_aoi = read_file(input_out_file_folder[0], # FIXME: Re-read the information fromt the first file (maybe use different variable names for this?).
+    found_array, coordinates, xyz_sigmas, aoi_number, index_in_aoi = read_file(input_out_file_folder[0], # TODO: Re-read the information from the first file (maybe use different variable names for this?).
                                                                                test_subsets_list)
     indices_found = np.where(found_array == 1)[0]
 
@@ -745,6 +746,7 @@ if __name__ == '__main__':
         ax.text(mean_position_array[aoi_id, 0], mean_position_array[aoi_id, 1], mean_position_array[aoi_id, 2],
                 '%s' % (str(round(blade_number_of_aoi[aoi_id])) + " " + str(round(aoi_to_blade_aoi[aoi_id]))), size=10,
                 zorder=1, color='k')
+    ax.set_aspect('equal')
     ax.set_title('Gefundene Punkte')
     ax.set_xlabel('x-Achse')
     ax.set_ylabel('y-Achse')
@@ -798,7 +800,7 @@ if __name__ == '__main__':
         worker.join()
 
     print('\r', "Step 2/5: Create circle...  100 % ")
-    # Array auf die Stelle kürzen, bis zu welcher die Messpunkte abgespeichert worden sind
+    # Array auf die Stelle kürzen, bis zu welcher die Messpunkte abgespeichert worden sind # TODO: Check that this slicing is actually appropriate
     coordinates = coordinates[0 : file_counter - not_found_counter]
 
     # Parameter des Kreises berechnen. Hierfuer wird die Bibliothek geomfitty verwendet. Diese muss allerdings minimal angepasst werden. Die direkte Version von GitHub kann Probleme bereiten
@@ -810,6 +812,7 @@ if __name__ == '__main__':
     ax = plt.axes(projection='3d')
     ax.grid()
     ax.scatter(coordinates.T[0], coordinates.T[1], coordinates.T[2])
+    ax.set_aspect('equal')
     ax.set_title('Verwendete Kreisbahn zur Ausrichtung des Koordinatensystems')
     ax.set_xlabel('x-Achse')
     ax.set_ylabel('y-Achse')
@@ -874,23 +877,23 @@ if __name__ == '__main__':
     ax = plt.axes(projection='3d')
     ax.grid()
     ax.scatter(coordinates.T[0], coordinates.T[1], coordinates.T[2])
-    ax.set_title('Verwendete Kreisbahn zur Ausrichtung des Koordinatensystems')
+    ax.set_title('Verwendete Kreisbahn zur Ausrichtung des KoordinatensystemsKKKK')
     ax.set_xlabel('x-Achse')
     ax.set_ylabel('y-Achse')
     ax.set_zlabel('z-Achse')
     ax = plt.gca()
+    ax.set_aspect('equal')
     fig.show()
     plt.pause(1)
 
     print('\r', "Step 4/5: Search points for rotor blade torsion calculation...", end='')
 
-    coordinates = np.dot(rotation_matrix, (real_points - circle_center).T).T
+    coordinates = np.dot(rotation_matrix, (real_points - circle_center).T).T # TODO: is repeated many times to refer to different things throughout the script.
     mean_position_array = np.dot(rotation_matrix, (mean_position_array - circle_center).T).T
 
     rotation_matrix_for_aoi = np.empty((len(available_aoi_ids), 3, 3), float)
     for aoi_id in range(len(available_aoi_ids)):
-        index_highest_point_on_blade = \
-        np.where((blade_number_of_aoi == blade_number_of_aoi[aoi_id]) & (aoi_to_blade_aoi == np.max(aoi_to_blade_aoi)))[
+        index_highest_point_on_blade = np.where((blade_number_of_aoi == blade_number_of_aoi[aoi_id]) & (aoi_to_blade_aoi == np.max(aoi_to_blade_aoi)))[
             0][0]
         rotation_matrix_for_aoi[aoi_id] = find_x_rotation_matrix(mean_position_array[index_highest_point_on_blade])
 
@@ -898,7 +901,7 @@ if __name__ == '__main__':
     indices_for_aoi_inter_org = np.arange(len(coordinates))
 
     index_array = np.empty((len(available_aoi_ids), 2), int)
-    for aoi_index in range(len(available_aoi_ids)):
+    for aoi_index in range(len(available_aoi_ids)): # TODO: Every time he iterates over the available AoIs, he defines a new iterable with range() or list. A single list could be determine at the beginning and used throughout the script
         current_best_value = float('inf')
         best_points = None
 
@@ -936,6 +939,7 @@ if __name__ == '__main__':
                alpha=.5, s=10)
     ax.scatter(coordinates[index_array].T[0], coordinates[index_array].T[1], coordinates[index_array].T[2], c='r', s=80,
                label='Gute Punkte fuer Rotorblatttorsion')
+    ax.set_aspect('equal')
     ax.set_title('Ausgerichtetes Koordinatensystem')
     ax.set_xlabel('x-Achse')
     ax.set_ylabel('y-Achse')
@@ -988,17 +992,11 @@ if __name__ == '__main__':
     output_path3 = input_folder + "/SchlagSchwenk/"
     output_path4 = input_folder + "/Torsion/"
 
-    # Waehrend der Umformung der Out-Dateien wird pro AOI zusaetzlich ein Messpunkt seperat in einer CSV-Datei abgespeichert. Diese Messpunkte werden per SharedMemory an den Hauptprozess uebergeben, welcher diese dann abspeichert
+    # Waehrend der Umformung der Out-Dateien wird pro AoI zusaetzlich ein Messpunkt separat in einer CSV-Datei abgespeichert. Diese Messpunkte werden per SharedMemory an den Hauptprozess uebergeben, welcher diese dann abspeichert
     interesting_subsets_id_vicpy = np.empty((len(interesting_subsets), 3), int)
     interesting_subsets_id_vicpy[:, 0] = index_in_aoi[interesting_subsets]
     interesting_subsets_id_vicpy[:, 1] = index_in_aoi[index_array[:, 0]]
     interesting_subsets_id_vicpy[:, 2] = index_in_aoi[index_array[:, 1]]
-
-    #interesting_subsets_id_vicpy[:,1] = [2200,  389, 2484, 3620, 2798, 1947,  762, 3791, 3370, 2493, 1337, 2167,  918,  372,  319]
-    #interesting_subsets_id_vicpy[:,2] = [1131,  372, 1881, 2094, 1359, 1148,  417, 1294, 1138,  972,  551, 2109,  888,  325,  293]
-
-    #print("interesting_subsets_id_vicpy[:,1]: ", interesting_subsets_id_vicpy[:,1])
-    #print("interesting_subsets_id_vicpy[:,2]: ", interesting_subsets_id_vicpy[:,2])
 
     position_of_interesting_points_2d = read_file_pos_2d_at_index(input_out_file_folder[0],
                                                                   interesting_subsets_id_vicpy[:, 0])
