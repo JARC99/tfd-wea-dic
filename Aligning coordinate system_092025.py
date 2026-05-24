@@ -707,6 +707,14 @@ if __name__ == '__main__':
     # FIXME: The AoIs that have the smallest speed values will be used to eliminate the rigid body rotation. Define which one belongs to blade A.
     roi_ids_near_center = np.argsort(mean_speed_array)[:number_of_marked_blades] # Get the indexes of the (in most cases, 3) smallest AoI speed values.
 
+    idx_bladeA = np.argmax(mean_position_array[roi_ids_near_center, 1])
+    idx_bladeB = np.argmin(mean_position_array[roi_ids_near_center, 0])
+    idx_bladeC = np.argmax(mean_position_array[roi_ids_near_center, 0])
+
+    roi_ids_near_center = roi_ids_near_center[[idx_bladeA, idx_bladeB, idx_bladeC]]
+
+
+
     # Store all the points that belong to the innermost AoIs (this will be used for visualization).
     indices_of_inner_subsets = np.array([], dtype=int)
     for aoi_id in roi_ids_near_center:
