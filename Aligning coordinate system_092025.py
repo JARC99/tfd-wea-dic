@@ -864,6 +864,8 @@ if __name__ == '__main__':
 
     # Berechne Rotationsmatrix um die x-Achse, damit das Rotorblatt nach oben zeigt
     most_moved_point = np.dot(rotation_matrix, (real_points[index_most_movement] - circle_center).T).T
+    most_moved_point_blade = blade_number_of_aoi[aoi_number[index_most_movement]]
+
 
     diff = most_moved_point / np.linalg.norm(most_moved_point)
     x0 = diff[2]
@@ -871,8 +873,10 @@ if __name__ == '__main__':
     if x0 > 0:
         angle = math.degrees(math.asin(x1))
     else:
-        angle = 360 - math.degrees(math.asin(x1))
+        angle = 360 - math.degrees(math.asin(x1)) # TODO: You could just substract the angle from 180°
         angle += 180
+    angle += -120 * most_moved_point_blade
+
     x_rot_angle = math.radians(angle)
     rot_x = np.array([[1, 0, 0],
                       [0, math.cos(x_rot_angle), -math.sin(x_rot_angle)],
