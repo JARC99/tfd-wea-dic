@@ -734,6 +734,7 @@ if __name__ == '__main__':
             np.sort(mean_speed_array[np.where(blade_number_of_aoi == blade_id)]), mean_speed_array[aoi_id]))
 
     # Plot a diagram with the obtained information.
+    blade_name_list = ["A", "B", "C"]
     found_and_inner_subsets = np.intersect1d(indices_found, indices_of_inner_subsets)
     fig = plt.figure(figsize=(10, 10))
     ax = plt.axes(projection='3d')
@@ -752,7 +753,7 @@ if __name__ == '__main__':
                label='AoI Mittelpunkt')
     for aoi_id in range(len(available_aoi_ids)):
         ax.text(mean_position_array[aoi_id, 0], mean_position_array[aoi_id, 1], mean_position_array[aoi_id, 2],
-                '%s' % (str(round(blade_number_of_aoi[aoi_id])) + " " + str(round(aoi_to_blade_aoi[aoi_id]))), size=10,
+                '%s' % (blade_name_list[int(blade_number_of_aoi[aoi_id])] + ": " + str(round(aoi_to_blade_aoi[aoi_id]))), size=10,
                 zorder=1, color='k')
     ax.set_aspect('equal')
     ax.set_title('Gefundene Punkte')
@@ -885,7 +886,7 @@ if __name__ == '__main__':
     ax = plt.axes(projection='3d')
     ax.grid()
     ax.scatter(coordinates.T[0], coordinates.T[1], coordinates.T[2])
-    ax.set_title('Verwendete Kreisbahn zur Ausrichtung des KoordinatensystemsKKKK')
+    ax.set_title('Verwendete Kreisbahn zur Ausrichtung des Koordinatensystems')
     ax.set_xlabel('x-Achse')
     ax.set_ylabel('y-Achse')
     ax.set_zlabel('z-Achse')
@@ -977,7 +978,7 @@ if __name__ == '__main__':
     ax.scatter(two_d_coordinates.T[0], np.max(two_d_coordinates.T[1]) - two_d_coordinates.T[1])
     plt.title("Bennenung der gefundenen AOI (zum Bild 0 der Kamera 0)")
     for aoi_id in range(len(two_d_coordinates)):
-        annotation = "Blade: " + str(int(blade_number_of_aoi[aoi_id])) + "  AoI: " + str(
+        annotation = "Blade " + blade_name_list[int(blade_number_of_aoi[aoi_id])] + " - AoI " + str(
             int(aoi_to_blade_aoi[aoi_id]))  #TODO: use formated strings
         ax.annotate(annotation,
                     (two_d_coordinates.T[0][aoi_id], np.max(two_d_coordinates.T[1]) - two_d_coordinates.T[1][aoi_id]))
