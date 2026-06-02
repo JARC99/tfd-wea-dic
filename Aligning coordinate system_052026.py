@@ -582,7 +582,7 @@ if __name__ == '__main__':
     found_array, coordinates, xyz_sigmas, aoi_number, index_in_aoi = read_file(input_out_file_folder[0],
                                                                                None)  # Reads the first .out file from the folder. These arrays contain information of all the points in that first frame.
     found_indices = np.where(found_array == 1)[
-        0]  # Extracts the indexes of the points tht are visible throughout the file
+        0]  # Extracts the indexes of the points that are visible throughout the file
     for i in range(0, len(found_indices), 10):
         test_subsets_list.append(found_indices[i])  # Fills the index list with 1 out of 10 values of the visible points
     test_subsets_list = np.array(test_subsets_list)
@@ -720,7 +720,6 @@ if __name__ == '__main__':
     for aoi_id in roi_ids_near_center:
         indices_of_inner_subsets = np.append(indices_of_inner_subsets, np.where(aoi_number == aoi_id)[0])
 
-    # FIXME: Create a list, which contains the rotor blade ID for each of the AoIs. Currently, ID 0 must no necessarily correspond with blade A.
     blade_number_of_aoi = np.empty((len(available_aoi_ids)))
     for aoi_id in range(len(available_aoi_ids)):
         blade_number_of_aoi[aoi_id] = np.argmin(
