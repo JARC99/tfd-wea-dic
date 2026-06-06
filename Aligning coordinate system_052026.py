@@ -6,7 +6,7 @@ from multiprocessing import Process, Value, shared_memory, Lock, Condition, Queu
 import easygui
 import numpy as np
 import pandas as pd
-from VicPy import *  # VicDataSet, RigidTransformation, Rotation # FIXME: Unlabeled import is not recommended, affetcs code readibility.
+from VicPy import VicDataSet, RigidTransformation, Rotation # FIXME: Unlabeled import is not recommended, affetcs code readibility.
 from geomfitty import geom3d, fit3d
 from matplotlib import pyplot as plt
 from scipy.io import loadmat
@@ -575,7 +575,7 @@ if __name__ == '__main__':
     print("Inputfolder: ", input_folder)
     input_out_file_folder = sorted(glob.glob(input_folder + '/*.out'))  # Sorting files alphabetically
 
-    frame_n = 2979  # len(input_out_file_folder)
+    frame_n = len(input_out_file_folder) # 2979
 
 # Here we load and compute the information needed to use the yaw angle time series
     if YAW_ANGLE_FLAG:
