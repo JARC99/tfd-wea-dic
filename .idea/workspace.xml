@@ -2,6 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="0efe07e9-d7b0-45db-8bf1-a434066f896b" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/.name" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/tfd-dic-post-processing.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/tfd-wea-dic.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Aligning coordinate system_052026.py" beforeDir="false" afterPath="$PROJECT_DIR$/Aligning coordinate system_052026.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/sandbox.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/sandbox.ipynb" afterDir="false" />
@@ -13,6 +16,9 @@
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="JupyterVarsSortingOptionsState">
+    <option name="areDataframesOnTop" value="false" />
   </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 8,
@@ -31,7 +37,7 @@
     "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "Python.AOI Segmentation_092025 - Kopie.executor": "Run",
-    "Python.Aligning coordinate system_052026.executor": "Debug",
+    "Python.Aligning coordinate system_052026.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
@@ -39,7 +45,7 @@
     "codeWithMe.voiceChat.enabledByDefault": "false",
     "git-widget-placeholder": "eliminate-yaw-angle",
     "ignore.virus.scanning.warn.message": "true",
-    "last_opened_file_path": "G:/Meine Ablage/300 Professional/340 TFD/tfd-dic-post-processing",
+    "last_opened_file_path": "C:/Users/jarc/Desktop",
     "node.js.detected.package.eslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
@@ -49,7 +55,7 @@
 }]]></component>
   <component name="RunManager" selected="Python.Aligning coordinate system_052026">
     <configuration name="AOI Segmentation_092025 - Kopie" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="tfd-dic-post-processing" />
+      <module name="tfd-wea-dic" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -74,7 +80,7 @@
       <method v="2" />
     </configuration>
     <configuration name="Aligning coordinate system_052026" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="tfd-dic-post-processing" />
+      <module name="tfd-wea-dic" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -125,6 +131,14 @@
       <workItem from="1780382014900" duration="42000" />
       <workItem from="1780382617584" duration="85000" />
       <workItem from="1780383030574" duration="9929000" />
+      <workItem from="1780472404750" duration="397000" />
+      <workItem from="1780490793017" duration="3807000" />
+      <workItem from="1780494635658" duration="2792000" />
+      <workItem from="1780497543437" duration="1440000" />
+      <workItem from="1780555003084" duration="4282000" />
+      <workItem from="1780652594679" duration="18217000" />
+      <workItem from="1780736527882" duration="1000" />
+      <workItem from="1780736539205" duration="5353000" />
     </task>
     <servers />
   </component>
@@ -136,17 +150,17 @@
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/Aligning coordinate system_052026.py</url>
-          <line>832</line>
+          <line>837</line>
           <option name="timeStamp" value="1" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/Aligning coordinate system_052026.py</url>
-          <line>858</line>
+          <line>863</line>
           <option name="timeStamp" value="2" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/Aligning coordinate system_052026.py</url>
-          <line>815</line>
+          <line>820</line>
           <option name="timeStamp" value="3" />
         </line-breakpoint>
       </breakpoints>
@@ -155,5 +169,6 @@
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Aligning_coordinate_system_092025_py$Aligning_coordinate_system_052026.coverage" NAME="Aligning coordinate system_052026 Coverage Results" MODIFIED="1780390836425" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/tfd_dic_post_processing$AOI_Segmentation_092025___Kopie.coverage" NAME="AOI Segmentation_092025 - Kopie Coverage Results" MODIFIED="1778069815128" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="E:/HiWi Cordova/Python/Code_Post-Processing" />
+    <SUITE FILE_PATH="coverage/tfd_wea_dic$Aligning_coordinate_system_052026.coverage" NAME="Aligning coordinate system_052026 Coverage Results" MODIFIED="1780498263093" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>

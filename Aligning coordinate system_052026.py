@@ -1,12 +1,12 @@
 import glob
 import math
 import os
-# from Blender import *
 from multiprocessing import Process, Value, shared_memory, Lock, Condition, Queue, Semaphore
 
 import easygui
+import numpy as np
 import pandas as pd
-from VicPy import *  # FIXME: Unlabeled import is not recommended, affetcs code readibility.
+from VicPy import *#VicDataSet, RigidTransformation, Rotation # FIXME: Unlabeled import is not recommended, affetcs code readibility.
 from geomfitty import geom3d, fit3d
 from matplotlib import pyplot as plt
 
@@ -14,6 +14,7 @@ from matplotlib import pyplot as plt
 # Pfad zum Ordner, im welchen sich die Out-Datein befinden, welche direkt nach der Triangulation in Vic-3D generiert wurden. 
 # Wenn None, dann wird ein File-Picker Dialog angezeigt (ist zu bevorzugen). 
 input_folder = None  # TODO: move all input fields together.
+yaw_time_seres_flag = True
 
 # Anzahl an Prozessoren zum Einlesen der Datein
 number_of_processes = 16
@@ -574,6 +575,11 @@ if __name__ == '__main__':
     print("Inputfolder: ", input_folder)
     input_out_file_folder = sorted(glob.glob(input_folder + '/*.out'))  # Sorting files alphabetically
 
+    if yaw_time_series_flag:
+        yaw_time_seres_file = easygui.fileopenbox("Select the Yaw Angle Time-Series File")
+    else:
+        pass
+
     print('\r', "Step 1/5: Search for suitable measurement points...", end='')
 
     # We read all the points in the first .out file. A subset of these will be selected and subsequently used for the
@@ -592,7 +598,7 @@ if __name__ == '__main__':
     # do not need to read the whole files. We predefine a set of lists to store the relevant information of each of
     # the observed points throughout the whole recording.
     visible_counter = np.ones(len(test_subsets_list),
-                              int)  # Counts how many times a point was visible throughout the frames
+                              int)  # Counts how many times a point was visible throughout the measurement
     sigmas = np.zeros(len(test_subsets_list),
                       float)  # The magnitude of the uncertainty of the individual points is added for every frame
     distance = np.ones(len(test_subsets_list),
@@ -672,7 +678,6 @@ if __name__ == '__main__':
     interesting_subsets = []
     available_aoi_ids = np.unique(ar=aoi_number, return_counts=False) # Determine the number of unique AoIs in the WEA
 
-    #list_max_points = []
     id_counter = 0
     for local_aoi_id in available_aoi_ids:
         local_sub_ids = np.where(aoi_number == local_aoi_id)[0] # Find the indexes of of the points that are located within the current AoI.
