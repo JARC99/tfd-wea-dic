@@ -4,6 +4,7 @@ import os
 from multiprocessing import Process, Value, shared_memory, Lock, Condition, Queue, Semaphore
 
 import easygui
+import numpy as np
 import pandas as pd
 from VicPy import *  # VicDataSet, RigidTransformation, Rotation # FIXME: Unlabeled import is not recommended, affetcs code readibility.
 from geomfitty import geom3d, fit3d
@@ -364,7 +365,7 @@ def process_out_files(file_path_queue, output_path1, output_path2, translation_v
         _, tail = os.path.split(file)
 
         translation_vector = (translation_vector_arg[0], translation_vector_arg[1], translation_vector_arg[2])
-        rotation_matrix = rotation_matrix_arg.copy()
+        rotation_matrix = rotation_matrix_arg[file_number].copy()
 
         translation.setTranslation(translation_vector)
         rotation_obj.setMatrix(rotation_matrix)
@@ -576,11 +577,11 @@ if __name__ == '__main__':
 
     frame_n = 2979  # len(input_out_file_folder)
 
-# Here we load and compute the infomation needed to use the yaw angle time series
+# Here we load and compute the information needed to use the yaw angle time series
     if YAW_ANGLE_FLAG:
         yaw_angle_file = easygui.fileopenbox("Select the Yaw Angle Time-Series File")
 
-        yaw_angle_array = np.array(loadmat(yaw_angle_file)["yaw_wea"])[:frame_n]
+        yaw_angle_array = np.array(loadmat(yaw_angle_file)["yaw_wea"])[:frame_n].flatten()
 
         yaw_angle_mean = np.mean(yaw_angle_array)
         yaw_angle_med = np.median(yaw_angle_array)
@@ -874,10 +875,12 @@ if __name__ == '__main__':
     # Messpunkte aus dem ersten Frame einlesen, um diese zu visualisieren. Hierdurch kann erkannt werden, ob die Messdaten korrekt ausgerichtet werden oder nicht
     found_array, real_points, xyz_sigmas, aoi_number, _ = read_file(input_out_file_folder[0], test_subsets_list) # TODO: it's like the fourth time it does this, I'm pretty sure we could just doit once and reuse the values
 
+
+
+
     # Berechne Rotationsmatrix um die x-Achse, damit das Rotorblatt nach oben zeigt
     most_moved_point = np.dot(rotation_matrix, (real_points[index_most_movement] - circle_center).T).T
     most_moved_point_blade = blade_number_of_aoi[aoi_number[index_most_movement]]
-
 
     diff = most_moved_point / np.linalg.norm(most_moved_point)
     x0 = diff[2]
@@ -894,7 +897,22 @@ if __name__ == '__main__':
                       [0, math.cos(x_rot_angle), -math.sin(x_rot_angle)],
                       [0, math.sin(x_rot_angle), math.cos(x_rot_angle)]])
 
-    rotation_matrix = np.dot(rot_x, rotation_matrix)
+
+
+    # TODO: Calculate the rotation matrix array to correct yaw
+    z_rot_angle_array = yaw_angle_array - yaw_angle_med
+
+    rotation_matrix_list = []
+    for z_rot_angle in z_rot_angle_array:
+        rot_z = np.array([[np.cos(z_rot_angle), -np.sin(z_rot_angle), 0],
+                          [np.sin(z_rot_angle), np.cos(z_rot_angle), 0],
+                          [0, 0, 1]])
+        rotation_matrix_list.append(np.matmul(rot_x, np.matmul(rot_z, rotation_matrix)))
+
+
+
+    rotation_matrix = rotation_matrix_list[0] #np.dot(rot_x, rotation_matrix) #TODO: kill rhis
+
     coordinates = np.dot(rotation_matrix, (coordinates - circle_center).T).T
     print('\r', "Step 3/5: Calculate circle...  100 %")
 
@@ -980,7 +998,7 @@ if __name__ == '__main__':
 
     indices_of_inner_subsets = np.array([], dtype=int)
     for roi_id in roi_ids_near_center:
-        indices_of_inner_subsets = np.append(indices_of_inner_subsets, np.where(aoi_number == roi_id)[0])
+        indices_of_inner_subsets = np.append(indices_of_inner_subsets, np.where(aoi_number == roi_id)[0]) # TODO: This is also a repeated operation
 
     found_array_first_frame = found_array[indices_of_inner_subsets]
     coordinates_first_frame = coordinates[indices_of_inner_subsets]
@@ -1017,7 +1035,7 @@ if __name__ == '__main__':
     output_path3 = input_folder + "/SchlagSchwenk/"
     output_path4 = input_folder + "/Torsion/"
 
-    # Waehrend der Umformung der Out-Dateien wird pro AoI zusaetzlich ein Messpunkt separat in einer CSV-Datei abgespeichert. Diese Messpunkte werden per SharedMemory an den Hauptprozess uebergeben, welcher diese dann abspeichert
+    # Während der Umformung der Out-Dateien wird pro AoI zusätzlich ein Messpunkt separat in einer CSV-Datei abgespeichert. Diese Messpunkte werden per SharedMemory an den Hauptprozess übergeben, welcher diese dann abspeichert
     interesting_subsets_id_vicpy = np.empty((len(interesting_subsets), 3), int)
     interesting_subsets_id_vicpy[:, 0] = index_in_aoi[interesting_subsets]
     interesting_subsets_id_vicpy[:, 1] = index_in_aoi[index_array[:, 0]]
@@ -1040,7 +1058,7 @@ if __name__ == '__main__':
     workers = []
     for _ in range(number_of_processes):
         worker = Process(target=process_out_files,
-                         args=(file_path_queue, output_path1, output_path2, -circle_center, rotation_matrix,
+                         args=(file_path_queue, output_path1, output_path2, -circle_center, rotation_matrix_list,
                                roi_ids_near_center, found_array_first_frame, coordinates_first_frame, shared_mem,
                                interesting_subsets_id_vicpy))
         worker.start()

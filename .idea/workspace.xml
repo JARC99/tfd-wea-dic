@@ -135,7 +135,7 @@
       <workItem from="1780555003084" duration="4282000" />
       <workItem from="1780652594679" duration="18217000" />
       <workItem from="1780736527882" duration="1000" />
-      <workItem from="1780736539205" duration="7511000" />
+      <workItem from="1780736539205" duration="12532000" />
     </task>
     <servers />
   </component>
@@ -147,18 +147,8 @@
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/Aligning coordinate system_052026.py</url>
-          <line>845</line>
-          <option name="timeStamp" value="1" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/Aligning coordinate system_052026.py</url>
-          <line>871</line>
-          <option name="timeStamp" value="2" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/Aligning coordinate system_052026.py</url>
-          <line>828</line>
-          <option name="timeStamp" value="3" />
+          <line>367</line>
+          <option name="timeStamp" value="6" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
@@ -166,6 +156,6 @@
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Aligning_coordinate_system_092025_py$Aligning_coordinate_system_052026.coverage" NAME="Aligning coordinate system_052026 Coverage Results" MODIFIED="1780390836425" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/tfd_dic_post_processing$AOI_Segmentation_092025___Kopie.coverage" NAME="AOI Segmentation_092025 - Kopie Coverage Results" MODIFIED="1778069815128" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="E:/HiWi Cordova/Python/Code_Post-Processing" />
-    <SUITE FILE_PATH="coverage/tfd_wea_dic$Aligning_coordinate_system_052026.coverage" NAME="Aligning coordinate system_052026 Coverage Results" MODIFIED="1780744031742" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/tfd_wea_dic$Aligning_coordinate_system_052026.coverage" NAME="Aligning coordinate system_052026 Coverage Results" MODIFIED="1780750181251" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
