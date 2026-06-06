@@ -2,9 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="0efe07e9-d7b0-45db-8bf1-a434066f896b" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/.name" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/tfd-dic-post-processing.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/tfd-wea-dic.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Aligning coordinate system_052026.py" beforeDir="false" afterPath="$PROJECT_DIR$/Aligning coordinate system_052026.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/sandbox.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/sandbox.ipynb" afterDir="false" />
@@ -138,7 +135,7 @@
       <workItem from="1780555003084" duration="4282000" />
       <workItem from="1780652594679" duration="18217000" />
       <workItem from="1780736527882" duration="1000" />
-      <workItem from="1780736539205" duration="5353000" />
+      <workItem from="1780736539205" duration="7511000" />
     </task>
     <servers />
   </component>
@@ -150,17 +147,17 @@
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/Aligning coordinate system_052026.py</url>
-          <line>837</line>
+          <line>845</line>
           <option name="timeStamp" value="1" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/Aligning coordinate system_052026.py</url>
-          <line>863</line>
+          <line>871</line>
           <option name="timeStamp" value="2" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/Aligning coordinate system_052026.py</url>
-          <line>820</line>
+          <line>828</line>
           <option name="timeStamp" value="3" />
         </line-breakpoint>
       </breakpoints>
@@ -169,6 +166,6 @@
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Aligning_coordinate_system_092025_py$Aligning_coordinate_system_052026.coverage" NAME="Aligning coordinate system_052026 Coverage Results" MODIFIED="1780390836425" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/tfd_dic_post_processing$AOI_Segmentation_092025___Kopie.coverage" NAME="AOI Segmentation_092025 - Kopie Coverage Results" MODIFIED="1778069815128" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="E:/HiWi Cordova/Python/Code_Post-Processing" />
-    <SUITE FILE_PATH="coverage/tfd_wea_dic$Aligning_coordinate_system_052026.coverage" NAME="Aligning coordinate system_052026 Coverage Results" MODIFIED="1780498263093" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/tfd_wea_dic$Aligning_coordinate_system_052026.coverage" NAME="Aligning coordinate system_052026 Coverage Results" MODIFIED="1780744031742" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>

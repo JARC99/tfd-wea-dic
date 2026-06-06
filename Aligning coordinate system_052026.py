@@ -4,17 +4,16 @@ import os
 from multiprocessing import Process, Value, shared_memory, Lock, Condition, Queue, Semaphore
 
 import easygui
-import numpy as np
 import pandas as pd
-from VicPy import *#VicDataSet, RigidTransformation, Rotation # FIXME: Unlabeled import is not recommended, affetcs code readibility.
+from VicPy import *  # VicDataSet, RigidTransformation, Rotation # FIXME: Unlabeled import is not recommended, affetcs code readibility.
 from geomfitty import geom3d, fit3d
 from matplotlib import pyplot as plt
-
+from scipy.io import loadmat
 
 # Pfad zum Ordner, im welchen sich die Out-Datein befinden, welche direkt nach der Triangulation in Vic-3D generiert wurden. 
 # Wenn None, dann wird ein File-Picker Dialog angezeigt (ist zu bevorzugen). 
 input_folder = None  # TODO: move all input fields together.
-yaw_time_seres_flag = True
+YAW_ANGLE_FLAG = True
 
 # Anzahl an Prozessoren zum Einlesen der Datein
 number_of_processes = 16
@@ -575,8 +574,17 @@ if __name__ == '__main__':
     print("Inputfolder: ", input_folder)
     input_out_file_folder = sorted(glob.glob(input_folder + '/*.out'))  # Sorting files alphabetically
 
-    if yaw_time_series_flag:
-        yaw_time_seres_file = easygui.fileopenbox("Select the Yaw Angle Time-Series File")
+    frame_n = 2979  # len(input_out_file_folder)
+
+# Here we load and compute the infomation needed to use the yaw angle time series
+    if YAW_ANGLE_FLAG:
+        yaw_angle_file = easygui.fileopenbox("Select the Yaw Angle Time-Series File")
+
+        yaw_angle_array = np.array(loadmat(yaw_angle_file)["yaw_wea"])[:frame_n]
+
+        yaw_angle_mean = np.mean(yaw_angle_array)
+        yaw_angle_med = np.median(yaw_angle_array)
+
     else:
         pass
 
