@@ -669,7 +669,7 @@ if __name__ == '__main__':
 
     print('\r', "Step 1/5: Search for suitable measurement points...  100 %")
 
-    # We now need to find a reference point to compute the circular path
+    # TODO: FALSWe now need to find a reference point to compute the circular path
     # of the blades. This point will be selected from the subset of studied points. The following considerations must
     # be taken into account:
     # 1. The point must be visible most of the time.
@@ -900,15 +900,18 @@ if __name__ == '__main__':
 
 
     # TODO: Calculate the rotation matrix array to correct yaw
-    z_rot_angle_array = yaw_angle_array - yaw_angle_med
 
-    rotation_matrix_list = []
-    for z_rot_angle in z_rot_angle_array:
-        rot_z = np.array([[np.cos(z_rot_angle), -np.sin(z_rot_angle), 0],
-                          [np.sin(z_rot_angle), np.cos(z_rot_angle), 0],
-                          [0, 0, 1]])
-        rotation_matrix_list.append(np.matmul(rot_x, np.matmul(rot_z, rotation_matrix)))
+    if YAW_ANGLE_FLAG:
+        z_rot_angle_array = np.deg2rad(yaw_angle_array - yaw_angle_med)
 
+        rotation_matrix_list = []
+        for z_rot_angle in z_rot_angle_array:
+            rot_z = np.array([[np.cos(z_rot_angle), -np.sin(z_rot_angle), 0],
+                              [np.sin(z_rot_angle), np.cos(z_rot_angle), 0],
+                              [0, 0, 1]])
+            rotation_matrix_list.append(np.matmul(rot_x, np.matmul(rot_z, rotation_matrix)))
+    else:
+        rotation_matrix_list = [np.matmul(rot_x, rotation_matrix)] * len(input_out_file_folder)
 
 
     rotation_matrix = rotation_matrix_list[0] #np.dot(rot_x, rotation_matrix) #TODO: kill rhis
