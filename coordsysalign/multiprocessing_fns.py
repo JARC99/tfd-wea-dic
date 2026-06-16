@@ -1,8 +1,10 @@
 import numpy as np
-
+import os
 
 from VicPy import VicDataSet, RigidTransformation, Rotation # FIXME: Unlabeled import is not recommended, affetcs code readibility.
 from multiprocessing import Process, Value, shared_memory, Lock, Condition, Queue, Semaphore
+
+from coordsysalign.transformation_fns import find_rotation, find_translation
 
 def put_to_queue(input_out_file_folder, file_path_queue: Queue, number_of_workers):
     """
@@ -310,7 +312,7 @@ def read_file_loop(file_name_queue, shared_memory: SharedMemory, subset_index):
 
 def process_out_files(file_path_queue, output_path1, output_path2, translation_vector_arg, rotation_matrix_arg,
                       roi_ids_near_center, found_array_first_frame, coordinates_first_frame, shared_mem: SharedMemory,
-                      interesting_subsets_id_vicpy):
+                      interesting_subsets_id_vicpy, variables_export_name_out_file):
     """
     Passt die Daten in den Out-Datein an, sodass das Koordinatensystem ausgerichtet ist und eliminiert die Starrkoerperrotation. Danach werden die Out-Datein jeweils erneut abgespeichert.
 
@@ -430,3 +432,6 @@ def process_out_files(file_path_queue, output_path1, output_path2, translation_v
             coordinates_for_ret[aoi, 0] = np.array(d.values(interesting_subsets_id_vicpy[aoi, 0], var_ids))
 
         shared_mem.put(file_number, [coordinates_for_ret])
+
+if __name__ == "__main__":
+    pass

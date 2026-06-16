@@ -5,12 +5,17 @@ import os
 import math
 from geomfitty import geom3d, fit3d
 from VicPy import *
-#from Blender import *
+
+
 import time
 from multiprocessing import Process, Value, shared_memory, Lock, Condition, Queue, Semaphore
 import easygui
 import pandas as pd
 import sys
+
+
+from coordsysalign.multiprocessing_fns import *
+from coordsysalign.transformation_fns import *
 
 # Pfad zum Ordner, im welchen sich die Out-Datein befinden, welche direkt nach der Triangulation in Vic-3D generiert wurden. 
 # Wenn None, dann wird ein File-Picker Dialog angezeigt (ist zu bevorzugen). 
@@ -176,7 +181,7 @@ class SharedMemory:
 
     def __init__(self, content):
         """
-            content - enhaelt einen Beispiel wie der Inhalt aussieht, der spaeter in die Queue geschrieben wird. Entsprechend content werden die einzelnen Felder in aufgebaut. 
+            content - enhaelt einen Beispiel wie der Inhalt aussieht, der spaeter in die Queue geschrieben wird. Entsprechend content werden die einzelnen Felder in aufgebaut.
         """
         self.shm_list = []
         self.shape_list = []
@@ -196,8 +201,8 @@ class SharedMemory:
 
     def put(self, file_number, content):
         """
-        Pack etwas in den SharedMemory. 
-            file_number - Die Nummer der Datei, dessen Inhalt in den SharedMemory gepackt werden soll. Ist dafuer da, dass die Inhalte der Dateien in 
+        Pack etwas in den SharedMemory.
+            file_number - Die Nummer der Datei, dessen Inhalt in den SharedMemory gepackt werden soll. Ist dafuer da, dass die Inhalte der Dateien in
                             der richtigen Reihenfolge in die Queue gepackt werden
             content - Inhalt der Datei.
         """
@@ -284,7 +289,7 @@ def read_file_point_loop(file_name_queue, shared_memory : SharedMemory, subset_i
 
 
 def read_file_loop(file_name_queue, shared_memory : SharedMemory, subset_index):
-    """        
+    """
     Ist wie "read_file", allerdings werden mehrere Datein in einem Loop eingelesen und der Inhalt wird in den SharedMemory gepackt.
 
         file_path_queue - Queue, welche die Dateinummer und den Dateinamen der Out-Dateien enthaelt.
@@ -354,9 +359,9 @@ def process_out_files(file_path_queue, output_path1, output_path2, translation_v
         translation_vector_arg - Translationsvektor zur Anpassung des Koordinatensystems (Naben-Koordinatensystem)
         rotation_matrix_arg - Rotationsmatrix zur Anpassung des Koordinatensystems (Naben-Koordinatensystem)
         roi_ids_near_center - Ids der AOI, welche sich im Mittelpunkt des Rotors befinden. Dient zur Eliminierung der Starrkoerperrotation
-        found_array_first_frame - Gibt an, welche Subsets im ersten Frame im Blattwurzelbereich gefunden worden sind. 
+        found_array_first_frame - Gibt an, welche Subsets im ersten Frame im Blattwurzelbereich gefunden worden sind.
         coordinates_first_frame - Koordinaten der Subsets im Blattwurzelbereich
-        semaphore - Wird immer freigegeben, wenn eine Datein verarbeitet wurde. Dient zur Anzeige des Fortschritts (Prozentangabe im Terminal). 
+        semaphore - Wird immer freigegeben, wenn eine Datein verarbeitet wurde. Dient zur Anzeige des Fortschritts (Prozentangabe im Terminal).
     """
     var_ids = []
     data = VicDataSet()
@@ -398,7 +403,7 @@ def process_out_files(file_path_queue, output_path1, output_path2, translation_v
                         var_ids.append(idx)
             #for i in range(1, 51):
             #    coordinates_for_ret[aoi, i] = np.array(d.values(interesting_subsets_id_vicpy[aoi, i], var_ids))
-         
+
 
         found_array = np.empty((0), int)
         coordinates = np.empty((0,3), float)
@@ -447,7 +452,7 @@ def process_out_files(file_path_queue, output_path1, output_path2, translation_v
         rotation.setRotation(rotation_obj)
 
         """ToggleNR. Hier lässt sich die Eliminierung der Rotation einstellen. Wird der erste Code Block aktiviert wird die Eliminierung
-        durchgeführt. Ist der zweite Block aktiv kommt es nicht zur Eliminierung der Rotation, bevor die Punktepaare zur späteren Bestimmung 
+        durchgeführt. Ist der zweite Block aktiv kommt es nicht zur Eliminierung der Rotation, bevor die Punktepaare zur späteren Bestimmung
         der Torsion exportiert werden."""
         "#1"
 
@@ -508,8 +513,8 @@ def quaternion_to_rotation_matrix(Q):
 
 
 def find_rotation(right_co, left_co):
-    """        
-    Berechnet eine Rotationsmatrix, um die Punkte im left_co-Koordinatensystem nach der Rotation im right_co-Koordinatensystem auszurichten. 
+    """
+    Berechnet eine Rotationsmatrix, um die Punkte im left_co-Koordinatensystem nach der Rotation im right_co-Koordinatensystem auszurichten.
     Die Punkte sind nach dem Anwenden der Rotationsmatrix noch nicht gleich, da die Translation und die Skalierung noch berücksichtigt werden muss
 
         right_co - Punkte im ersten Koordinatensystem (Referenz)
@@ -540,7 +545,7 @@ def find_rotation(right_co, left_co):
 
 
 def find_scale(right_co, left_co_temp, rot_mat):
-    """        
+    """
     Berechnet einen Skalierungsvektor, um Punkte aus dem Koordinatensystem left_co_temp in Punkte nach dem Koordinatensystem right_co zu ueberfuehren
 
         right_co - Punkte im ersten Koordinatensystem (Referenz)
@@ -558,7 +563,7 @@ def find_scale(right_co, left_co_temp, rot_mat):
 
 
 def find_translation(right_co, left_co_temp):
-    """        
+    """
     Berechnet einen Translationsvektor, um Punkte aus dem Koordinatensystem left_co_temp in Punkte nach dem Koordinatensystem right_co zu ueberfuehren.
     Die Rotation muss bereits angepasst worden sein
 
@@ -572,7 +577,7 @@ def find_translation(right_co, left_co_temp):
 
 
 def find_x_rotation_matrix(point):
-    """        
+    """
     Berechnet eine Rotationsmatrix, welche einen Punkt um die x-Achse auf die "12-Uhr" Position dreht
 
         point - Mit diesem Punkt wird die Rotationsmatrix ermittelt

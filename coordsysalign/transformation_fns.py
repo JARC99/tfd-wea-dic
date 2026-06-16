@@ -108,3 +108,6 @@ def calculate_circle_rotation_matrix(circle_direction, direction):
     rotation_matrix = np.identity(3) + vx + np.dot(vx, vx) * ((1 - c) / s ** 2)
     ## Ende Rechnung
     return rotation_matrix
+
+if __name__ == "__main__":
+    pass
