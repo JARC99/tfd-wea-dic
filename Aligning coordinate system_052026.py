@@ -13,14 +13,14 @@ from scipy.io import loadmat
 
 # Pfad zum Ordner, im welchen sich die Out-Datein befinden, welche direkt nach der Triangulation in Vic-3D generiert wurden. 
 # Wenn None, dann wird ein File-Picker Dialog angezeigt (ist zu bevorzugen). 
-input_folder = None  # TODO: move all input fields together.
+INPUT_FOLDER = None  # TODO: move all input fields together.
 YAW_ANGLE_FLAG = True
 
 # Anzahl an Prozessoren zum Einlesen der Datein
-number_of_processes = 16
+N_PROCESSES = 16
 
 # Gibt an, wie viele Rotorblaetter ausgewertet werden sollen/können. Dient zur Identifikation der Wurzel-ROI. Ist z.B. nur ein Blatt beklebt, dann eine eins eintregen
-number_of_marked_blades = 3
+N_MARKED_BLADES = 3
 
 # Liste mit den Variablen, welche in die einzelnen CSV-Datein abgespeichert werden sollen. Der Index ist immer dabei und an ersten Stelle
 variables_export_name_out_file = ["X", "Y", "Z", "U", "V", "W", "SIGMA_X", "SIGMA_Y", "SIGMA_Z", "sigma"]
@@ -570,10 +570,10 @@ def calculate_circle_rotation_matrix(circle_direction, direction):
 if __name__ == '__main__':
 
     # The script starts off by letting the user choose the folder containing the Vic3D .out files that need to be processed
-    if input_folder is None:
-        input_folder = easygui.diropenbox("Select Folder with out-Files")
-    print("Inputfolder: ", input_folder)
-    input_out_file_folder = sorted(glob.glob(input_folder + '/*.out'))  # Sorting files alphabetically
+    if INPUT_FOLDER is None:
+        INPUT_FOLDER = easygui.diropenbox("Select Folder with out-Files")
+    print("Inputfolder: ", INPUT_FOLDER)
+    input_out_file_folder = sorted(glob.glob(INPUT_FOLDER + '/*.out'))  # Sorting files alphabetically
 
     frame_n = len(input_out_file_folder) # 2979
 
@@ -582,9 +582,6 @@ if __name__ == '__main__':
         yaw_angle_file = easygui.fileopenbox("Select the Yaw Angle Time-Series File")
 
         yaw_angle_array = np.array(loadmat(yaw_angle_file)["yaw_wea"])[:frame_n].flatten()
-
-        yaw_angle_mean = np.mean(yaw_angle_array)
-        yaw_angle_med = np.median(yaw_angle_array)
 
     else:
         pass
@@ -625,13 +622,13 @@ if __name__ == '__main__':
     # The process that is being initialized here feeds the .out file paths to the Queue. These files are then taken
     # from this queue and read by the working processes
     put_to_queue_process = Process(target=put_to_queue,
-                                   args=(input_out_file_folder, file_path_queue, number_of_processes))
+                                   args=(input_out_file_folder, file_path_queue, N_PROCESSES))
     put_to_queue_process.start()
 
     # Here we start the processes that will actually read the .out files. Once read, these files are ordered and
     # deposited in the Shared Memory
     workers = []
-    for _ in range(number_of_processes):
+    for _ in range(N_PROCESSES):
         worker = Process(target=read_file_loop, args=(file_path_queue, shared_mem, test_subsets_list))
         worker.start()
         workers.append(worker)
@@ -669,7 +666,7 @@ if __name__ == '__main__':
 
     print('\r', "Step 1/5: Search for suitable measurement points...  100 %")
 
-    # TODO: FALSWe now need to find a reference point to compute the circular path
+    # TODO: FALSE: We now need to find a reference point to compute the circular path
     # of the blades. This point will be selected from the subset of studied points. The following considerations must
     # be taken into account:
     # 1. The point must be visible most of the time.
@@ -696,7 +693,7 @@ if __name__ == '__main__':
         interesting_subsets.append(id_of_good_subset) # Append that index to the interesting_subsets list.
         id_counter += len(local_sub_ids) # Take into consideration the offset for the computation of the next AoIs.
         #list_max_points.append(np.max(visible_counter[local_sub_ids]))
-    interesting_subsets = np.array(interesting_subsets)
+    interesting_subsets = np.array(interesting_subsets) # TODO: Use these indices to calculate the initial direction
 
     distance_per_frame = distance / visible_counter # Compute the average speed of each of the analyzed points.
 
@@ -712,14 +709,16 @@ if __name__ == '__main__':
         indices_for_aoi = np.where(aoi_number == aoi_index)[0] # Get the indices of the points located within the current AoI.
         indices_for_aoi = np.intersect1d(indices_for_aoi, indices_found) # Filter out points that are not visible out of the list of indexes.
         distance_per_frame_aoi = distance_per_frame[indices_for_aoi] # Extract the speeds of the relevant points.
+
         positions_in_aoi = coordinates[indices_for_aoi] # Extract the positions of the relevant points.
         mean_speed_aoi = np.mean(distance_per_frame_aoi) # Compute the average speed of the AoI.
         mean_position_aoi = np.mean(positions_in_aoi, axis=0) # Compute the average position of the AoI.
+
         mean_speed_array[aoi_index] = mean_speed_aoi # Add the computed mean speed value to the corresponding array for the current AoI.
         mean_position_array[aoi_index] = mean_position_aoi # Add the computed mean position value to the corresponding array for the current AoI.
 
     # FIXME: The AoIs that have the smallest speed values will be used to eliminate the rigid body rotation. Define which one belongs to blade A.
-    roi_ids_near_center = np.argsort(mean_speed_array)[:number_of_marked_blades] # Get the indexes of the (in most cases, 3) smallest AoI speed values.
+    roi_ids_near_center = np.argsort(mean_speed_array)[:N_MARKED_BLADES] # Get the indexes of the (in most cases, 3) smallest AoI speed values.
 
     idx_bladeA = np.argmax(mean_position_array[roi_ids_near_center, 1])
     idx_bladeB = np.argmin(mean_position_array[roi_ids_near_center, 0])
@@ -776,8 +775,18 @@ if __name__ == '__main__':
     ax = plt.gca()
     plt.legend()
     ax.set_aspect('equal', adjustable='box')
-    fig.show()
-    plt.pause(1)
+
+
+    # TODO: Here we use the innermost points to estimte the orientation of the rotor on the first frame
+
+    center_point = np.mean(coordinates[found_and_inner_subsets], axis=0)
+
+    dist_array = np.linalg.norm(mean_position_array[roi_ids_near_center] - center_point, axis=1)
+
+    inner_rad = np.mean(dist_array) / 1000
+    initial_guess = geom3d.Circle3D(center_point, [1, 0, 0], inner_rad)
+    circle_frame0 = fit3d.circle3D_fit(coordinates[found_and_inner_subsets],  # noqa: F821
+        initial_guess=initial_guess)
 
 
     # As opposed to the previous case, the coordinates of the point used to define the circular path of the rotor are
@@ -791,12 +800,12 @@ if __name__ == '__main__':
 
     # Process that feeds the .out files into the queue
     put_to_queue_process = Process(target=put_to_queue,
-                                   args=(input_out_file_folder, file_path_queue, number_of_processes))
+                                   args=(input_out_file_folder, file_path_queue, N_PROCESSES))
     put_to_queue_process.start()
 
     # Prozesse zum Einlesen der Out-Dateien erzeugen
     workers = []
-    for _ in range(number_of_processes):
+    for _ in range(N_PROCESSES):
         worker = Process(target=read_file_point_loop,
                          args=(file_path_queue, shared_mem, test_subsets_list[index_least_movement]))
         worker.start()
@@ -830,21 +839,104 @@ if __name__ == '__main__':
     initial_guess = geom3d.Circle3D(np.mean(coordinates, axis=0), [1, 0, 0], 7)
     circle = fit3d.circle3D_fit(coordinates, initial_guess=initial_guess)
 
+    if circle.direction[-1] > 0:
+        circle.direction = circle.direction * -1
+
+    if circle.direction[-1]*circle_frame0.direction[-1] < 0:
+        circle_frame0.direction[-1] = circle_frame0.direction[-1] * -1
+    else:
+        pass
+
+    if YAW_ANGLE_FLAG:
+            delta_theta = np.rad2deg(np.arccos(np.dot(circle_frame0.direction, circle.direction) / (np.linalg.norm(circle_frame0.direction) * np.linalg.norm(circle.direction))))
+
+            if delta_theta > 90:
+                delta_theta = delta_theta - 180
+            else:
+                pass
+
+            yaw_angle_ave = yaw_angle_array[0] - delta_theta
+    else:
+        pass
+
     fig = plt.figure(figsize=(10, 10))
     ax = plt.axes(projection='3d')
     ax.grid()
     ax.scatter(coordinates.T[0], coordinates.T[1], coordinates.T[2])
     ax.set_aspect('equal')
-    ax.set_title('Verwendete Kreisbahn zur Ausrichtung des Koordinatensystems')
+    ax.set_title('Average and First Frame Circle')
     ax.set_xlabel('x-Achse')
     ax.set_ylabel('y-Achse')
     ax.set_zlabel('z-Achse')
+
+
+    random = np.array([1, 0, 0])
+    u = np.cross(circle.direction, random)
+    v= np.cross(circle.direction, u)
+    theta = np.linspace(0, 2 * np.pi, 100)
+
+    circle_pts = circle.radius * (np.outer(u, np.cos(theta)) + np.outer(v, np.sin(theta)))
+    circle_pts = circle.center + circle_pts.T
+
+    ax.plot(
+        circle.center[0],
+        circle.center[1],
+        circle.center[2],
+        marker="X",
+        color="r",
+    )
+    ax.plot(circle_pts[:, 0], circle_pts[:, 1], circle_pts[:, 2], color="b")
+
+    ax.quiver(
+        circle.center[0],
+        circle.center[1],
+        circle.center[2],
+        circle.direction[0] * circle.radius,
+        circle.direction[1] * circle.radius,
+        circle.direction[2] * circle.radius,
+        color="b",
+        label="Average",
+    )
+
+
+
+    # TODO: Circle plotting
+    random = np.array([1, 0, 0])
+    u0 = np.cross(circle_frame0.direction, random)
+    v0= np.cross(circle_frame0.direction, u0)
+    theta = np.linspace(0, 2 * np.pi, 100)
+
+    circle_pts0 = circle.radius * (np.outer(u0, np.cos(theta)) + np.outer(v0, np.sin(theta)))
+    circle_pts0 = circle_frame0.center + circle_pts0.T
+
+    ax.plot(
+        circle_frame0.center[0],
+        circle_frame0.center[1],
+        circle_frame0.center[2],
+        marker="D",
+        color="black",
+    )
+    ax.plot(circle_pts0[:, 0], circle_pts0[:, 1], circle_pts0[:, 2], color="m")
+    ax.quiver(
+        circle_frame0.center[0],
+        circle_frame0.center[1],
+        circle_frame0.center[2],
+        circle_frame0.direction[0] * circle.radius,
+        circle_frame0.direction[1] * circle.radius,
+        circle_frame0.direction[2] * circle.radius,
+        color="m",
+        label="Frame 0",
+    )
+
+    ax.legend()
     ax = plt.gca()
     fig.show()
     plt.pause(1)
 
     circle_center = circle.center
     circle_direction = circle.direction
+    
+
 
     # Berechne die Rotationsmatrix, um die Kreisbahn in die yz-Ebene zu rotieren
     rotation_matrix = calculate_circle_rotation_matrix(circle_direction, 1)
@@ -857,8 +949,8 @@ if __name__ == '__main__':
     direction_array = np.zeros((len(coordinates_temp) - 1), np.int8)
     for i in range(len(coordinates_temp) - 1):
         pt = coordinates_temp[i]
-        v = pt - coordinates_temp[i - 1]
-        c = np.cross(pt, v) # TODO: I think that starting from the first and using the last is  mistake
+        v0 = pt - coordinates_temp[i - 1]
+        c = np.cross(pt, v0) # TODO: I think that starting from the first and using the last is  mistake
     if c[0] < 0:
         direction_array[i] = -1
     else:
@@ -872,6 +964,8 @@ if __name__ == '__main__':
     # Die Rotationsmatrix wird erneut berechnet, dieses Mal wird jedoch die Richtung der x-Achse mit berücksichtigt
     rotation_matrix = calculate_circle_rotation_matrix(circle_direction, x_axis_alignment)
 
+    
+    
     # Messpunkte aus dem ersten Frame einlesen, um diese zu visualisieren. Hierdurch kann erkannt werden, ob die Messdaten korrekt ausgerichtet werden oder nicht
     found_array, real_points, xyz_sigmas, aoi_number, _ = read_file(input_out_file_folder[0], test_subsets_list) # TODO: it's like the fourth time it does this, I'm pretty sure we could just doit once and reuse the values
 
@@ -897,12 +991,12 @@ if __name__ == '__main__':
                       [0, math.cos(x_rot_angle), -math.sin(x_rot_angle)],
                       [0, math.sin(x_rot_angle), math.cos(x_rot_angle)]])
 
-
+    rotation_matrix_ave = np.matmul(rot_x, rotation_matrix)
 
     # TODO: Calculate the rotation matrix array to correct yaw
 
     if YAW_ANGLE_FLAG:
-        z_rot_angle_array = np.deg2rad(yaw_angle_array - yaw_angle_med)
+        z_rot_angle_array = np.deg2rad(-(yaw_angle_ave - yaw_angle_array))
 
         rotation_matrix_list = []
         for z_rot_angle in z_rot_angle_array:
@@ -916,18 +1010,37 @@ if __name__ == '__main__':
 
     rotation_matrix = rotation_matrix_list[0] #np.dot(rot_x, rotation_matrix) #TODO: kill rhis
 
-    coordinates = np.dot(rotation_matrix, (coordinates - circle_center).T).T
+    
+
+   # coordinates_ave = np.dot(rotation_matrix_ave, (coordinates - circle_center).T).T
+    coordinates = np.dot(rotation_matrix_ave, (coordinates - circle_center).T).T
     print('\r', "Step 3/5: Calculate circle...  100 %")
 
     fig = plt.figure(figsize=(10, 10))
     ax = plt.axes(projection='3d')
     ax.grid()
-    ax.scatter(coordinates.T[0], coordinates.T[1], coordinates.T[2])
-    ax.set_title('Verwendete Kreisbahn zur Ausrichtung des Koordinatensystems')
+    ax.scatter(coordinates.T[0], coordinates.T[1], coordinates.T[2], label="Average Circle")
+
+    if YAW_ANGLE_FLAG:
+        circle_pts0_rot_w_yaw = np.dot(rotation_matrix, (circle_pts0 - circle_frame0.center).T).T
+        circle_pts0_rot_wo_yaw = np.dot(
+            rotation_matrix_ave, (circle_pts0 - circle_frame0.center).T
+        ).T
+        
+        
+        ax.plot(circle_pts0_rot_w_yaw[:, 0], circle_pts0_rot_w_yaw[:, 1], circle_pts0_rot_w_yaw[:, 2], color="m", label="Frame 0 w/ Yaw Correction")
+        ax.plot(circle_pts0_rot_wo_yaw[:, 0], circle_pts0_rot_wo_yaw[:, 1], circle_pts0_rot_wo_yaw[:, 2], color="c", label="Frame 0 w/o Yaw Correction")
+
+    else:
+        pass
+
+
+    ax.set_title('Verwendete Kreisbahn zur Ausrichtung des Koordinatensystemstt')
     ax.set_xlabel('x-Achse')
     ax.set_ylabel('y-Achse')
     ax.set_zlabel('z-Achse')
     ax = plt.gca()
+    ax.legend()
     ax.set_aspect('equal')
     fig.show()
     plt.pause(1)
@@ -1020,23 +1133,23 @@ if __name__ == '__main__':
         ax.annotate(annotation,
                     (two_d_coordinates.T[0][aoi_id], np.max(two_d_coordinates.T[1]) - two_d_coordinates.T[1][aoi_id]))
     plt.show()
-    fig.savefig(input_folder + '/AOI Benennung.png', dpi=fig.dpi)
+    fig.savefig(INPUT_FOLDER + '/AOI Benennung.png', dpi=fig.dpi)
     plt.pause(1)
 
     # Erzeuge Ordner, in welchen die angepassten Out-Dateien abgespeichert werden
-    if not os.path.isdir(input_folder + "/koordNachGL/"):
-        os.mkdir(input_folder + "/koordNachGL/")
-    if not os.path.isdir(input_folder + "/koordNachGL_noRot/"):
-        os.mkdir(input_folder + "/koordNachGL_noRot/")
-    if not os.path.isdir(input_folder + "/SchlagSchwenk/"):
-        os.mkdir(input_folder + "/SchlagSchwenk/")
-    if not os.path.isdir(input_folder + "/Torsion/"):
-        os.mkdir(input_folder + "/Torsion/")
+    if not os.path.isdir(INPUT_FOLDER + "/koordNachGL/"):
+        os.mkdir(INPUT_FOLDER + "/koordNachGL/")
+    if not os.path.isdir(INPUT_FOLDER + "/koordNachGL_noRot/"):
+        os.mkdir(INPUT_FOLDER + "/koordNachGL_noRot/")
+    if not os.path.isdir(INPUT_FOLDER + "/SchlagSchwenk/"):
+        os.mkdir(INPUT_FOLDER + "/SchlagSchwenk/")
+    if not os.path.isdir(INPUT_FOLDER + "/Torsion/"):
+        os.mkdir(INPUT_FOLDER + "/Torsion/")
 
-    output_path1 = input_folder + "/koordNachGL/"
-    output_path2 = input_folder + "/koordNachGL_noRot/"
-    output_path3 = input_folder + "/SchlagSchwenk/"
-    output_path4 = input_folder + "/Torsion/"
+    output_path1 = INPUT_FOLDER + "/koordNachGL/"
+    output_path2 = INPUT_FOLDER + "/koordNachGL_noRot/"
+    output_path3 = INPUT_FOLDER + "/SchlagSchwenk/"
+    output_path4 = INPUT_FOLDER + "/Torsion/"
 
     # Während der Umformung der Out-Dateien wird pro AoI zusätzlich ein Messpunkt separat in einer CSV-Datei abgespeichert. Diese Messpunkte werden per SharedMemory an den Hauptprozess übergeben, welcher diese dann abspeichert
     interesting_subsets_id_vicpy = np.empty((len(interesting_subsets), 3), int)
@@ -1052,14 +1165,14 @@ if __name__ == '__main__':
 
     # Prozess zum Bereitstellen der Pfade zu den Out-Datein
     put_to_queue_process = Process(target=put_to_queue,
-                                   args=(input_out_file_folder, file_path_queue, number_of_processes))
+                                   args=(input_out_file_folder, file_path_queue, N_PROCESSES))
     put_to_queue_process.start()
 
     semaphore = Semaphore(0)  # wird benutzt um die Fortschrittsanzeige zu aktualisieren
 
     # Verarbeitungsprozesse starten...
     workers = []
-    for _ in range(number_of_processes):
+    for _ in range(N_PROCESSES):
         worker = Process(target=process_out_files,
                          args=(file_path_queue, output_path1, output_path2, -circle_center, rotation_matrix_list,
                                roi_ids_near_center, found_array_first_frame, coordinates_first_frame, shared_mem,
@@ -1150,7 +1263,7 @@ if __name__ == '__main__':
 
     print("Step 6/5 (Test): Store Images...", end="\r")
     file_counter = 0
-    input_out_file_folder = glob.glob(input_folder + '/koordNachGL_noRot/*.out')
+    input_out_file_folder = glob.glob(INPUT_FOLDER + '/koordNachGL_noRot/*.out')
     for file_path in input_out_file_folder:
         print(file_path)
         found_array, real_points, xyz_sigmas, aoi_number, index_in_aoi = read_file(file_path, None)
