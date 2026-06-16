@@ -2,11 +2,15 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="0efe07e9-d7b0-45db-8bf1-a434066f896b" name="Changes" comment="">
+<<<<<<< Updated upstream
       <change afterPath="$PROJECT_DIR$/tfd_wea_dic/__init__.py" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/tfd_wea_dic/math_funcs.py" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/tfd_wea_dic/multiprocessing_funcs.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Aligning coordinate system_052026.py" beforeDir="false" afterPath="$PROJECT_DIR$/Aligning coordinate system_052026.py" afterDir="false" />
+=======
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+>>>>>>> Stashed changes
       <change beforePath="$PROJECT_DIR$/sandbox.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/sandbox.ipynb" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -39,6 +43,7 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
+<<<<<<< Updated upstream
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
@@ -63,6 +68,30 @@
   }
 }]]></component>
   <component name="RunManager" selected="Python.multiprocessing_funcs">
+=======
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Python.AOI Segmentation_092025 - Kopie.executor&quot;: &quot;Run&quot;,
+    &quot;Python.Aligning coordinate system_052026.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;eliminate-yaw-angle&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/jarc/Desktop&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;PyPlotsConfigurable&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  }
+}</component>
+  <component name="RunManager" selected="Python.Aligning coordinate system_052026">
+>>>>>>> Stashed changes
     <configuration name="AOI Segmentation_092025 - Kopie" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="tfd-wea-dic" />
       <option name="ENV_FILES" value="" />
@@ -200,11 +229,21 @@
       <workItem from="1780555003084" duration="4282000" />
       <workItem from="1780652594679" duration="18217000" />
       <workItem from="1780736527882" duration="1000" />
+<<<<<<< Updated upstream
       <workItem from="1780736539205" duration="12835000" />
       <workItem from="1781093373012" duration="13800000" />
       <workItem from="1781162260681" duration="13753000" />
       <workItem from="1781335865538" duration="26899000" />
       <workItem from="1781593870514" duration="2381000" />
+=======
+      <workItem from="1780736539205" duration="14372000" />
+      <workItem from="1780914691647" duration="2860000" />
+      <workItem from="1780920864616" duration="598000" />
+      <workItem from="1780921488360" duration="47000" />
+      <workItem from="1780921671396" duration="615000" />
+      <workItem from="1780997914943" duration="184000" />
+      <workItem from="1781093031135" duration="282000" />
+>>>>>>> Stashed changes
     </task>
     <servers />
   </component>
@@ -261,7 +300,11 @@
     <SUITE FILE_PATH="coverage/tfd_wea_dic$math_funcs.coverage" NAME="math_funcs Coverage Results" MODIFIED="1781598933986" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tfd_wea_dic" />
     <SUITE FILE_PATH="coverage/Aligning_coordinate_system_092025_py$Aligning_coordinate_system_052026.coverage" NAME="Aligning coordinate system_052026 Coverage Results" MODIFIED="1780390836425" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/tfd_dic_post_processing$AOI_Segmentation_092025___Kopie.coverage" NAME="AOI Segmentation_092025 - Kopie Coverage Results" MODIFIED="1778069815128" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="E:/HiWi Cordova/Python/Code_Post-Processing" />
+<<<<<<< Updated upstream
     <SUITE FILE_PATH="coverage/tfd_wea_dic$multiprocessing_funcs.coverage" NAME="multiprocessing_funcs Coverage Results" MODIFIED="1781599011857" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tfd_wea_dic" />
     <SUITE FILE_PATH="coverage/tfd_wea_dic$Aligning_coordinate_system_052026.coverage" NAME="Aligning coordinate system_052026 Coverage Results" MODIFIED="1781598920412" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+=======
+    <SUITE FILE_PATH="coverage/tfd_wea_dic$Aligning_coordinate_system_052026.coverage" NAME="Aligning coordinate system_052026 Coverage Results" MODIFIED="1780916249939" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+>>>>>>> Stashed changes
   </component>
 </project>
