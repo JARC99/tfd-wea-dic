@@ -1,10 +1,21 @@
-import numpy as np
 import os
+from multiprocessing import (
+    Condition,
+    Lock,
+    Queue,
+    Value,
+    shared_memory,
+)
 
-from VicPy import VicDataSet, RigidTransformation, Rotation # FIXME: Unlabeled import is not recommended, affetcs code readibility.
-from multiprocessing import Process, Value, shared_memory, Lock, Condition, Queue, Semaphore
+import numpy as np
+from VicPy import (
+    RigidTransformation,
+    Rotation,
+    VicDataSet,
+)
 
 from coordsysalign.transformation_fns import find_rotation, find_translation
+
 
 def put_to_queue(input_out_file_folder, file_path_queue: Queue, number_of_workers):
     """
@@ -16,7 +27,9 @@ def put_to_queue(input_out_file_folder, file_path_queue: Queue, number_of_worker
     """
     file_counter = 0
     for file_path in input_out_file_folder:
-        file_path_queue.put((file_counter, file_path), )
+        file_path_queue.put(
+            (file_counter, file_path),
+        )
         file_counter = file_counter + 1
 
     for _ in range(number_of_workers):
@@ -33,16 +46,24 @@ def read_file(file_name, subset_index, check_aoi_is_empty=False):
 
     data = VicDataSet()  # Creates an instance of a VicDataSet() class
 
-    if not data.load(file_name):  # Tries to load a .out file into the VicDataSet() instance, it exits if it fails
+    if not data.load(
+        file_name
+    ):  # Tries to load a .out file into the VicDataSet() instance, it exits if it fails
         print("Could not load data set\n\n")
         exit(-1)
 
     size = 0
-    for aoi in range(data.numData()):  # The numData() method returns the number of areas of interest in the dataset
-        d = data.data(aoi)  # Returns a pointer to VicData objet for the specific AOI in the dataset
+    for aoi in range(
+        data.numData()
+    ):  # The numData() method returns the number of areas of interest in the dataset
+        d = data.data(
+            aoi
+        )  # Returns a pointer to VicData objet for the specific AOI in the dataset
         size += d.matrixSize()
 
-    found_array = np.empty((size), int)  # gibt an, ob ein Subset gefunden wurde. 1 wenn gefunden, sonst 0
+    found_array = np.empty(
+        (size), int
+    )  # gibt an, ob ein Subset gefunden wurde. 1 wenn gefunden, sonst 0
     coordinates = np.empty((size, 3), float)  # enthaelt die Koordinaten der Subsets
     xyz_sigmas = np.empty((size, 3), float)  # enthaelt die Sigma-Werte eines Subsets
     aoi_number = np.empty((size), int)  # gibt an in welcher AOI ein Subset liegt
@@ -51,8 +72,9 @@ def read_file(file_name, subset_index, check_aoi_is_empty=False):
     index = 0
     for aoi in range(data.numData()):
         d = data.data(aoi)
-        rows = d.asArray(["sigma", "X", "Y", "Z", "U", "V", "W", "SIGMA_X", "SIGMA_Y",
-                          "SIGMA_Z"])  #TODO: This array is the same as the hardcoded one on top?
+        rows = d.asArray(
+            ["sigma", "X", "Y", "Z", "U", "V", "W", "SIGMA_X", "SIGMA_Y", "SIGMA_Z"]
+        )  # TODO: This array is the same as the hardcoded one on top?
         rows = rows.view(np.float32).reshape(rows.shape[0], -1)
 
         rows = rows.T  # TODO: I'm pretty sure this transpose is not needed
@@ -62,14 +84,19 @@ def read_file(file_name, subset_index, check_aoi_is_empty=False):
         xyz_sigma_for_aoi = rows[7:10].T
 
         if check_aoi_is_empty:
-            assert len(np.where(found_array_for_aoi == 1)[0]) > 0, f"No visible points were found in AoI {aoi}."
+            assert len(np.where(found_array_for_aoi == 1)[0]) > 0, (
+                f"No visible points were found in AoI {aoi}."
+            )
 
-        found_array[index: index + len(found_array_for_aoi)] = found_array_for_aoi
-        coordinates[index: index + len(coordinates_for_aoi)] = coordinates_for_aoi
-        xyz_sigmas[index: index + len(xyz_sigma_for_aoi)] = xyz_sigma_for_aoi
-        aoi_number[index: index + len(xyz_sigma_for_aoi)] = np.full((len(xyz_sigma_for_aoi)),
-                                                                    aoi)
-        index_in_aoi[index: index + len(xyz_sigma_for_aoi)] = np.arange(len(found_array_for_aoi))
+        found_array[index : index + len(found_array_for_aoi)] = found_array_for_aoi
+        coordinates[index : index + len(coordinates_for_aoi)] = coordinates_for_aoi
+        xyz_sigmas[index : index + len(xyz_sigma_for_aoi)] = xyz_sigma_for_aoi
+        aoi_number[index : index + len(xyz_sigma_for_aoi)] = np.full(
+            (len(xyz_sigma_for_aoi)), aoi
+        )
+        index_in_aoi[index : index + len(xyz_sigma_for_aoi)] = np.arange(
+            len(found_array_for_aoi)
+        )
 
         index += len(found_array_for_aoi)
 
@@ -90,11 +117,13 @@ def read_file_mean_aoi_pos_2d(file_name):
         file_name - Pfad zu der Out-Datei
     """
     data = VicDataSet()
-    if (data.load(file_name) == False):
+    if data.load(file_name) == False:
         print("Could not load data set\n\n")
         exit(-1)
 
-    coordinates = np.empty((data.numData(), 2), float)  # enthaelt die Koordinaten der Subsets
+    coordinates = np.empty(
+        (data.numData(), 2), float
+    )  # enthaelt die Koordinaten der Subsets
     for aoi in range(data.numData()):
         d = data.data(aoi)
         rows = d.asArray(["sigma", "x", "y", "u", "v"])
@@ -116,7 +145,7 @@ def read_file_pos_2d_at_index(file_name, interesting_subsets_id_vicpy):
     """
     var_ids = []
     data = VicDataSet()
-    if (data.load(file_name) == False):
+    if data.load(file_name) == False:
         print("Could not load data set\n\n")
         exit(-1)
     coordinates = np.empty((0, 2), int)  # enthaelt die Koordinaten der Subsets
@@ -125,7 +154,7 @@ def read_file_pos_2d_at_index(file_name, interesting_subsets_id_vicpy):
         if len(var_ids) == 0:
             for var in ["x", "y", "u", "v"]:
                 idx = d.varIndex(var)
-                if (idx < 0):
+                if idx < 0:
                     print("Could not find variable %s" % var)
                 else:
                     var_ids.append(idx)
@@ -148,19 +177,21 @@ class SharedMemory:
 
     def __init__(self, content):
         """
-            content - enhaelt einen Beispiel wie der Inhalt aussieht, der spaeter in die Queue geschrieben wird. Entsprechend content werden die einzelnen Felder in aufgebaut.
+        content - enhaelt einen Beispiel wie der Inhalt aussieht, der spaeter in die Queue geschrieben wird. Entsprechend content werden die einzelnen Felder in aufgebaut.
         """
         self.shm_list = []
         self.shape_list = []
         self.dtype_list = []
         self.lock1 = Lock()
         self.shm_ready_to_read = Condition(self.lock1)
-        self.global_file_number = Value('i', 0)
+        self.global_file_number = Value("i", 0)
         self.lock2 = Lock()
         self.condition = Condition(self.lock2)
         for item in content:
             item_size = int(np.prod(item.shape) * np.dtype(item.dtype).itemsize)
-            self.shm_list.append(shared_memory.SharedMemory(create=True, size=item_size))
+            self.shm_list.append(
+                shared_memory.SharedMemory(create=True, size=item_size)
+            )
             self.shape_list.append(item.shape)
             self.dtype_list.append(item.dtype)
         self.shm_ready_to_read.acquire()
@@ -179,7 +210,11 @@ class SharedMemory:
                 else:
                     break
         for i, item in enumerate(content):
-            shm_buf = np.ndarray(self.shape_list[i], dtype=self.dtype_list[i], buffer=self.shm_list[i].buf)
+            shm_buf = np.ndarray(
+                self.shape_list[i],
+                dtype=self.dtype_list[i],
+                buffer=self.shm_list[i].buf,
+            )
             np.copyto(shm_buf, item)
         self.shm_ready_to_read.release()  # signalisiert, dass Daten in dem SharedMemory liegen
 
@@ -190,7 +225,11 @@ class SharedMemory:
         self.shm_ready_to_read.acquire()
         return_list = []
         for i in range(len(self.shm_list)):
-            shm_buf = np.ndarray(self.shape_list[i], dtype=self.dtype_list[i], buffer=self.shm_list[i].buf)
+            shm_buf = np.ndarray(
+                self.shape_list[i],
+                dtype=self.dtype_list[i],
+                buffer=self.shm_list[i].buf,
+            )
             return_list.append(shm_buf[:].copy())
         with self.global_file_number.get_lock():
             self.global_file_number.value += 1
@@ -219,7 +258,7 @@ def read_file_point_loop(file_name_queue, shared_memory: SharedMemory, subset_in
 
         file_number, file_name = content
 
-        if (data.load(file_name) == False):
+        if data.load(file_name) == False:
             print("Could not load data set\n\n")
             exit(-1)
 
@@ -228,7 +267,10 @@ def read_file_point_loop(file_name_queue, shared_memory: SharedMemory, subset_in
         for aoi in range(data.numData()):
             d = data.data(aoi)
             current_size = d.matrixSize()
-            if subset_index < startindex_roi or subset_index > startindex_roi + current_size:
+            if (
+                subset_index < startindex_roi
+                or subset_index > startindex_roi + current_size
+            ):
                 startindex_roi += current_size
                 continue
             local_index = subset_index - startindex_roi
@@ -237,7 +279,7 @@ def read_file_point_loop(file_name_queue, shared_memory: SharedMemory, subset_in
             if len(var_ids) == 0:
                 for var in var_names:
                     idx = d.varIndex(var)
-                    if (idx < 0):
+                    if idx < 0:
                         print("Could not find variable %s" % var)
                     else:
                         var_ids.append(idx)
@@ -268,7 +310,7 @@ def read_file_loop(file_name_queue, shared_memory: SharedMemory, subset_index):
 
         file_number, file_name = content
 
-        if (data.load(file_name) == False):
+        if data.load(file_name) == False:
             print("Could not load data set\n\n")
             exit(-1)
 
@@ -277,15 +319,21 @@ def read_file_loop(file_name_queue, shared_memory: SharedMemory, subset_index):
             d = data.data(aoi)
             size += d.matrixSize()
 
-        found_array = np.empty((size), int)  # gibt an, ob ein Subset gefunden wurde. 1 wenn gefunden, sonst 0
+        found_array = np.empty(
+            (size), int
+        )  # gibt an, ob ein Subset gefunden wurde. 1 wenn gefunden, sonst 0
         coordinates = np.empty((size, 3), float)  # enthaelt die Koordinaten der Subsets
-        xyz_sigmas = np.empty((size, 3), float)  # enthaelt die Sigma-Werte eines Subsets
+        xyz_sigmas = np.empty(
+            (size, 3), float
+        )  # enthaelt die Sigma-Werte eines Subsets
         aoi_number = np.empty((size), int)  # gibt an in welcher AOI ein Subset liegt
 
         index = 0
         for aoi in range(data.numData()):
             d = data.data(aoi)
-            rows = d.asArray(["sigma", "X", "Y", "Z", "U", "V", "W", "SIGMA_X", "SIGMA_Y", "SIGMA_Z"])
+            rows = d.asArray(
+                ["sigma", "X", "Y", "Z", "U", "V", "W", "SIGMA_X", "SIGMA_Y", "SIGMA_Z"]
+            )
             rows = rows.view(np.float32).reshape(rows.shape[0], -1)
 
             rows = rows.T
@@ -294,10 +342,12 @@ def read_file_loop(file_name_queue, shared_memory: SharedMemory, subset_index):
             coordinates_for_aoi = (rows[1:4] + rows[4:7]).T
             xyz_sigma_for_aoi = rows[7:10].T
 
-            found_array[index: index + len(found_array_for_aoi)] = found_array_for_aoi
-            coordinates[index: index + len(coordinates_for_aoi)] = coordinates_for_aoi
-            xyz_sigmas[index: index + len(xyz_sigma_for_aoi)] = xyz_sigma_for_aoi
-            aoi_number[index: index + len(xyz_sigma_for_aoi)] = np.full((len(xyz_sigma_for_aoi)), aoi)
+            found_array[index : index + len(found_array_for_aoi)] = found_array_for_aoi
+            coordinates[index : index + len(coordinates_for_aoi)] = coordinates_for_aoi
+            xyz_sigmas[index : index + len(xyz_sigma_for_aoi)] = xyz_sigma_for_aoi
+            aoi_number[index : index + len(xyz_sigma_for_aoi)] = np.full(
+                (len(xyz_sigma_for_aoi)), aoi
+            )
 
             index += len(found_array_for_aoi)
 
@@ -307,12 +357,24 @@ def read_file_loop(file_name_queue, shared_memory: SharedMemory, subset_index):
             xyz_sigmas = xyz_sigmas[subset_index]
             aoi_number = aoi_number[subset_index]
 
-        shared_memory.put(file_number, [found_array, coordinates, xyz_sigmas, aoi_number])
+        shared_memory.put(
+            file_number, [found_array, coordinates, xyz_sigmas, aoi_number]
+        )
 
 
-def process_out_files(file_path_queue, output_path1, output_path2, translation_vector_arg, rotation_matrix_arg,
-                      roi_ids_near_center, found_array_first_frame, coordinates_first_frame, shared_mem: SharedMemory,
-                      interesting_subsets_id_vicpy, variables_export_name_out_file):
+def process_out_files(
+    file_path_queue,
+    output_path1,
+    output_path2,
+    translation_vector_arg,
+    rotation_matrix_arg,
+    roi_ids_near_center,
+    found_array_first_frame,
+    coordinates_first_frame,
+    shared_mem: SharedMemory,
+    interesting_subsets_id_vicpy,
+    variables_export_name_out_file,
+):
     """
     Passt die Daten in den Out-Datein an, sodass das Koordinatensystem ausgerichtet ist und eliminiert die Starrkoerperrotation. Danach werden die Out-Datein jeweils erneut abgespeichert.
 
@@ -335,26 +397,32 @@ def process_out_files(file_path_queue, output_path1, output_path2, translation_v
 
         content = file_path_queue.get()
         if content is None:
-            #print("Gesamtzeit: ", time.time() - overall_timer, "  Nur Anpassen: ", change_timer)
+            # print("Gesamtzeit: ", time.time() - overall_timer, "  Nur Anpassen: ", change_timer)
             break
         file_number, file = content
         _, tail = os.path.split(file)
 
-        translation_vector = (translation_vector_arg[0], translation_vector_arg[1], translation_vector_arg[2])
+        translation_vector = (
+            translation_vector_arg[0],
+            translation_vector_arg[1],
+            translation_vector_arg[2],
+        )
         rotation_matrix = rotation_matrix_arg[file_number].copy()
 
         translation.setTranslation(translation_vector)
         rotation_obj.setMatrix(rotation_matrix)
 
         rotation.setRotation(rotation_obj)
-        if (data.load(file) == False):
+        if data.load(file) == False:
             print("Could not load data set\n\n")
             exit(-1)
         data.transform(translation, False)
         data.transform(rotation, False)
         data.save(output_path1 + tail)
 
-        coordinates_for_ret = np.empty((data.numData(), 3, len(variables_export_name_out_file)), float)
+        coordinates_for_ret = np.empty(
+            (data.numData(), 3, len(variables_export_name_out_file)), float
+        )
         for aoi in range(data.numData()):
             d = data.data(aoi)
             if len(var_ids) == 0:
@@ -364,8 +432,12 @@ def process_out_files(file_path_queue, output_path1, output_path2, translation_v
                         print("Could not find variable %s" % var)
                     else:
                         var_ids.append(idx)
-            coordinates_for_ret[aoi, 1] = np.array(d.values(interesting_subsets_id_vicpy[aoi, 1], var_ids))
-            coordinates_for_ret[aoi, 2] = np.array(d.values(interesting_subsets_id_vicpy[aoi, 2], var_ids))
+            coordinates_for_ret[aoi, 1] = np.array(
+                d.values(interesting_subsets_id_vicpy[aoi, 1], var_ids)
+            )
+            coordinates_for_ret[aoi, 2] = np.array(
+                d.values(interesting_subsets_id_vicpy[aoi, 2], var_ids)
+            )
 
         found_array = np.empty((0), int)
         coordinates = np.empty((0, 3), float)
@@ -392,18 +464,29 @@ def process_out_files(file_path_queue, output_path1, output_path2, translation_v
         sum_found_array = found_array_first_frame + found_array
         indices_in_both_frames = np.where(sum_found_array == 2)[0]
 
-        assert len(
-            indices_in_both_frames) > 5, f"Nicht genug Punkte im Blattwurzelbereich vorhanden, um die Eliminierung der Starrkörperrotation durchzuführen. Datei: {file}"
+        assert len(indices_in_both_frames) > 5, (
+            f"Nicht genug Punkte im Blattwurzelbereich vorhanden, um die Eliminierung der Starrkörperrotation durchzuführen. Datei: {file}"
+        )
 
         coordinates_in_ref_frame = coordinates_first_frame[indices_in_both_frames]
         coordinates_in_current_frame = coordinates[indices_in_both_frames]
 
-        found_rot_mat = find_rotation(coordinates_in_ref_frame, coordinates_in_current_frame)
-        root_points_current_image_both = np.dot(found_rot_mat, coordinates_in_current_frame.T).T
-        found_translation = find_translation(coordinates_in_ref_frame, root_points_current_image_both)
+        found_rot_mat = find_rotation(
+            coordinates_in_ref_frame, coordinates_in_current_frame
+        )
+        root_points_current_image_both = np.dot(
+            found_rot_mat, coordinates_in_current_frame.T
+        ).T
+        found_translation = find_translation(
+            coordinates_in_ref_frame, root_points_current_image_both
+        )
 
         translation = RigidTransformation()
-        translation_vector = (found_translation[0], found_translation[1], found_translation[2])
+        translation_vector = (
+            found_translation[0],
+            found_translation[1],
+            found_translation[2],
+        )
         translation.setTranslation(translation_vector)
 
         rotation_obj = Rotation()
@@ -423,15 +506,18 @@ def process_out_files(file_path_queue, output_path1, output_path2, translation_v
             if len(var_ids) == 0:
                 for var in variables_export_name_out_file:
                     idx = d.varIndex(var)
-                    if (idx < 0):
+                    if idx < 0:
                         print("Could not find variable %s" % var)
                     else:
                         var_ids.append(idx)
-            #coordinates_for_ret[aoi, 1] = np.array(d.values(interesting_subsets_id_vicpy[aoi, 1], var_ids))
-            #coordinates_for_ret[aoi, 2] = np.array(d.values(interesting_subsets_id_vicpy[aoi, 2], var_ids))
-            coordinates_for_ret[aoi, 0] = np.array(d.values(interesting_subsets_id_vicpy[aoi, 0], var_ids))
+            # coordinates_for_ret[aoi, 1] = np.array(d.values(interesting_subsets_id_vicpy[aoi, 1], var_ids))
+            # coordinates_for_ret[aoi, 2] = np.array(d.values(interesting_subsets_id_vicpy[aoi, 2], var_ids))
+            coordinates_for_ret[aoi, 0] = np.array(
+                d.values(interesting_subsets_id_vicpy[aoi, 0], var_ids)
+            )
 
         shared_mem.put(file_number, [coordinates_for_ret])
+
 
 if __name__ == "__main__":
     pass
