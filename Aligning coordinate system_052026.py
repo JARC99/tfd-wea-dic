@@ -1,4 +1,5 @@
 import glob
+from multiprocessing import Process, Semaphore
 
 import easygui
 import pandas as pd
@@ -13,6 +14,8 @@ from coordsysalign.transformation_fns import *
 # Wenn None, dann wird ein File-Picker Dialog angezeigt (ist zu bevorzugen).
 INPUT_FOLDER = None  # TODO: move all input fields together.
 YAW_ANGLE_FLAG = False
+SAVE_OUTPUT_FLAG = False
+SUBSET_FLAG = False
 
 # Anzahl an Prozessoren zum Einlesen der Datein
 N_PROCESSES = 16
