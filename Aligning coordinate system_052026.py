@@ -1,29 +1,42 @@
 import glob
-from multiprocessing import Process, Semaphore
+import math
+import os
+from multiprocessing import Process, Queue, Semaphore
 
 import easygui
+import numpy as np
 import pandas as pd
 from geomfitty import fit3d, geom3d
 from matplotlib import pyplot as plt
 from scipy.io import loadmat
 
-from coordsysalign.multiprocessing_fns import *
-from coordsysalign.transformation_fns import *
+from coordsysalign.multiprocessing_fns import (
+    SharedMemory,
+    process_out_files,
+    put_to_queue,
+    read_file,
+    read_file_loop,
+    read_file_mean_aoi_pos_2d,
+    read_file_point_loop,
+    read_file_pos_2d_at_index,
+)
+from coordsysalign.transformation_fns import (
+    calculate_circle_rotation_matrix,
+    find_x_rotation_matrix,
+)
 
-# Pfad zum Ordner, im welchen sich die Out-Datein befinden, welche direkt nach der Triangulation in Vic-3D generiert wurden.
-# Wenn None, dann wird ein File-Picker Dialog angezeigt (ist zu bevorzugen).
-INPUT_FOLDER = None  # TODO: move all input fields together.
-YAW_ANGLE_FLAG = False
+# Set the values of the boolean flags used to control the program flow.
 SAVE_OUTPUT_FLAG = False
 SUBSET_FLAG = False
+YAW_ANGLE_FLAG = False
 
-# Anzahl an Prozessoren zum Einlesen der Datein
+# Specify the number of processors used to read and write on the files.
 N_PROCESSES = 16
 
-# Gibt an, wie viele Rotorblaetter ausgewertet werden sollen/können. Dient zur Identifikation der Wurzel-ROI. Ist z.B. nur ein Blatt beklebt, dann eine eins eintregen
+# Specify the number of marked blades. This number is used to identify the AoIs closest to the rotor hub.
 N_MARKED_BLADES = 3
 
-# Liste mit den Variablen, welche in die einzelnen CSV-Datein abgespeichert werden sollen. Der Index ist immer dabei und an ersten Stelle
+# List the variables that should be stored in the final .csv files. The first column of the file will always contain the index.
 variables_export_name_out_file = [
     "X",
     "Y",
@@ -37,7 +50,7 @@ variables_export_name_out_file = [
     "sigma",
 ]
 
-# Liste mit der Benennung der Variablen in der CSV-Datei
+# List the column titles to be used in the .csv files.
 variables_export_name_csv_file = [
     '"Index [1]"',
     '"X [mm]"',
@@ -53,17 +66,16 @@ variables_export_name_csv_file = [
 ]
 
 if __name__ == "__main__":
-    # The script starts off by letting the user choose the folder containing the Vic3D .out files that need to be processed
-    if INPUT_FOLDER is None:
-        INPUT_FOLDER = easygui.diropenbox("Select Folder with out-Files")
+
+    INPUT_FOLDER = easygui.diropenbox("Select the folder containing the .out-files")
     print("Inputfolder: ", INPUT_FOLDER)
     input_out_file_folder = sorted(
         glob.glob(INPUT_FOLDER + "/*.out")
-    )  # Sorting files alphabetically
+    )
 
-    frame_n = len(input_out_file_folder)  # 2979
+    frame_n = len(input_out_file_folder)
 
-    # Here we load and compute the information needed to use the yaw angle time series
+    # Load and compute the information needed to use the yaw angle time series
     if YAW_ANGLE_FLAG:
         yaw_angle_file = easygui.fileopenbox("Select the Yaw Angle Time-Series File")
 
@@ -616,7 +628,7 @@ if __name__ == "__main__":
     # Messpunkte aus dem ersten Frame einlesen, um diese zu visualisieren. Hierdurch kann erkannt werden, ob die Messdaten korrekt ausgerichtet werden oder nicht
     found_array, real_points, xyz_sigmas, aoi_number, _ = read_file(
         input_out_file_folder[0], test_subsets_list
-    )  # TODO: it's like the fourth time it does this, I'm pretty sure we could just doit once and reuse the values
+    )  # TODO: it's like   # noqa: F405
 
     # Berechne Rotationsmatrix um die x-Achse, damit das Rotorblatt nach oben zeigt
     most_moved_point = np.dot(
