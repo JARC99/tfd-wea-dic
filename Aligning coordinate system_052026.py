@@ -25,10 +25,15 @@ from coordsysalign.transformation_fns import (
     find_x_rotation_matrix,
 )
 
+# ----------------------------------------------------------------------------------------------------------------------
+# Define input values.
+# ----------------------------------------------------------------------------------------------------------------------
+
 # Set the values of the boolean flags used to control the program flow.
 SAVE_OUTPUT_FLAG = False
 SUBSET_FLAG = False
 YAW_ANGLE_FLAG = False
+FRAME_0_REF_FLAG = False
 
 # Specify the number of processors used to read and write on the files.
 N_PROCESSES = 16
@@ -36,7 +41,8 @@ N_PROCESSES = 16
 # Specify the number of marked blades. This number is used to identify the AoIs closest to the rotor hub.
 N_MARKED_BLADES = 3
 
-# List the variables that should be stored in the final .csv files. The first column of the file will always contain the index.
+# List the variables that should be stored in the final .csv files. The first column of the file will always contain
+# the index.
 variables_export_name_out_file = [
     "X",
     "Y",
@@ -66,80 +72,62 @@ variables_export_name_csv_file = [
 ]
 
 if __name__ == "__main__":
+    out_file_dir = easygui.diropenbox("Select the folder containing the .out-files")
+    print("Inputfolder: ", out_file_dir)
+    out_file_list = sorted(glob.glob(out_file_dir + "/*.out"))
 
-    INPUT_FOLDER = easygui.diropenbox("Select the folder containing the .out-files")
-    print("Inputfolder: ", INPUT_FOLDER)
-    input_out_file_folder = sorted(
-        glob.glob(INPUT_FOLDER + "/*.out")
-    )
-
-    frame_n = len(input_out_file_folder)
+    n_frames = len(out_file_list)
 
     # Load and compute the information needed to use the yaw angle time series
     if YAW_ANGLE_FLAG:
         yaw_angle_file = easygui.fileopenbox("Select the Yaw Angle Time-Series File")
 
         yaw_angle_array = np.array(loadmat(yaw_angle_file)["yaw_wea"])[
-            :frame_n
+            :n_frames
         ].flatten()
 
     else:
         pass
 
+    # ------------------------------------------------------------------------------------------------------------------
+    # TODO: Find suitable measurement points using the information from the first frame.
+    # -------------------------------------------------------------------------------------------------------------------
+
     print("\r", "Step 1/5: Search for suitable measurement points...", end="")
 
-    # We read all the points in the first .out file. A subset of these will be selected and subsequently used for the
-    # remaining calculations.
-    test_subsets_list = []  # This list will contain the indexes of the chosen points
-    found_array, coordinates, xyz_sigmas, aoi_number, index_in_aoi = read_file(
-        input_out_file_folder[0], None
-    )  # Reads the first .out file from the folder. These arrays contain information of all the points in that first frame.
-    found_indices = np.where(found_array == 1)[
-        0
-    ]  # Extracts the indexes of the points that are visible throughout the file
-    for i in range(0, len(found_indices), 10):
-        test_subsets_list.append(
-            found_indices[i]
-        )  # Fills the index list with 1 out of 10 values of the visible points
+    # Read the first .out file from the folder. The returned arrays contain information of all the points in that first
+    # frame.
+    found_array_f0, coordinates_f0, xyz_sigmas_f0, aoi_number_f0, index_in_aoi_f0 = (
+        read_file(out_file_list[0], None)
+    )
+
+    # Extract the indexes of the points that are visible in the first frame.
+    found_indices_f0 = np.nonzero(found_array_f0 == 1)[0]
+
+    # Fill the index list with 1 out of 10 of the visible points and then turn it into an array.
+    test_subsets_list = []
+    for i in range(0, len(found_indices_f0), 10):
+        test_subsets_list.append(found_indices_f0[i])
     test_subsets_list = np.array(test_subsets_list)
 
-    # Now we prepare to read the remaining of the frames and capture the relevant information from them. The
-    # multiprocessing package is used to process these files in parallel and the subset indexes are used so that we
-    # do not need to read the whole files. We predefine a set of lists to store the relevant information of each of
-    # the observed points throughout the whole recording.
-    visible_counter = np.ones(
-        len(test_subsets_list), int
-    )  # Counts how many times a point was visible throughout the measurement
-    sigmas = np.zeros(
-        len(test_subsets_list), float
-    )  # The magnitude of the uncertainty of the individual points is added for every frame
-    distance = np.ones(
-        len(test_subsets_list), float
-    )  # Traveled distance for the point in question throughout the frames.  This is used to determine which point is at the blade tip and which one is in the inner region.
-    last_coordinates = None  # Contains the point's coordinates in the previous frame.
-    found_last_time = None  # Contains the information of whether a point was visible in the previous image. Only when a point is visible in the current and previous images is the distance calculated
-
-    # Here we initialize the objects needed for the multiprocessing setup. The SharedMemory class was custom written
-    # to replace the less efficient default one. The Queu limit is also set here
+    # Initialize the class instances needed for the parallel processing of the .out files multiprocessing package. The
+    # previously found test_subsets_list is specified so not all the points in the file need to be read.
     shared_mem = SharedMemory(
         [
-            found_array[test_subsets_list],
-            coordinates[test_subsets_list],
-            xyz_sigmas[test_subsets_list],
-            aoi_number[test_subsets_list],
+            found_array_f0[test_subsets_list],
+            coordinates_f0[test_subsets_list],
+            xyz_sigmas_f0[test_subsets_list],
+            aoi_number_f0[test_subsets_list],
         ]
-    )  # Initiates an instance of the SharedMemory class
+    )
+
     file_path_queue = Queue(maxsize=30)
 
-    # The process that is being initialized here feeds the .out file paths to the Queue. These files are then taken
-    # from this queue and read by the working processes
     put_to_queue_process = Process(
-        target=put_to_queue, args=(input_out_file_folder, file_path_queue, N_PROCESSES)
+        target=put_to_queue, args=(out_file_list, file_path_queue, N_PROCESSES)
     )
     put_to_queue_process.start()
 
-    # Here we start the processes that will actually read the .out files. Once read, these files are ordered and
-    # deposited in the Shared Memory
     workers = []
     for _ in range(N_PROCESSES):
         worker = Process(
@@ -148,47 +136,58 @@ if __name__ == "__main__":
         worker.start()
         workers.append(worker)
 
-    # We extract a representative subset of the data of each an every .out file in the selected directory. This
-    # information is initially found in the shared_mem (filled during the multiprocessing process).
+    # Pre-allocate arrays to store the cumulative sum information of each of the subset points throughout all the
+    # available frames.
+    visible_counter = np.ones(len(test_subsets_list), int)
+    sigmas = np.zeros(len(test_subsets_list), float)
+    distance = np.ones(len(test_subsets_list), float)
+
+    # Define the initial value of the tracker variables for the first iteration.
+    last_coordinates = None
+    found_last_time = None
+
+    # Extract the data contained in each .out file and update the cumulative sums for visibility,
+    # uncertainty (sigmas), and distance.
     file_counter = 0
-    for file_path in input_out_file_folder:
+    for out_file in out_file_list:
         found_array, coordinates, xyz_sigmas, aoi_number = shared_mem.get()
 
-        visible_counter = (
-            visible_counter + found_array
-        )  # Add to the visible_counter array to see if the point was visible or not in that frame
+        # Count how many times each point was visible throughout the measurement.
+        visible_counter = visible_counter + found_array
 
-        indices_found = np.where(found_array == 1)[
-            0
-        ]  # Determine the indices of the points that are visible for the current frame
+        # Determine the indices of the points that are visible for the current frame
+        indices_found = np.nonzero(found_array == 1)[0]
+
+        # Add the uncertainty values for the visible points for each frame.
         sigmas[indices_found] = sigmas[indices_found] + np.linalg.norm(
             xyz_sigmas[indices_found], axis=1
-        )  # Add the uncertainty values for the visible points
+        )
 
-        if last_coordinates is None:  # Capture the edge case for the first file
+        # Capture the edge case for the first file.
+        if last_coordinates is None:
             last_coordinates = coordinates
             found_last_time = found_array
             continue
+
         else:
-            indices_found = np.where(
-                (found_array + found_last_time) == 2
-            )[
-                0
-            ]  # Find the indexes of the points that were visible in the current and the last file
+            # Find the indexes of the points that are visible in both the current and the previous file.
+            indices_found = np.nonzero((found_array + found_last_time) == 2)[0]
+
+            # Compute the distance traveled between the last and the current frame
             distance[indices_found] = (
                 distance + np.linalg.norm(last_coordinates - coordinates, axis=1)
-            )[
-                indices_found
-            ]  # Compute the distance traveled between the last and the current frame
+            )[indices_found]
 
-            last_coordinates = coordinates.copy()  # Prepare the last_coordinates and found_last_time arrays for the next loop of calculations
+            # Prepare the last_coordinates and found_last_time arrays for the next loop of calculations
+            last_coordinates = coordinates.copy()
             found_last_time = found_array
 
         file_counter = file_counter + 1
+
         print(
             "\r",
             "Step 1/5: Search for suitable measurement points... ",
-            int((file_counter / len(input_out_file_folder)) * 100),
+            int((file_counter / len(out_file_list)) * 100),
             "%",
             end="",
         )
@@ -200,188 +199,183 @@ if __name__ == "__main__":
 
     print("\r", "Step 1/5: Search for suitable measurement points...  100 %")
 
-    # TODO: FALSE: We now need to find a reference point to compute the circular path
-    # of the blades. This point will be selected from the subset of studied points. The following considerations must
-    # be taken into account:
-    # 1. The point must be visible most of the time.
-    # 2. The uncertainty of the measurement must be as low as possible.
+    # ------------------------------------------------------------------------------------------------------------------
+    # TODO: Compute the needed AoI arrays (AoI number, order, Blde, etc)
+    # ------------------------------------------------------------------------------------------------------------------
+
+    # Find the index of the point for which the product of the distance per frame and the uncertainty per frame is
+    # the smallest (i.e. the point with the least movement). An additional soft constraint is added so the point to be
+    # visible at least 90% of the time.
     index_least_movement = np.argmin(
         (distance / visible_counter) * (sigmas / visible_counter)
         + np.where(
             visible_counter >= np.max(visible_counter) * 0.9, 1, np.max(distance) * 1000
         )
-    )  # Here we look for the index of the point for which the product of the distance per frame as well and the uncertainty are the smallest. We aditionally set a hard constraint by requiring the point to be visible at least 90% of the time.
+    )
+
+    # Find the index of the point for which the product of the inverse of the distance per frame and the uncertainty
+    # per frame is the smallest (i.e. the point with the most movement). An additional soft constraint is added so the
+    # point to be visible at least 90% of the time.
     index_most_movement = np.argmin(
         (1000 / (distance / visible_counter)) * (sigmas / visible_counter)
         + np.where(
             visible_counter >= np.max(visible_counter) * 0.9, 1, np.max(distance) * 1000
         )
-    )  # Here we look for the index of the point for which the product of the inverse distance per frame (multiplied by 1000) and the uncertainty is the smallest. We aditionally set a hard constraint by requiring the point to be visible at least 90% of the time.
+    )
 
-    # We now prepare to choose a single point for each AoI that can be later used to measure the deformation of the
+    # Determine the number of unique AoIs in the WEA
+    available_aoi_ids = np.unique(aoi_number_f0)
+
+    # Find a single point for each AoI that can be later used to measure the deformation of the
     # blade. Similarly to the previous case, this point should be visible most of the time and its uncertainty should
     # be low.
     interesting_subsets = []
-    available_aoi_ids = np.unique(
-        ar=aoi_number, return_counts=False
-    )  # Determine the number of unique AoIs in the WEA
-
     id_counter = 0
     for local_aoi_id in available_aoi_ids:
-        local_sub_ids = np.where(aoi_number == local_aoi_id)[
-            0
-        ]  # Find the indexes of of the points that are located within the current AoI.
-        id_of_good_subset = (
-            id_counter
-            + np.argmin(
-                (sigmas[local_sub_ids] / visible_counter[local_sub_ids])
-                + np.where(
-                    visible_counter[local_sub_ids]
-                    >= np.max(visible_counter[local_sub_ids]) * 0.9,
-                    1,
-                    np.max(distance[local_sub_ids]) * 1000,
-                )
+        # Find the indexes of the points that are located within the current AoI.
+        local_sub_ids = np.nonzero(aoi_number_f0[test_subsets_list] == local_aoi_id)[0]
+
+        # Find index of the point within the current AoI which has the smallest uncertainty and is visible at least
+        # 90% of the time.
+        id_of_good_subset = id_counter + np.argmin(
+            (sigmas[local_sub_ids] / visible_counter[local_sub_ids])
+            + np.where(
+                visible_counter[local_sub_ids]
+                >= np.max(visible_counter[local_sub_ids]) * 0.9,
+                1,
+                np.max(distance[local_sub_ids]) * 1000,
             )
-        )  # Find index of the point within the current AoI which has the smallest uncertainty and is visible at least 90% of the time.
-        interesting_subsets.append(
-            id_of_good_subset
-        )  # Append that index to the interesting_subsets list.
-        id_counter += len(
-            local_sub_ids
-        )  # Take into consideration the offset for the computation of the next AoIs.
-        # list_max_points.append(np.max(visible_counter[local_sub_ids]))
-    interesting_subsets = np.array(
-        interesting_subsets
-    )  # TODO: Use these indices to calculate the initial direction
+        )
 
-    distance_per_frame = (
-        distance / visible_counter
-    )  # Compute the average speed of each of the analyzed points.
+        # Append the found index to the interesting_subsets list.
+        interesting_subsets.append(id_of_good_subset)
 
-    found_array, coordinates, xyz_sigmas, aoi_number, index_in_aoi = read_file(
-        input_out_file_folder[
-            0
-        ],  # TODO: Re-read the information from the first file (maybe use different variable names for this?).
-        test_subsets_list,
-    )
-    indices_found = np.where(found_array == 1)[0]
+        # Take into consideration the offset for the computation of the next AoIs.
+        id_counter += len(local_sub_ids)
+
+    interesting_subsets = np.array(interesting_subsets)
+
+    # Compute the average speed of each of the analyzed points.
+    distance_per_frame = distance / visible_counter
+
+    # Filter the data from the first frame so that only the indexes of the test_subset_list are considered
+    found_array_f0 = found_array_f0[test_subsets_list]
+    coordinates_f0 = coordinates_f0[test_subsets_list]
+    xyz_sigmas_f0 = xyz_sigmas_f0[test_subsets_list]
+    aoi_number_f0 = aoi_number_f0[test_subsets_list]
+    index_in_aoi_f0 = index_in_aoi_f0[test_subsets_list]
+    found_indices_f0 = np.nonzero(found_array_f0 == 1)[0]
 
     # Compute the average speed and position of every AoI. This information will be used to determine where on the
     # rotor the AoI is located.
     mean_speed_array = np.empty((len(available_aoi_ids)))
     mean_position_array = np.empty((len(available_aoi_ids), 3))
     for aoi_index in range(len(available_aoi_ids)):
-        indices_for_aoi = np.where(aoi_number == aoi_index)[
-            0
-        ]  # Get the indices of the points located within the current AoI.
-        indices_for_aoi = np.intersect1d(
-            indices_for_aoi, indices_found
-        )  # Filter out points that are not visible out of the list of indexes.
-        distance_per_frame_aoi = distance_per_frame[
-            indices_for_aoi
-        ]  # Extract the speeds of the relevant points.
+        # Get the indices of the points located within the current AoI and are visible.
+        indices_for_aoi = np.nonzero(aoi_number_f0 == aoi_index)[0]
 
-        positions_in_aoi = coordinates[
-            indices_for_aoi
-        ]  # Extract the positions of the relevant points.
-        mean_speed_aoi = np.mean(
-            distance_per_frame_aoi
-        )  # Compute the average speed of the AoI.
-        mean_position_aoi = np.mean(
-            positions_in_aoi, axis=0
-        )  # Compute the average position of the AoI.
+        # Extract the speeds and position of the relevant points.
+        distance_per_frame_aoi = distance_per_frame[indices_for_aoi]
+        positions_in_aoi = coordinates_f0[indices_for_aoi]
 
-        mean_speed_array[aoi_index] = (
-            mean_speed_aoi  # Add the computed mean speed value to the corresponding array for the current AoI.
-        )
-        mean_position_array[aoi_index] = (
-            mean_position_aoi  # Add the computed mean position value to the corresponding array for the current AoI.
-        )
+        # Compute the average speed and position of the AoI.
+        mean_speed_aoi = np.mean(distance_per_frame_aoi)
+        mean_position_aoi = np.mean(positions_in_aoi, axis=0)
 
-    # FIXME: The AoIs that have the smallest speed values will be used to eliminate the rigid body rotation. Define which one belongs to blade A.
-    roi_ids_near_center = np.argsort(mean_speed_array)[
-        :N_MARKED_BLADES
-    ]  # Get the indexes of the (in most cases, 3) smallest AoI speed values.
+        # Add the computed mean speed nd position values to the corresponding array for the current AoI.
+        mean_speed_array[aoi_index] = mean_speed_aoi
+        mean_position_array[aoi_index] = mean_position_aoi
 
-    idx_bladeA = np.argmax(mean_position_array[roi_ids_near_center, 1])
-    idx_bladeB = np.argmin(mean_position_array[roi_ids_near_center, 0])
-    idx_bladeC = np.argmax(mean_position_array[roi_ids_near_center, 0])
+    # Get the indexes of the AoIs with the smallest speed values.
+    aoi_ids_near_center = np.argsort(mean_speed_array)[:N_MARKED_BLADES]
 
-    roi_ids_near_center = roi_ids_near_center[[idx_bladeA, idx_bladeB, idx_bladeC]]
+    # Determine which AoI belongs to blade A using its averaged coordinates.
+    idx_bladeA = np.argmax(mean_position_array[aoi_ids_near_center, 1])
+    idx_bladeB = np.argmin(mean_position_array[aoi_ids_near_center, 0])
+    idx_bladeC = np.argmax(mean_position_array[aoi_ids_near_center, 0])
+
+    # Re-arrange the array based on the found indices.
+    aoi_ids_near_center = aoi_ids_near_center[[idx_bladeA, idx_bladeB, idx_bladeC]]
 
     # Store all the points that belong to the innermost AoIs (this will be used for visualization).
     indices_of_inner_subsets = np.array([], dtype=int)
-    for aoi_id in roi_ids_near_center:
+    for aoi_id in aoi_ids_near_center:
         indices_of_inner_subsets = np.append(
-            indices_of_inner_subsets, np.where(aoi_number == aoi_id)[0]
+            indices_of_inner_subsets, np.nonzero(aoi_number_f0 == aoi_id)[0]
         )
 
+    # Determine the blade each AoI belongs to. For each AoI the distances between its mean location and
+    # those of the AoIs closest to the rotor hub are computed. The smallest distance gives away which blade the AoI
+    # belongs to.
     blade_number_of_aoi = np.empty((len(available_aoi_ids)))
     for aoi_id in range(len(available_aoi_ids)):
         blade_number_of_aoi[aoi_id] = np.argmin(
             np.linalg.norm(
-                mean_position_array[aoi_id] - mean_position_array[roi_ids_near_center],
+                mean_position_array[aoi_id] - mean_position_array[aoi_ids_near_center],
                 axis=1,
             )
-        )  # For each AoI, we compute the distance between its mean location an those of the AoIs closest to the rotor hub. The smallest distance gives away which blade the AoI belongs to.
+        )
 
-    # Create a list that contains the AoI number for each of the AoIs within a given rotor blade. The innermost AoI always has the index 0.
+    # Create a list that contains the position of each of the AoIs within their corresponding rotor blade. The
+    # innermost AoI always has the index 0.
     aoi_to_blade_aoi = np.array([])
     for aoi_id in range(len(available_aoi_ids)):
         blade_id = blade_number_of_aoi[aoi_id]
         aoi_to_blade_aoi = np.append(
             aoi_to_blade_aoi,
             np.searchsorted(
-                np.sort(mean_speed_array[np.where(blade_number_of_aoi == blade_id)]),
+                np.sort(mean_speed_array[np.nonzero(blade_number_of_aoi == blade_id)]),
                 mean_speed_array[aoi_id],
             ),
         )
 
     # Plot a diagram with the obtained information.
     blade_name_list = ["A", "B", "C"]
-    found_and_inner_subsets = np.intersect1d(indices_found, indices_of_inner_subsets)
+    found_and_inner_subsets = np.intersect1d(
+        found_indices_f0, indices_of_inner_subsets
+    )  # TODO: This could be deleted.
     fig = plt.figure(figsize=(10, 10))
     ax = plt.axes(projection="3d")
     ax.grid()
     ax.scatter(
-        coordinates[indices_found].T[0],
-        coordinates[indices_found].T[1],
-        coordinates[indices_found].T[2],
+        coordinates_f0.T[0],
+        coordinates_f0.T[1],
+        coordinates_f0.T[2],
         c="b",
         alpha=0.5,
         s=10,
     )
     ax.scatter(
-        coordinates[index_least_movement].T[0],
-        coordinates[index_least_movement].T[1],
-        coordinates[index_least_movement].T[2],
+        coordinates_f0[index_least_movement].T[0],
+        coordinates_f0[index_least_movement].T[1],
+        coordinates_f0[index_least_movement].T[2],
         c="g",
         s=180,
-        label="Punkt für Kreisbahn",
+        label="Point used for the Rotor Path Computation",
     )
     ax.scatter(
-        coordinates[index_most_movement].T[0],
-        coordinates[index_most_movement].T[1],
-        coordinates[index_most_movement].T[2],
+        coordinates_f0[index_most_movement].T[0],
+        coordinates_f0[index_most_movement].T[1],
+        coordinates_f0[index_most_movement].T[2],
         c="r",
         s=80,
-        label="Rotorblattspitze",
+        label="Blade Tips",
     )
     ax.scatter(
-        coordinates[found_and_inner_subsets].T[0],
-        coordinates[found_and_inner_subsets].T[1],
-        coordinates[found_and_inner_subsets].T[2],
+        coordinates_f0[found_and_inner_subsets].T[0],
+        coordinates_f0[found_and_inner_subsets].T[1],
+        coordinates_f0[found_and_inner_subsets].T[2],
         c="y",
         s=30,
-        label="Blattwurzelbereiche",
+        label="Blade Roots",
     )
     ax.scatter(
-        coordinates[interesting_subsets].T[0],
-        coordinates[interesting_subsets].T[1],
-        coordinates[interesting_subsets].T[2],
+        coordinates_f0[interesting_subsets].T[0],
+        coordinates_f0[interesting_subsets].T[1],
+        coordinates_f0[interesting_subsets].T[2],
         c="m",
         s=80,
-        label="Gute Punkte",
+        label="Good Points",
     )
     ax.scatter(
         mean_position_array.T[0],
@@ -389,50 +383,55 @@ if __name__ == "__main__":
         mean_position_array.T[2],
         c="cyan",
         s=80,
-        label="AoI Mittelpunkt",
+        label="AoI Average Location",
     )
     for aoi_id in range(len(available_aoi_ids)):
         ax.text(
             mean_position_array[aoi_id, 0],
             mean_position_array[aoi_id, 1],
             mean_position_array[aoi_id, 2],
-            "%s"
-            % (
-                blade_name_list[int(blade_number_of_aoi[aoi_id])]
-                + ": "
-                + str(round(aoi_to_blade_aoi[aoi_id]))
+            "{0}: {1}".format(
+                blade_name_list[int(blade_number_of_aoi[aoi_id])],
+                round(aoi_to_blade_aoi[aoi_id]),
             ),
             size=10,
             zorder=1,
             color="k",
         )
     ax.set_aspect("equal")
-    ax.set_title("Gefundene Punkte")
-    ax.set_xlabel("x-Achse")
-    ax.set_ylabel("y-Achse")
-    ax.set_zlabel("z-Achse")
+    ax.set_title("Found Points")
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    ax.set_zlabel("z")
     ax = plt.gca()
     plt.legend()
     ax.set_aspect("equal", adjustable="box")
 
-    # TODO: Here we use the innermost points to estimte the orientation of the rotor on the first frame
+    # ------------------------------------------------------------------------------------------------------------------
+    # TODO: Compute circles. Here we use the innermost points to estimte the orientation of the rotor on the first frame
+    # ------------------------------------------------------------------------------------------------------------------
 
-    center_point = np.mean(coordinates[found_and_inner_subsets], axis=0)
+    # Compute the hub locating for the point obtained from the first frame.
+    center_point = np.mean(coordinates_f0[found_and_inner_subsets], axis=0)
 
-    dist_array = np.linalg.norm(
-        mean_position_array[roi_ids_near_center] - center_point, axis=1
+    # Calculate the radius to the root AoIs
+    hub_aoi_rad = np.mean(
+        np.linalg.norm(mean_position_array[aoi_ids_near_center] - center_point, axis=1)
+        / 1000
     )
 
-    inner_rad = np.mean(dist_array) / 1000
-    initial_guess = geom3d.Circle3D(center_point, [1, 0, 0], inner_rad)
-    circle_frame0 = fit3d.circle3D_fit(
-        coordinates[found_and_inner_subsets],  # noqa: F821
+    # Fit a 3D circle to the hubs found using the first frame.
+    initial_guess = geom3d.Circle3D(center_point, [1, 0, 0], hub_aoi_rad)
+    circle_f0 = fit3d.circle3D_fit(
+        coordinates_f0[found_and_inner_subsets],  # noqa: F821
         initial_guess=initial_guess,
     )
+    circle_center_f0 = circle_f0.center
+    circle_direction_f0 = circle_f0.direction
 
     # As opposed to the previous case, the coordinates of the point used to define the circular path of the rotor are
     # extracted from the complete dataset.
-    print("\r", "Step 2/5: Create circle... ", end="")
+    print("\r", "Step 2/5: Create circle... ", end="") #TODO:AQUÍ QUEDÉ 19-06-2026
 
     # SharedMemory object were the coordinate of the point are to be stored for later use by the main process and
     # definition of the queue size
@@ -441,7 +440,7 @@ if __name__ == "__main__":
 
     # Process that feeds the .out files into the queue
     put_to_queue_process = Process(
-        target=put_to_queue, args=(input_out_file_folder, file_path_queue, N_PROCESSES)
+        target=put_to_queue, args=(out_file_list, file_path_queue, N_PROCESSES)
     )
     put_to_queue_process.start()
 
@@ -456,12 +455,12 @@ if __name__ == "__main__":
         workers.append(worker)
 
     # Create an array where the point coordinates should be stored. If the chosen point is not visible in a certain frame, nothing is stored.
-    coordinates = np.zeros((len(input_out_file_folder), 3), float)
+    coordinates = np.zeros((len(out_file_list), 3), float)
     file_counter = 0
     not_found_counter = 0
 
     # Store the coordinates for each .out file contianed in the folder.
-    for file_path in input_out_file_folder:
+    for out_file in out_file_list:
         found_array, real_points = shared_mem.get()
         if found_array[0] == 1:
             coordinates[file_counter - not_found_counter] = real_points.copy()
@@ -471,7 +470,7 @@ if __name__ == "__main__":
         print(
             "\r",
             "Step 2/5: Create circle... ",
-            int((file_counter / len(input_out_file_folder)) * 100),
+            int((file_counter / len(out_file_list)) * 100),
             "%",
             end="",
         )
@@ -488,21 +487,23 @@ if __name__ == "__main__":
     print("\r", "Step 3/5: Calculate circle...", end="")
     initial_guess = geom3d.Circle3D(np.mean(coordinates, axis=0), [1, 0, 0], 7)
     circle = fit3d.circle3D_fit(coordinates, initial_guess=initial_guess)
+    circle_center = circle.center.copy()
+    circle_direction = circle.direction.copy()
 
-    if circle.direction[-1] > 0:
-        circle.direction = circle.direction * -1
+    if circle_direction[-1] > 0:
+        circle_direction = circle_direction * -1
 
-    if circle.direction[-1] * circle_frame0.direction[-1] < 0:
-        circle_frame0.direction[-1] = circle_frame0.direction[-1] * -1
+    if circle_direction[-1] * circle_direction_f0[-1] < 0:
+        circle_direction_f0 = circle_direction_f0 * -1
     else:
         pass
 
     if YAW_ANGLE_FLAG:
         delta_theta = np.rad2deg(
             np.arccos(
-                np.dot(circle_frame0.direction, circle.direction)
+                np.dot(circle_f0.direction, circle.direction)
                 / (
-                    np.linalg.norm(circle_frame0.direction)
+                    np.linalg.norm(circle_f0.direction)
                     * np.linalg.norm(circle.direction)
                 )
             )
@@ -559,30 +560,30 @@ if __name__ == "__main__":
 
     # TODO: Circle plotting
     random = np.array([1, 0, 0])
-    u0 = np.cross(circle_frame0.direction, random)
-    v0 = np.cross(circle_frame0.direction, u0)
+    u0 = np.cross(circle_f0.direction, random)
+    v0 = np.cross(circle_f0.direction, u0)
     theta = np.linspace(0, 2 * np.pi, 100)
 
     circle_pts0 = circle.radius * (
         np.outer(u0, np.cos(theta)) + np.outer(v0, np.sin(theta))
     )
-    circle_pts0 = circle_frame0.center + circle_pts0.T
+    circle_pts0 = circle_f0.center + circle_pts0.T
 
     ax.plot(
-        circle_frame0.center[0],
-        circle_frame0.center[1],
-        circle_frame0.center[2],
+        circle_f0.center[0],
+        circle_f0.center[1],
+        circle_f0.center[2],
         marker="D",
         color="black",
     )
     ax.plot(circle_pts0[:, 0], circle_pts0[:, 1], circle_pts0[:, 2], color="m")
     ax.quiver(
-        circle_frame0.center[0],
-        circle_frame0.center[1],
-        circle_frame0.center[2],
-        circle_frame0.direction[0] * circle.radius,
-        circle_frame0.direction[1] * circle.radius,
-        circle_frame0.direction[2] * circle.radius,
+        circle_f0.center[0],
+        circle_f0.center[1],
+        circle_f0.center[2],
+        circle_f0.direction[0] * circle.radius,
+        circle_f0.direction[1] * circle.radius,
+        circle_f0.direction[2] * circle.radius,
         color="m",
         label="Frame 0",
     )
@@ -590,10 +591,10 @@ if __name__ == "__main__":
     ax.legend()
     ax = plt.gca()
     fig.show()
-    plt.pause(1)
 
-    circle_center = circle.center
-    circle_direction = circle.direction
+    # ------------------------------------------------------------------------------------------------------------------
+    # TODO: Clculate needed rotations
+    # ------------------------------------------------------------------------------------------------------------------
 
     # Berechne die Rotationsmatrix, um die Kreisbahn in die yz-Ebene zu rotieren
     rotation_matrix = calculate_circle_rotation_matrix(circle_direction, 1)
@@ -627,8 +628,8 @@ if __name__ == "__main__":
 
     # Messpunkte aus dem ersten Frame einlesen, um diese zu visualisieren. Hierdurch kann erkannt werden, ob die Messdaten korrekt ausgerichtet werden oder nicht
     found_array, real_points, xyz_sigmas, aoi_number, _ = read_file(
-        input_out_file_folder[0], test_subsets_list
-    )  # TODO: it's like   # noqa: F405
+        out_file_list[0], test_subsets_list
+    )  # TODO: it's like  the third time this file is read
 
     # Berechne Rotationsmatrix um die x-Achse, damit das Rotorblatt nach oben zeigt
     most_moved_point = np.dot(
@@ -677,9 +678,7 @@ if __name__ == "__main__":
                 np.matmul(rot_x, np.matmul(rot_z, rotation_matrix))
             )
     else:
-        rotation_matrix_list = [np.matmul(rot_x, rotation_matrix)] * len(
-            input_out_file_folder
-        )
+        rotation_matrix_list = [np.matmul(rot_x, rotation_matrix)] * len(out_file_list)
 
     rotation_matrix = rotation_matrix_list[
         0
@@ -698,10 +697,10 @@ if __name__ == "__main__":
 
     if YAW_ANGLE_FLAG:
         circle_pts0_rot_w_yaw = np.dot(
-            rotation_matrix, (circle_pts0 - circle_frame0.center).T
+            rotation_matrix, (circle_pts0 - circle_f0.center).T
         ).T
         circle_pts0_rot_wo_yaw = np.dot(
-            rotation_matrix_ave, (circle_pts0 - circle_frame0.center).T
+            rotation_matrix_ave, (circle_pts0 - circle_f0.center).T
         ).T
 
         ax.plot(
@@ -731,6 +730,10 @@ if __name__ == "__main__":
     ax.set_aspect("equal")
     fig.show()
     plt.pause(1)
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # TODO: POINTS FOR ROTATION CALCULATION
+    # ------------------------------------------------------------------------------------------------------------------
 
     print(
         "\r", "Step 4/5: Search points for rotor blade torsion calculation...", end=""
@@ -835,14 +838,18 @@ if __name__ == "__main__":
     fig.show()
     plt.pause(1)
 
+    # ------------------------------------------------------------------------------------------------------------------
+    # TODO: SAVE COPIED FILES .OUT
+    # ------------------------------------------------------------------------------------------------------------------
+
     # Nun werden die ganzen Messpunkte in den Out-Dateien angepasst und als Kopie abgespeichert
-    _, _, _, _, index_in_aoi = read_file(input_out_file_folder[0], test_subsets_list)
+    _, _, _, _, index_in_aoi = read_file(out_file_list[0], test_subsets_list)
     found_array, coordinates, xyz_sigmas, aoi_number, _ = read_file(
-        input_out_file_folder[0], None
+        out_file_list[0], None
     )
 
     indices_of_inner_subsets = np.array([], dtype=int)
-    for roi_id in roi_ids_near_center:
+    for roi_id in aoi_ids_near_center:
         indices_of_inner_subsets = np.append(
             indices_of_inner_subsets, np.where(aoi_number == roi_id)[0]
         )  # TODO: This is also a repeated operation
@@ -856,7 +863,7 @@ if __name__ == "__main__":
     print("\r", "Step 5/5: Store adjusted measurement points...", end="")
 
     # Anzeigen des Bildes mit Benennung der AOI
-    two_d_coordinates = read_file_mean_aoi_pos_2d(input_out_file_folder[0])
+    two_d_coordinates = read_file_mean_aoi_pos_2d(out_file_list[0])
     fig, ax = plt.subplots()
     ax.scatter(
         two_d_coordinates.T[0], np.max(two_d_coordinates.T[1]) - two_d_coordinates.T[1]
@@ -877,23 +884,23 @@ if __name__ == "__main__":
             ),
         )
     plt.show()
-    fig.savefig(INPUT_FOLDER + "/AOI Benennung.png", dpi=fig.dpi)
+    fig.savefig(out_file_dir + "/AOI Benennung.png", dpi=fig.dpi)
     plt.pause(1)
 
     # Erzeuge Ordner, in welchen die angepassten Out-Dateien abgespeichert werden
-    if not os.path.isdir(INPUT_FOLDER + "/koordNachGL/"):
-        os.mkdir(INPUT_FOLDER + "/koordNachGL/")
-    if not os.path.isdir(INPUT_FOLDER + "/koordNachGL_noRot/"):
-        os.mkdir(INPUT_FOLDER + "/koordNachGL_noRot/")
-    if not os.path.isdir(INPUT_FOLDER + "/SchlagSchwenk/"):
-        os.mkdir(INPUT_FOLDER + "/SchlagSchwenk/")
-    if not os.path.isdir(INPUT_FOLDER + "/Torsion/"):
-        os.mkdir(INPUT_FOLDER + "/Torsion/")
+    if not os.path.isdir(out_file_dir + "/koordNachGL/"):
+        os.mkdir(out_file_dir + "/koordNachGL/")
+    if not os.path.isdir(out_file_dir + "/koordNachGL_noRot/"):
+        os.mkdir(out_file_dir + "/koordNachGL_noRot/")
+    if not os.path.isdir(out_file_dir + "/SchlagSchwenk/"):
+        os.mkdir(out_file_dir + "/SchlagSchwenk/")
+    if not os.path.isdir(out_file_dir + "/Torsion/"):
+        os.mkdir(out_file_dir + "/Torsion/")
 
-    output_path1 = INPUT_FOLDER + "/koordNachGL/"
-    output_path2 = INPUT_FOLDER + "/koordNachGL_noRot/"
-    output_path3 = INPUT_FOLDER + "/SchlagSchwenk/"
-    output_path4 = INPUT_FOLDER + "/Torsion/"
+    output_path1 = out_file_dir + "/koordNachGL/"
+    output_path2 = out_file_dir + "/koordNachGL_noRot/"
+    output_path3 = out_file_dir + "/SchlagSchwenk/"
+    output_path4 = out_file_dir + "/Torsion/"
 
     # Während der Umformung der Out-Dateien wird pro AoI zusätzlich ein Messpunkt separat in einer CSV-Datei abgespeichert. Diese Messpunkte werden per SharedMemory an den Hauptprozess übergeben, welcher diese dann abspeichert
     interesting_subsets_id_vicpy = np.empty((len(interesting_subsets), 3), int)
@@ -902,7 +909,7 @@ if __name__ == "__main__":
     interesting_subsets_id_vicpy[:, 2] = index_in_aoi[index_array[:, 1]]
 
     position_of_interesting_points_2d = read_file_pos_2d_at_index(
-        input_out_file_folder[0], interesting_subsets_id_vicpy[:, 0]
+        out_file_list[0], interesting_subsets_id_vicpy[:, 0]
     )
     shared_mem = SharedMemory(
         [
@@ -920,7 +927,7 @@ if __name__ == "__main__":
 
     # Prozess zum Bereitstellen der Pfade zu den Out-Datein
     put_to_queue_process = Process(
-        target=put_to_queue, args=(input_out_file_folder, file_path_queue, N_PROCESSES)
+        target=put_to_queue, args=(out_file_list, file_path_queue, N_PROCESSES)
     )
     put_to_queue_process.start()
 
@@ -937,7 +944,7 @@ if __name__ == "__main__":
                 output_path2,
                 -circle_center,
                 rotation_matrix_list,
-                roi_ids_near_center,
+                aoi_ids_near_center,
                 found_array_first_frame,
                 coordinates_first_frame,
                 shared_mem,
@@ -952,7 +959,7 @@ if __name__ == "__main__":
     # TODO: Messunsicherheit korrekt anpassen
     good_points_data = np.empty(
         (
-            len(input_out_file_folder),
+            len(out_file_list),
             len(available_aoi_ids),
             len(variables_export_name_out_file),
         ),
@@ -960,14 +967,14 @@ if __name__ == "__main__":
     )
     good_points_torsion = np.empty(
         (
-            len(input_out_file_folder),
+            len(out_file_list),
             len(available_aoi_ids),
             2,
             len(variables_export_name_out_file),
         ),
         float,
     )
-    for file_counter in range(len(input_out_file_folder)):
+    for file_counter in range(len(out_file_list)):
         data = shared_mem.get()
         data = np.array(data)[0]
 
@@ -984,7 +991,7 @@ if __name__ == "__main__":
         print(
             "\r",
             "Step 5/5: Store adjusted measurement points... ",
-            int((file_counter / len(input_out_file_folder)) * 100),
+            int((file_counter / len(out_file_list)) * 100),
             "%",
             end="",
         )
@@ -1106,15 +1113,15 @@ if __name__ == "__main__":
 
     print("Step 6/5 (Test): Store Images...", end="\r")
     file_counter = 0
-    input_out_file_folder = glob.glob(INPUT_FOLDER + "/koordNachGL_noRot/*.out")
-    for file_path in input_out_file_folder:
-        print(file_path)
+    out_file_list = glob.glob(out_file_dir + "/koordNachGL_noRot/*.out")
+    for out_file in out_file_list:
+        print(out_file)
         found_array, real_points, xyz_sigmas, aoi_number, index_in_aoi = read_file(
-            file_path, None
+            out_file, None
         )
         print(
             "Step 6/5 (Test): Store Images... ",
-            int((file_counter / len(input_out_file_folder)) * 100),
+            int((file_counter / len(out_file_list)) * 100),
             "%",
             end="\r",
         )
