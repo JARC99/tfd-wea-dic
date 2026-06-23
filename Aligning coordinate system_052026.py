@@ -201,7 +201,7 @@ if __name__ == "__main__":
     print("\r", "Step 1/5: Search for suitable measurement points...  100 %")
 
     # ------------------------------------------------------------------------------------------------------------------
-    # TODO: Compute the needed AoI arrays (AoI number, order, Blde, etc)
+    # Compute the needed AoI arrays (AoI number, order, Blade, etc)
     # ------------------------------------------------------------------------------------------------------------------
 
     # Find the index of the point for which the product of the distance per frame and the uncertainty per frame is
@@ -332,9 +332,7 @@ if __name__ == "__main__":
 
     # Plot a diagram with the obtained information.
     blade_name_list = ["A", "B", "C"]
-    found_and_inner_subsets = np.intersect1d(
-        found_indices_f0, indices_of_inner_subsets
-    )  # TODO: This could be deleted.
+
     fig = plt.figure(figsize=(10, 10))
     ax = plt.axes(projection="3d")
     ax.grid()
@@ -343,7 +341,7 @@ if __name__ == "__main__":
         coordinates_f0.T[1],
         coordinates_f0.T[2],
         c="b",
-        alpha=0.5,
+        alpha=0.25,
         s=10,
     )
     ax.scatter(
@@ -352,7 +350,7 @@ if __name__ == "__main__":
         coordinates_f0[index_least_movement].T[2],
         c="g",
         s=180,
-        label="Point used for the Rotor Path Computation",
+        label="Rotor Path Computation Point",
     )
     ax.scatter(
         coordinates_f0[index_most_movement].T[0],
@@ -363,9 +361,9 @@ if __name__ == "__main__":
         label="Blade Tips",
     )
     ax.scatter(
-        coordinates_f0[found_and_inner_subsets].T[0],
-        coordinates_f0[found_and_inner_subsets].T[1],
-        coordinates_f0[found_and_inner_subsets].T[2],
+        coordinates_f0[indices_of_inner_subsets].T[0],
+        coordinates_f0[indices_of_inner_subsets].T[1],
+        coordinates_f0[indices_of_inner_subsets].T[2],
         c="y",
         s=30,
         label="Blade Roots",
@@ -407,37 +405,26 @@ if __name__ == "__main__":
     ax = plt.gca()
     plt.legend()
     ax.set_aspect("equal", adjustable="box")
+    fig.show()
 
     # ------------------------------------------------------------------------------------------------------------------
     # Compute the reference circles.
     # ------------------------------------------------------------------------------------------------------------------
 
-    # Start by using the innermost points to estimate the orientation of the rotor on the first frame by first
+    print("\r", "Step 2/5: Create circle... ", end="")
+
+    # FRAME 0: Start by using the innermost points to estimate the orientation of the rotor on the first frame by first
     # calculating the radius to the root AoIs.
     hub_aoi_rad = np.mean(
         np.linalg.norm(
             mean_position_array[aoi_ids_near_center]
-            - np.mean(coordinates_f0[found_and_inner_subsets], axis=0),
+            - np.mean(coordinates_f0[indices_of_inner_subsets], axis=0),
             axis=1,
         )
         / 1000
     )
 
-    # Fit a 3D circle to the points found using the first frame.
-    initial_guess = geom3d.Circle3D(
-        np.mean(coordinates_f0[found_and_inner_subsets], axis=0), [1, 0, 0], hub_aoi_rad
-    )
-    circle_f0 = fit3d.circle3D_fit(
-        coordinates_f0[found_and_inner_subsets],
-        initial_guess=initial_guess,
-    )
-    circle_center_f0 = circle_f0.center
-    circle_direction_f0 = circle_f0.direction
-
-    print("\r", "Step 2/5: Create circle... ", end="")
-
-    # Initialize the class instances needed for obtaining the information needed to compute the point to compute the
-    # circle
+    # AVERAGED: Initialize the multiprocessing class instances needed for reading the point-cloud dta to compute the averaged circle.
     shared_mem = SharedMemory([found_array_f0[[0]], coordinates_f0[[0]]])
     file_path_queue = Queue(maxsize=30)
 
@@ -483,10 +470,25 @@ if __name__ == "__main__":
 
     print("\r", "Step 2/5: Create circle...  100 % ")
 
-    # Slice the array to only consider the length of the array with valid coordinate values.
-    coordinates = coordinates[0 : file_counter - not_found_counter]
-
     print("\r", "Step 3/5: Calculate circle...", end="")
+
+    # FRAME 0: Fit a 3D circle to the points found using the first frame.
+    initial_guess = geom3d.Circle3D(
+        np.mean(coordinates_f0[indices_of_inner_subsets], axis=0),
+        [1, 0, 0],
+        hub_aoi_rad,
+    )
+    circle_f0 = fit3d.circle3D_fit(
+        coordinates_f0[indices_of_inner_subsets],
+        initial_guess=initial_guess,
+    )
+
+    # Store the obtained values in mutable containers.
+    circle_center_f0 = circle_f0.center
+    circle_direction_f0 = circle_f0.direction
+
+    # AVERAGED: Slice the array to only consider the length of the array with valid coordinate values.
+    coordinates = coordinates[0 : file_counter - not_found_counter]
 
     # Fit a 3D circle to the points found throughout the dataset.
     initial_guess = geom3d.Circle3D(np.mean(coordinates, axis=0), [1, 0, 0], 7)
@@ -633,18 +635,13 @@ if __name__ == "__main__":
         circle_direction, x_axis_alignment
     )
 
-    # # Use the points from the first frame to visualize the result of the applied transformations.
-    # found_array, real_points, xyz_sigmas, aoi_number, _ = read_file(
-    #     out_file_list[0], test_subsets_list
-    # )  # TODO: it's like  the third time this file is read
-
     # Calculate the needed rotation around the x-axis, so that Blade A is always at 12:00.
     most_moved_point = np.dot(
         rotation_matrix, (coordinates_f0[index_most_movement] - circle_center).T
     ).T
     most_moved_point_blade = blade_number_of_aoi[aoi_number_f0[index_most_movement]]
 
-    diff = most_moved_point / np.linalg.norm(most_moved_point)
+    diff = most_moved_point / np.linalg.norm(most_moved_point) # TODO: maybe call function instead of repeating this code section.
     x0 = diff[2]
     x1 = diff[1]
     if x0 > 0:
@@ -667,7 +664,6 @@ if __name__ == "__main__":
 
     # Compute the rotations matrices to correct the yaw rotation for each of the frames depending on whether or the
     # YAW_ANGLE_FLAG is active or not. The reference angle can be either the first frame or the average circle.
-
     rotation_matrix_list = []
     if YAW_ANGLE_FLAG:
         if FRAME_0_REF_FLAG:
@@ -689,22 +685,24 @@ if __name__ == "__main__":
     else:
         rotation_matrix_list = [np.matmul(rot_x, rotation_matrix)] * len(out_file_list)
 
-    rotation_matrix = rotation_matrix_list[0]
+    rotation_matrix_f0 = rotation_matrix_list[0]
 
-    # coordinates_ave = np.dot(rotation_matrix_ave, (coordinates - circle_center).T).T
+    # Rotate the points obtained from the first frame to visualize them.
     coordinates = np.dot(rotation_matrix_ave, (coordinates - circle_center).T).T
+
     print("\r", "Step 3/5: Calculate circle...  100 %")
 
+    # Plot the reference circles after applying the coordinate transformations.
     fig = plt.figure(figsize=(10, 10))
     ax = plt.axes(projection="3d")
     ax.grid()
     ax.scatter(
-        coordinates.T[0], coordinates.T[1], coordinates.T[2], label="Average Circle"
+        coordinates.T[0], coordinates.T[1], coordinates.T[2], label="Point Cloud"
     )
 
     if YAW_ANGLE_FLAG:
         circle_pts0_rot_w_yaw = np.dot(
-            rotation_matrix, (circle_pts0 - circle_f0.center).T
+            rotation_matrix_f0, (circle_pts0 - circle_f0.center).T
         ).T
         circle_pts0_rot_wo_yaw = np.dot(
             rotation_matrix_ave, (circle_pts0 - circle_f0.center).T
@@ -736,10 +734,10 @@ if __name__ == "__main__":
     ax.legend()
     ax.set_aspect("equal")
     fig.show()
-    plt.pause(1)
+    plt.pause(0)
 
     # ------------------------------------------------------------------------------------------------------------------
-    # TODO: POINTS FOR TORSION CALCULATION
+    # TODO: POINTS FOR TORSION CALCULATION ACÁ ME QUEDÉ
     # ------------------------------------------------------------------------------------------------------------------
 
     print(
@@ -747,10 +745,10 @@ if __name__ == "__main__":
     )
 
     coordinates = np.dot(
-        rotation_matrix, (real_points - circle_center).T
+        rotation_matrix_f0, (real_points - circle_center).T
     ).T  # TODO: is repeated many times to refer to different things throughout the script.
     mean_position_array = np.dot(
-        rotation_matrix, (mean_position_array - circle_center).T
+        rotation_matrix_f0, (mean_position_array - circle_center).T
     ).T
 
     rotation_matrix_for_aoi = np.empty((len(available_aoi_ids), 3, 3), float)
@@ -763,7 +761,6 @@ if __name__ == "__main__":
             mean_position_array[index_highest_point_on_blade]
         )
 
-    indices_found = np.nonzero(found_array_f0 == 1)
     indices_for_aoi_inter_org = np.arange(len(coordinates_f0))
 
     index_array = np.empty((len(available_aoi_ids), 2), int)
@@ -772,12 +769,11 @@ if __name__ == "__main__":
         best_points = None
 
         indices_for_aoi = np.where(aoi_number_f0 == aoi_index)[0]
-        # indices_for_aoi_inter = np.intersect1d(indices_for_aoi, indices_found)
         local_coordinates_for_aoi = coordinates_f0[indices_for_aoi]
         local_coordinates_for_aoi = np.dot(
             rotation_matrix_for_aoi[aoi_index], local_coordinates_for_aoi.T
         ).T
-        local_sigmas = xyz_sigmas[indices_for_aoi]
+        local_sigmas = xyz_sigmas_f0[indices_for_aoi]
         local_visible_counter = visible_counter[indices_for_aoi]
         indices_for_aoi_local = indices_for_aoi_inter_org[indices_for_aoi]
         norm_result = np.linalg.norm(local_sigmas, axis=1) + 1
@@ -818,11 +814,11 @@ if __name__ == "__main__":
     ax = plt.axes(projection="3d")
     ax.grid()
     ax.scatter(
-        coordinates_f0[indices_found].T[0],
-        coordinates_f0[indices_found].T[1],
-        coordinates_f0[indices_found].T[2],
+        coordinates_f0[found_indices_f0].T[0],
+        coordinates_f0[found_indices_f0].T[1],
+        coordinates_f0[found_indices_f0].T[2],
         c="b",
-        alpha=0.5,
+        alpha=0.25,
         s=10,
     )
     ax.scatter(
@@ -841,7 +837,7 @@ if __name__ == "__main__":
     ax.set_xlim((-60000, 60000))
     plt.legend()
     fig.show()
-    plt.pause(1)
+    plt.pause(0)
 
     # ------------------------------------------------------------------------------------------------------------------
     # TODO: SAVE COPIED FILES .OUT
@@ -863,7 +859,7 @@ if __name__ == "__main__":
         found_array_first_frame = found_array[indices_of_inner_subsets]
         coordinates_first_frame = coordinates[indices_of_inner_subsets]
         coordinates_first_frame = np.dot(
-            rotation_matrix, (coordinates_first_frame - circle_center).T
+            rotation_matrix_f0, (coordinates_first_frame - circle_center).T
         ).T
 
         print("\r", "Step 5/5: Store adjusted measurement points...", end="")
@@ -892,7 +888,7 @@ if __name__ == "__main__":
             )
         plt.show()
         fig.savefig(out_file_dir + "/AOI Benennung.png", dpi=fig.dpi)
-        plt.pause(1)
+        plt.pause(0)
 
         # Erzeuge Ordner, in welchen die angepassten Out-Dateien abgespeichert werden
         if not os.path.isdir(out_file_dir + "/koordNachGL/"):
