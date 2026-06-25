@@ -32,8 +32,8 @@ from coordsysalign.transformation_fns import (
 # Set the values of the boolean flags used to control the program flow.
 SAVE_OUTPUT_FLAG = True
 SUBSET_FLAG = False
-YAW_ANGLE_FLAG = False
-FRAME_0_REF_FLAG = False
+YAW_ANGLE_FLAG = True
+FRAME_0_REF_FLAG = True
 
 # Specify the number of processors used to read and write on the files.
 N_PROCESSES = 16
