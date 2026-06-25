@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-paths = [r"E:\HiWi Cordova\Messung 19_noyaw\subset\Torsion"]
-names = ["AAAAAAAAAAA"]
+paths = [r"E:\HiWi Cordova\Messung 19_noyaw\subset\DEFAULT\Torsion", r"E:\HiWi Cordova\Messung 19_noyaw\subset\YAW_CORR_AVE\Torsion", r"E:\HiWi Cordova\Messung 19_noyaw\subset\YAW_CORR_F0\Torsion"]
+names = ["No Yaw Correction", "Yaw Correction (Average Circle)","Yaw Correction (Frame 0 Circle)"]
 
 assert len(paths) > 0
 
