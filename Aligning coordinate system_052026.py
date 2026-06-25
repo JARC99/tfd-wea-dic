@@ -31,8 +31,7 @@ from coordsysalign.transformation_fns import (
 
 # Set the values of the boolean flags used to control the program flow.
 SAVE_OUTPUT_FLAG = True
-SUBSET_FLAG = True  # TODO: Implement a prompt that lets you specify the number of files you want to use.
-
+SUBSET_FLAG = False
 YAW_ANGLE_FLAG = False
 FRAME_0_REF_FLAG = False
 
@@ -617,11 +616,19 @@ if __name__ == "__main__":
     # Calculate needed rotation matrices and compute the corresponding transformations
     # ------------------------------------------------------------------------------------------------------------------
 
-    # Calculate the needed rotation matrix to bring the rotor into the y-z plane based on the averaged circle.
-    rotation_matrix = calculate_circle_rotation_matrix(circle_direction, 1)
+    if FRAME_0_REF_FLAG:
+        # Calculate the needed rotation matrix to bring the rotor into the y-z plane based on the first frame.
+        rotation_matrix = calculate_circle_rotation_matrix(circle_direction_f0, 1)
 
-    # Center and rotate the found rotor points so the rotor is on the y-z plane.
-    coordinates_temp = np.dot(rotation_matrix, (coordinates - circle_center).T).T
+        # Center and rotate the found rotor points so the rotor is on the y-z plane.
+        coordinates_temp = np.dot(rotation_matrix, (coordinates - circle_center_f0).T).T
+
+    else:
+        # Calculate the needed rotation matrix to bring the rotor into the y-z plane based on the averaged circle.
+        rotation_matrix = calculate_circle_rotation_matrix(circle_direction, 1)
+
+        # Center and rotate the found rotor points so the rotor is on the y-z plane.
+        coordinates_temp = np.dot(rotation_matrix, (coordinates - circle_center).T).T
 
     # Verify that the obtained rotation is in the correct direction.
     direction_array = np.zeros((len(coordinates_temp) - 1), np.int8)
@@ -679,21 +686,21 @@ if __name__ == "__main__":
     rotation_matrix_list = []
     if YAW_ANGLE_FLAG:
         if FRAME_0_REF_FLAG:
-            pass
+            z_rot_angle_array = np.deg2rad(-(yaw_angle_array[0] - yaw_angle_array))
         else:
             z_rot_angle_array = np.deg2rad(-(yaw_angle_ave - yaw_angle_array))
 
-            for z_rot_angle in z_rot_angle_array:
-                rot_z = np.array(
-                    [
-                        [np.cos(z_rot_angle), -np.sin(z_rot_angle), 0],
-                        [np.sin(z_rot_angle), np.cos(z_rot_angle), 0],
-                        [0, 0, 1],
-                    ]
-                )
-                rotation_matrix_list.append(
-                    np.matmul(rot_x, np.matmul(rot_z, rotation_matrix))
-                )
+        for z_rot_angle in z_rot_angle_array:
+            rot_z = np.array(
+                [
+                    [np.cos(z_rot_angle), -np.sin(z_rot_angle), 0],
+                    [np.sin(z_rot_angle), np.cos(z_rot_angle), 0],
+                    [0, 0, 1],
+                ]
+            )
+            rotation_matrix_list.append(
+                np.matmul(rot_x, np.matmul(rot_z, rotation_matrix))
+            )
     else:
         rotation_matrix_list = [np.matmul(rot_x, rotation_matrix)] * len(out_file_list)
 
@@ -799,7 +806,7 @@ if __name__ == "__main__":
                 p1 = local_coordinates_for_aoi[i]
                 p2 = local_coordinates_for_aoi[j]
 
-                # TODO: Multiplikation zu + aendern und irgendwie einbauen
+                # TODO: Multiplikation zu + ändern und irgendwie einbauen
                 value = (
                     ((abs(p1[2] - p2[2]) + 100) / (abs(p1[1] - p2[1]) + 1))
                     * (norm_result[i] + norm_result[j])
