@@ -4,6 +4,10 @@ import numpy as np
 
 
 def quaternion_to_rotation_matrix(Q):
+    """
+    Calculate quaternions.
+    """
+
     q0 = Q[0]
     qx = Q[1]
     qy = Q[2]
@@ -33,6 +37,7 @@ def find_rotation(right_co, left_co):
         right_co - Punkte im ersten Koordinatensystem (Referenz)
         left_co - Die gleichen Punkte mit den Koordinaten nach dem zweiten Koordinatensystem
     """
+
     mean_left = np.mean(left_co, axis=0)
     mean_right = np.mean(right_co, axis=0)
 
@@ -77,17 +82,19 @@ def find_rotation(right_co, left_co):
     eigenvectors = eigenvectors.T
     max_index = np.argmax(eigenvalues)
     test = eigenvectors[max_index] / np.linalg.norm(eigenvectors[max_index])
+
     return quaternion_to_rotation_matrix(test)
 
 
 def find_translation(right_co, left_co_temp):
     """
-    Berechnet einen Translationsvektor, um Punkte aus dem Koordinatensystem left_co_temp in Punkte nach dem Koordinatensystem right_co zu ueberfuehren.
+    Berechnet einen Translationsvektor, um Punkte aus dem Koordinatensystem left_co_temp in Punkte nach dem Koordinatensystem right_co zu überführen.
     Die Rotation muss bereits angepasst worden sein
 
         right_co - Punkte im ersten Koordinatensystem (Referenz)
         left_co_temp - Die gleichen Punkte mit den Koordinaten nach dem zweiten Koordinatensystem
     """
+
     mean_right = np.mean(right_co, axis=0)
     mean_left = np.mean(left_co_temp, axis=0)
     return mean_right - mean_left
@@ -99,6 +106,7 @@ def find_x_rotation_matrix(point):
 
         point - Mit diesem Punkt wird die Rotationsmatrix ermittelt
     """
+
     diff = point / np.linalg.norm(point)
     x0 = diff[2]
     x1 = diff[1]
@@ -118,6 +126,10 @@ def find_x_rotation_matrix(point):
 
 
 def calculate_circle_rotation_matrix(circle_direction, direction):
+    """
+    Compute the rotation matrix needed to rotate the vector normal to the circle surface to a specified direction
+    """
+
     # Ab hier Rechnung aus der Dissertation um Rotationsmatrix zu bestimmen
     circle_direction = np.array(circle_direction)
     k = (
