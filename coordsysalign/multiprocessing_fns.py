@@ -17,6 +17,11 @@ from VicPy import (
 from coordsysalign.transformation_fns import find_rotation, find_translation
 
 
+# -------------------------------------
+from geomfitty import fit3d, geom3d
+# --------------------------------------
+
+
 def put_to_queue(input_out_file_folder, file_path_queue: Queue, number_of_workers):
     """
     Pack die einzelnen Pfad der Out-Dateien in eine Queue, welche dann an mehrere Prozesse geht, welche die Dateien laden.
@@ -362,6 +367,182 @@ def read_file_loop(file_name_queue, shared_memory: SharedMemory, subset_index):
         )
 
 
+# def process_out_files(
+#     file_path_queue,
+#     output_path1,
+#     output_path2,
+#     translation_vector_arg,
+#     rotation_matrix_arg,
+#     roi_ids_near_center,
+#     found_array_first_frame,
+#     coordinates_first_frame,
+#     shared_mem: SharedMemory,
+#     interesting_subsets_id_vicpy,
+#     variables_export_name_out_file,
+#     SAVE_OUTPUT_FLAG
+# ):
+#     """
+#     Passt die Daten in den Out-Datein an, sodass das Koordinatensystem ausgerichtet ist und eliminiert die Starrkoerperrotation. Danach werden die Out-Datein jeweils erneut abgespeichert.
+#
+#         file_path_queue - Queue, welche die Dateinummer und den Dateinamen der Out-Dateien enthält.
+#         output_path1 - Pfad des Ordners, in welchem die Out-Dateien abgespeichert werden, bei denen das Koordinatensystem (Naben-Koordinatensystem) angepasst wurde
+#         output_path2 - Pfad des Ordners, in welchem die Out-Dateien abgespeichert werden, bei denen die Starrkoerperrotation (Rotor-Koordinatensystem) eliminiert
+#         translation_vector_arg - Translationsvektor zur Anpassung des Koordinatensystems (Naben-Koordinatensystem)
+#         rotation_matrix_arg - Rotationsmatrix zur Anpassung des Koordinatensystems (Naben-Koordinatensystem)
+#         roi_ids_near_center - Ids der AOI, welche sich im Mittelpunkt des Rotors befinden. Dient zur Eliminierung der Starrkoerperrotation
+#         found_array_first_frame - Gibt an, welche Subsets im ersten Frame im Blattwurzelbereich gefunden worden sind.
+#         coordinates_first_frame - Koordinaten der Subsets im Blattwurzelbereich
+#         semaphore - Wird immer freigegeben, wenn eine Datein verarbeitet wurde. Dient zur Anzeige des Fortschritts (Prozentangabe im Terminal).
+#     """
+#     var_ids = []
+#     data = VicDataSet()
+#     while True:
+#         translation = RigidTransformation()
+#         rotation_obj = Rotation()
+#         rotation = RigidTransformation()
+#
+#         content = file_path_queue.get()
+#         if content is None:
+#             break
+#
+#         file_number, file = content
+#         _, tail = os.path.split(file)
+#
+#         translation_vector = (
+#             translation_vector_arg[0],
+#             translation_vector_arg[1],
+#             translation_vector_arg[2],
+#         )
+#         rotation_matrix = rotation_matrix_arg[file_number].copy()
+#
+#         translation.setTranslation(translation_vector)
+#         rotation_obj.setMatrix(rotation_matrix)
+#
+#         rotation.setRotation(rotation_obj)
+#         if data.load(file) == False:
+#             print("Could not load data set\n\n")
+#             exit(-1)
+#         data.transform(translation, False)
+#         data.transform(rotation, False)
+#
+#         if SAVE_OUTPUT_FLAG:
+#             data.save(output_path1 + tail)
+#         else:
+#             pass
+#
+#         # --------------------------------------------------------------------------------------------------------------
+#         # Part 2
+#         # --------------------------------------------------------------------------------------------------------------
+#
+#         # Torsion point pair P1 n
+#         coordinates_for_ret = np.empty(
+#             (data.numData(), 3, len(variables_export_name_out_file)), float
+#         )
+#         for aoi in range(data.numData()):
+#             d = data.data(aoi)
+#             if len(var_ids) == 0:
+#                 for var in variables_export_name_out_file:
+#                     idx = d.varIndex(var)
+#                     if idx < 0:
+#                         print("Could not find variable %s" % var)
+#                     else:
+#                         var_ids.append(idx)
+#             coordinates_for_ret[aoi, 1] = np.array(
+#                 d.values(interesting_subsets_id_vicpy[aoi, 1], var_ids)
+#             )
+#             coordinates_for_ret[aoi, 2] = np.array(
+#                 d.values(interesting_subsets_id_vicpy[aoi, 2], var_ids)
+#             )
+#
+#         found_array = np.empty((0), int)
+#         coordinates = np.empty((0, 3), float)
+#         for aoi in roi_ids_near_center:
+#             d = data.data(aoi)
+#
+#             rows = d.asArray(["sigma", "X", "Y", "Z", "U", "V", "W"])
+#             rows = rows.view(np.float32).reshape(rows.shape[0], -1)
+#
+#             rows = rows.T
+#             found_array_for_aoi = rows[0]
+#             """
+#             found_array_not_zero = np.where(rows[0] >= 0)[0]
+#             bad_indices = np.where(rows[0] > np.median(rows[0][found_array_not_zero]))[0]
+#             found_array_for_aoi[bad_indices] = -1
+#             """
+#             found_array_for_aoi = np.where(found_array_for_aoi < 0, 0, 1)
+#
+#             coordinates_for_aoi = (rows[1:4] + rows[4:7]).T
+#
+#             found_array = np.append(found_array, found_array_for_aoi, axis=0)
+#             coordinates = np.append(coordinates, coordinates_for_aoi, axis=0)
+#
+#         sum_found_array = found_array_first_frame + found_array
+#         indices_in_both_frames = np.where(sum_found_array == 2)[0]
+#
+#         assert len(indices_in_both_frames) > 5, (
+#             f"Nicht genug Punkte im Blattwurzelbereich vorhanden, um die Eliminierung der Starrkörperrotation durchzuführen. Datei: {file}"
+#         )
+#
+#         coordinates_in_ref_frame = coordinates_first_frame[indices_in_both_frames]
+#         coordinates_in_current_frame = coordinates[indices_in_both_frames]
+#
+#         found_rot_mat = find_rotation(
+#             coordinates_in_ref_frame, coordinates_in_current_frame
+#         )
+#         root_points_current_image_both = np.dot(
+#             found_rot_mat, coordinates_in_current_frame.T
+#         ).T
+#         found_translation = find_translation(
+#             coordinates_in_ref_frame, root_points_current_image_both
+#         )
+#
+#         translation = RigidTransformation()
+#         translation_vector = (
+#             found_translation[0],
+#             found_translation[1],
+#             found_translation[2],
+#         )
+#         translation.setTranslation(translation_vector)
+#
+#         rotation_obj = Rotation()
+#         rotation_obj.setMatrix(found_rot_mat)
+#
+#         rotation = RigidTransformation()
+#         rotation.setRotation(rotation_obj)
+#
+#         if file_number > 0:
+#             data.transform(rotation, True)
+#             data.transform(translation, True)
+#
+#         if SAVE_OUTPUT_FLAG:
+#             data.save(output_path2 + tail)
+#         else:
+#             pass
+#
+#         for aoi in range(data.numData()):
+#             d = data.data(aoi)
+#             if len(var_ids) == 0:
+#                 for var in variables_export_name_out_file:
+#                     idx = d.varIndex(var)
+#                     if idx < 0:
+#                         print("Could not find variable %s" % var)
+#                     else:
+#                         var_ids.append(idx)
+#             # coordinates_for_ret[aoi, 1] = np.array(d.values(interesting_subsets_id_vicpy[aoi, 1], var_ids))
+#             # coordinates_for_ret[aoi, 2] = np.array(d.values(interesting_subsets_id_vicpy[aoi, 2], var_ids))
+#             coordinates_for_ret[aoi, 0] = np.array(
+#                 d.values(interesting_subsets_id_vicpy[aoi, 0], var_ids)
+#             )
+#
+#         shared_mem.put(file_number, [coordinates_for_ret])
+
+
+
+
+
+
+
+
 def process_out_files(
     file_path_queue,
     output_path1,
@@ -374,11 +555,12 @@ def process_out_files(
     shared_mem: SharedMemory,
     interesting_subsets_id_vicpy,
     variables_export_name_out_file,
+    SAVE_OUTPUT_FLAG
 ):
     """
     Passt die Daten in den Out-Datein an, sodass das Koordinatensystem ausgerichtet ist und eliminiert die Starrkoerperrotation. Danach werden die Out-Datein jeweils erneut abgespeichert.
 
-        file_path_queue - Queue, welche die Dateinummer und den Dateinamen der Out-Dateien enthaelt.
+        file_path_queue - Queue, welche die Dateinummer und den Dateinamen der Out-Dateien enthält.
         output_path1 - Pfad des Ordners, in welchem die Out-Dateien abgespeichert werden, bei denen das Koordinatensystem (Naben-Koordinatensystem) angepasst wurde
         output_path2 - Pfad des Ordners, in welchem die Out-Dateien abgespeichert werden, bei denen die Starrkoerperrotation (Rotor-Koordinatensystem) eliminiert
         translation_vector_arg - Translationsvektor zur Anpassung des Koordinatensystems (Naben-Koordinatensystem)
@@ -397,8 +579,8 @@ def process_out_files(
 
         content = file_path_queue.get()
         if content is None:
-            # print("Gesamtzeit: ", time.time() - overall_timer, "  Nur Anpassen: ", change_timer)
             break
+
         file_number, file = content
         _, tail = os.path.split(file)
 
@@ -418,8 +600,17 @@ def process_out_files(
             exit(-1)
         data.transform(translation, False)
         data.transform(rotation, False)
-        data.save(output_path1 + tail)
 
+        if SAVE_OUTPUT_FLAG:
+            data.save(output_path1 + tail)
+        else:
+            pass
+
+        # --------------------------------------------------------------------------------------------------------------
+        # Part 2
+        # --------------------------------------------------------------------------------------------------------------
+
+        # Torsion point pair P1 n
         coordinates_for_ret = np.empty(
             (data.numData(), 3, len(variables_export_name_out_file)), float
         )
@@ -499,7 +690,10 @@ def process_out_files(
             data.transform(rotation, True)
             data.transform(translation, True)
 
-        data.save(output_path2 + tail)
+        if SAVE_OUTPUT_FLAG:
+            data.save(output_path2 + tail)
+        else:
+            pass
 
         for aoi in range(data.numData()):
             d = data.data(aoi)
@@ -517,6 +711,13 @@ def process_out_files(
             )
 
         shared_mem.put(file_number, [coordinates_for_ret])
+
+
+
+
+
+
+
 
 
 if __name__ == "__main__":

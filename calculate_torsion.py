@@ -1,9 +1,11 @@
+import easygui
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-paths = [r"E:\HiWi Cordova\Messung 19_noyaw\subset\DEFAULT\Torsion", r"E:\HiWi Cordova\Messung 19_noyaw\subset\YAW_CORR_AVE\Torsion", r"E:\HiWi Cordova\Messung 19_noyaw\subset\YAW_CORR_F0\Torsion"]
-names = ["No Yaw Correction", "Yaw Correction (Average Circle)","Yaw Correction (Frame 0 Circle)"]
+paths = []#[r"E:\HiWi Cordova\Messung 19_noyaw\out\DEFAULT\Torsion", r"E:\HiWi Cordova\Messung 19_noyaw\out\YAW_AVE\Torsion", r"E:\HiWi Cordova\Messung 19_noyaw\out\YAW_F0\Torsion"] #[r"E:\HiWi Cordova\Messung 19_noyaw\out\DEFAULT\Torsion", r"E:\HiWi Cordova\Messung 19_noyaw\out\YAW_F0\Torsion"]
+paths.append(easygui.diropenbox("Select Folder with out-Files"))#[r"E:\HiWi Cordova\Messung 19_noyaw\out\ANGEL\Torsion"]#[r"E:\HiWi Cordova\Messung24\plots\DEFAULT\Torsion", r"E:\HiWi Cordova\Messung24\plots\YAW_AVE\Torsion", r"E:\HiWi Cordova\Messung24\plots\YAW_F0\Torsion"]
+names = ["Angel"]#["Default (Ohne Starrkörper Eliminierung)", "Yaw Correction (Averager Circle)", "Yaw Correction (Frame 0 Circle)"] #["No Yaw Correction","Yaw Correction (Frame 0 Circle)"]
 
 assert len(paths) > 0
 
@@ -22,6 +24,7 @@ point_pair_diff_list = []
 angles = []
 
 # print(len(real_angle))
+
 
 
 for i in range(len(paths)):
@@ -81,12 +84,13 @@ for i in range(len(paths)):
     point_pair_diff_list.append(other_diff_relativ)
     angle[bad_sigmas] = np.nan
     angles.append(angle)
-    plt.plot(angle, label=names[i])
+    plt.plot(angle, label=names[i], alpha=0.5)
 
 
 if len(angle) == len(real_angle):
     plt.plot(real_angle, label="real_angle")
 plt.legend()
+plt.xlim(0)
 plt.xlabel("Bildnummer")
 plt.ylabel("Torsionswinkeländerung in °")
 plt.title("Gemessenere Torsionswinkeländerung zum Referenzbild")

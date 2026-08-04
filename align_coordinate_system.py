@@ -31,8 +31,8 @@ from coordsysalign.transformation_fns import (
 
 # Set the values of the boolean flags used to control the program flow.
 SAVE_OUTPUT_FLAG = True
-SUBSET_FLAG = False
-YAW_ANGLE_FLAG = True
+SUBSET_FLAG = True
+YAW_ANGLE_FLAG = False
 FRAME_0_REF_FLAG = True
 
 # Specify the number of processors used to read and write on the files.
@@ -82,6 +82,7 @@ if __name__ == "__main__":
                 len(out_file_list)
             )
         )
+
         out_file_list = out_file_list[: int(subset_size)]
     else:
         pass
@@ -674,12 +675,70 @@ if __name__ == "__main__":
     rot_x = np.array(
         [
             [1, 0, 0],
-            [0, math.cos(x_rot_angle), -math.sin(x_rot_angle)],
-            [0, math.sin(x_rot_angle), math.cos(x_rot_angle)],
+            [0, np.cos(x_rot_angle), -np.sin(x_rot_angle)],
+            [0, np.sin(x_rot_angle), np.cos(x_rot_angle)],
         ]
     )
 
     rotation_matrix_ave = np.matmul(rot_x, rotation_matrix)
+
+    # ----------------------------------------------------------------------------------------
+
+    failed_list = []
+    better_rot_mat_list = []
+    for idx, out_file in enumerate(out_file_list):
+        found_array_b, coordinates_b, _, _, _ = read_file(out_file, test_subsets_list)
+
+        better_center = np.mean(coordinates_b[indices_of_inner_subsets])
+
+        better_rad = np.mean(
+            np.linalg.norm(
+                better_center - coordinates_b[indices_of_inner_subsets],
+                axis=1,
+            )
+            / 1000
+        )
+
+        initial_guess = geom3d.Circle3D(
+            np.mean(coordinates_b[indices_of_inner_subsets], axis=0),
+            [1, 0, 0],
+            better_rad,
+        )
+        better_circle = fit3d.circle3D_fit(
+            coordinates_b[indices_of_inner_subsets],
+            initial_guess=initial_guess,
+        )
+
+        try:
+            better_circle_dir = better_circle.direction
+            
+            if better_circle_dir[-1] > 0:
+                better_circle_dir = better_circle_dir * -1
+
+        
+            # Try to calculate the rotation matrix using the circle's direction
+            rotation_matrix_better = calculate_circle_rotation_matrix(
+                better_circle_dir, 1
+            )
+            
+            old_direction = better_circle_dir
+        except AttributeError as e:
+            print(
+                f"Failed to calculate rotation matrix. 'better_circle' is not a valid circle object: {better_circle}"
+            )
+            failed_list.append(idx)
+            print(out_file)
+            rotation_matrix_better = calculate_circle_rotation_matrix(
+                old_direction, 1
+            )
+
+
+        
+        rotation_matrix_better = np.matmul(rot_x, rotation_matrix_better)
+
+        better_rot_mat_list.append(rotation_matrix_better)
+
+    # -----------------------------------------------------------------------------------------
 
     # Compute the rotations matrices to correct the yaw rotation for each of the frames depending on whether or the
     # YAW_ANGLE_FLAG is active or not. The reference angle can be either the first frame or the average circle.
@@ -699,14 +758,19 @@ if __name__ == "__main__":
                 ]
             )
             rotation_matrix_list.append(
-                np.matmul(rot_x, np.matmul(rot_z, rotation_matrix))
+                np.matmul(
+                    rot_z, np.matmul(rot_x, rotation_matrix)
+                )  # TODO: This could be refactored into a 3D numpy array
             )
     else:
-        rotation_matrix_list = [np.matmul(rot_x, rotation_matrix)] * len(out_file_list)
+        rotation_matrix_list = [np.matmul(rot_x, rotation_matrix_ave)] * len(
+            out_file_list
+        )
 
     rotation_matrix_f0 = rotation_matrix_list[0]
 
-    # Rotate the points obtained from the first frame to visualize them.
+    # Rotate the points obtained from all the frame to visualize them.
+
     coordinates = np.dot(rotation_matrix_ave, (coordinates - circle_center).T).T
 
     print("\r", "Step 3/5: Calculate circle...  100 %")
@@ -756,7 +820,7 @@ if __name__ == "__main__":
     plt.pause(0)
 
     # ------------------------------------------------------------------------------------------------------------------
-    # Find a pait of points for each AoI for the torsion calculation
+    # Find a pair of points for each AoI for the torsion calculation
     # ------------------------------------------------------------------------------------------------------------------
 
     print(
@@ -770,7 +834,7 @@ if __name__ == "__main__":
 
     # Rotate the coordinates of the AoIs mean position using the first frame rotation matrix.
     mean_position_array = np.dot(
-        rotation_matrix_f0, (mean_position_array - circle_center).T
+        rotation_matrix_f0, (mean_position_array - circle_center_f0).T
     ).T
 
     # Create an 3D array where you will store the rotation matrices around the x-axis for each individual AoI.
@@ -866,248 +930,250 @@ if __name__ == "__main__":
     # Save the transformed .out files into the previously created folders.
     # ------------------------------------------------------------------------------------------------------------------
 
-    if SAVE_OUTPUT_FLAG:
-        # The complete datapoints from the first frame are re-read.
-        found_array_f0, coordinates_f0, xyz_sigmas_f0, aoi_number_f0, _ = read_file(
-            out_file_list[0], None
+    # The complete datapoints from the first frame are re-read.
+    found_array_f0, coordinates_f0, xyz_sigmas_f0, aoi_number_f0, _ = read_file(
+        out_file_list[0], None
+    )
+
+    indices_of_inner_subsets = np.array([], dtype=int)
+    for aoi_id in aoi_ids_near_center:
+        indices_of_inner_subsets = np.append(
+            indices_of_inner_subsets, np.nonzero(aoi_number_f0 == aoi_id)[0]
         )
 
-        indices_of_inner_subsets = np.array([], dtype=int)
-        for aoi_id in aoi_ids_near_center:
-            indices_of_inner_subsets = np.append(
-                indices_of_inner_subsets, np.nonzero(aoi_number_f0 == aoi_id)[0]
-            )
+    found_array_first_frame = found_array_f0[indices_of_inner_subsets]
+    coordinates_first_frame = coordinates_f0[indices_of_inner_subsets]
+    coordinates_first_frame = np.dot(
+        rotation_matrix_f0, (coordinates_first_frame - circle_center_f0).T
+    ).T
 
-        found_array_first_frame = found_array_f0[indices_of_inner_subsets]
-        coordinates_first_frame = coordinates_f0[indices_of_inner_subsets]
-        coordinates_first_frame = np.dot(
-            rotation_matrix_f0, (coordinates_first_frame - circle_center_f0).T
-        ).T
+    print("\r", "Step 5/5: Store adjusted measurement points...", end="")
 
-        print("\r", "Step 5/5: Store adjusted measurement points...", end="")
-
-        # Show a 2D image with the named AoIs.
-        two_d_coordinates = read_file_mean_aoi_pos_2d(out_file_list[0])
-        fig, ax = plt.subplots()
-        ax.scatter(
-            two_d_coordinates.T[0],
-            np.max(two_d_coordinates.T[1]) - two_d_coordinates.T[1],
+    # Show a 2D image with the named AoIs.
+    two_d_coordinates = read_file_mean_aoi_pos_2d(out_file_list[0])
+    fig, ax = plt.subplots()
+    ax.scatter(
+        two_d_coordinates.T[0],
+        np.max(two_d_coordinates.T[1]) - two_d_coordinates.T[1],
+    )
+    plt.title("Found AoI in the Reference Frame (Frame 0)")
+    for aoi_id in range(len(two_d_coordinates)):
+        annotation = "Blade {0}/{1} - AoI: {2}".format(
+            blade_name_list[int(blade_number_of_aoi[aoi_id])],
+            int(blade_number_of_aoi[aoi_id]),
+            int(aoi_to_blade_aoi[aoi_id]),
         )
-        plt.title("Found AoI in the Reference Frame (Frame 0)")
-        for aoi_id in range(len(two_d_coordinates)):
-            annotation = "Blade {0} - AoI: {1}".format(
-                blade_name_list[int(blade_number_of_aoi[aoi_id])],
-                int(aoi_to_blade_aoi[aoi_id]),
-            )
 
-            ax.annotate(
-                annotation,
+        ax.annotate(
+            annotation,
+            (
+                two_d_coordinates.T[0][aoi_id],
+                np.max(two_d_coordinates.T[1]) - two_d_coordinates.T[1][aoi_id],
+            ),
+        )
+    plt.show()
+    fig.savefig(out_file_dir + "/AoI_Naming.png", dpi=fig.dpi)
+    plt.pause(0)
+
+    # If not existent already, create the folders needed to store the processed .out files.
+    if not os.path.isdir(out_file_dir + "/koordNachGL/"):
+        os.mkdir(out_file_dir + "/koordNachGL/")
+    if not os.path.isdir(out_file_dir + "/koordNachGL_noRot/"):
+        os.mkdir(out_file_dir + "/koordNachGL_noRot/")
+    if not os.path.isdir(out_file_dir + "/SchlagSchwenk/"):
+        os.mkdir(out_file_dir + "/SchlagSchwenk/")
+    if not os.path.isdir(out_file_dir + "/Torsion/"):
+        os.mkdir(out_file_dir + "/Torsion/")
+
+    output_path1 = out_file_dir + "/koordNachGL/"
+    output_path2 = out_file_dir + "/koordNachGL_noRot/"
+    output_path3 = out_file_dir + "/SchlagSchwenk/"
+    output_path4 = out_file_dir + "/Torsion/"
+
+    # Store for each AoI a single point in a separate in a .csv file.
+    interesting_subsets_id_vicpy = np.empty((len(interesting_subsets), 3), int)
+    interesting_subsets_id_vicpy[:, 0] = index_in_aoi_f0[interesting_subsets]
+    interesting_subsets_id_vicpy[:, 1] = index_in_aoi_f0[index_array[:, 0]]
+    interesting_subsets_id_vicpy[:, 2] = index_in_aoi_f0[index_array[:, 1]]
+
+    position_of_interesting_points_2d = read_file_pos_2d_at_index(
+        out_file_list[0], interesting_subsets_id_vicpy[:, 0]
+    )
+
+    # Initiate the needed multiprocessing instances to process and store the .out files.
+    shared_mem = SharedMemory(
+        [
+            np.empty(
                 (
-                    two_d_coordinates.T[0][aoi_id],
-                    np.max(two_d_coordinates.T[1]) - two_d_coordinates.T[1][aoi_id],
+                    len(interesting_subsets_id_vicpy),
+                    3,
+                    len(variables_export_name_out_file),
                 ),
+                np.float32,
             )
-        plt.show()
-        fig.savefig(out_file_dir + "/AoI_Naming.png", dpi=fig.dpi)
-        plt.pause(0)
+        ]
+    )
+    file_path_queue = Queue(maxsize=30)
 
-        # If not existent already, create the folders needed to store the processed .out files.
-        if not os.path.isdir(out_file_dir + "/koordNachGL/"):
-            os.mkdir(out_file_dir + "/koordNachGL/")
-        if not os.path.isdir(out_file_dir + "/koordNachGL_noRot/"):
-            os.mkdir(out_file_dir + "/koordNachGL_noRot/")
-        if not os.path.isdir(out_file_dir + "/SchlagSchwenk/"):
-            os.mkdir(out_file_dir + "/SchlagSchwenk/")
-        if not os.path.isdir(out_file_dir + "/Torsion/"):
-            os.mkdir(out_file_dir + "/Torsion/")
+    put_to_queue_process = Process(
+        target=put_to_queue, args=(out_file_list, file_path_queue, N_PROCESSES)
+    )
+    put_to_queue_process.start()
 
-        output_path1 = out_file_dir + "/koordNachGL/"
-        output_path2 = out_file_dir + "/koordNachGL_noRot/"
-        output_path3 = out_file_dir + "/SchlagSchwenk/"
-        output_path4 = out_file_dir + "/Torsion/"
+    # Create Semaphore object to monitor the processing progress.
+    semaphore = Semaphore(0)
 
-        # Store for each AoI a single point in a separate in a .csv file.
-        interesting_subsets_id_vicpy = np.empty((len(interesting_subsets), 3), int)
-        interesting_subsets_id_vicpy[:, 0] = index_in_aoi_f0[interesting_subsets]
-        interesting_subsets_id_vicpy[:, 1] = index_in_aoi_f0[index_array[:, 0]]
-        interesting_subsets_id_vicpy[:, 2] = index_in_aoi_f0[index_array[:, 1]]
-
-        position_of_interesting_points_2d = read_file_pos_2d_at_index(
-            out_file_list[0], interesting_subsets_id_vicpy[:, 0]
-        )
-
-        # Initiate the needed multiprocessing instances to process and store the .out files.
-        shared_mem = SharedMemory(
-            [
-                np.empty(
-                    (
-                        len(interesting_subsets_id_vicpy),
-                        3,
-                        len(variables_export_name_out_file),
-                    ),
-                    np.float32,
-                )
-            ]
-        )
-        file_path_queue = Queue(maxsize=30)
-
-        put_to_queue_process = Process(
-            target=put_to_queue, args=(out_file_list, file_path_queue, N_PROCESSES)
-        )
-        put_to_queue_process.start()
-
-        # Create Semaphore object to monitor the processing progress.
-        semaphore = Semaphore(0)
-
-        workers = []
-        for _ in range(N_PROCESSES):
-            worker = Process(
-                target=process_out_files,
-                args=(
-                    file_path_queue,
-                    output_path1,
-                    output_path2,
-                    -circle_center,
-                    rotation_matrix_list,
-                    aoi_ids_near_center,
-                    found_array_first_frame,
-                    coordinates_first_frame,
-                    shared_mem,
-                    interesting_subsets_id_vicpy,
-                    variables_export_name_out_file,
-                ),
-            )
-            worker.start()
-            workers.append(worker)
-
-        # The points in the interesting_points subset are brought to the 12:00 position and stored in .csv files.
-        # TODO: The uncertainty calculation still needs to be updted.
-        good_points_data = np.empty(
-            (
-                len(out_file_list),
-                len(available_aoi_ids),
-                len(variables_export_name_out_file),
+    workers = []
+    for _ in range(N_PROCESSES):
+        worker = Process(
+            target=process_out_files,
+            args=(
+                file_path_queue,
+                output_path1,
+                output_path2,
+                -circle_center,
+                # rotation_matrix_list,
+                better_rot_mat_list,
+                aoi_ids_near_center,
+                found_array_first_frame,
+                coordinates_first_frame,
+                shared_mem,
+                interesting_subsets_id_vicpy,
+                variables_export_name_out_file,
+                SAVE_OUTPUT_FLAG,
             ),
-            float,
         )
-        good_points_torsion = np.empty(
-            (
-                len(out_file_list),
-                len(available_aoi_ids),
-                2,
-                len(variables_export_name_out_file),
-            ),
-            float,
-        )
-        for file_counter in range(len(out_file_list)):
-            data = shared_mem.get()
-            data = np.array(data)[0]
+        worker.start()
+        workers.append(worker)
 
-            for aoi_id in range(len(available_aoi_ids)):
-                data[aoi_id, 0, 0:3] = np.dot(
-                    rotation_matrix_for_aoi[aoi_id], data[aoi_id, 0, 0:3].T
-                ).T
-                data[aoi_id, 0, 3:6] = np.dot(
-                    rotation_matrix_for_aoi[aoi_id], data[aoi_id, 0, 3:6].T
-                ).T
+    # The points in the interesting_points subset are brought to the 12:00 position and stored in .csv files.
+    # TODO: The uncertainty calculation still needs to be updated.
+    good_points_data = np.empty(
+        (
+            len(out_file_list),
+            len(available_aoi_ids),
+            len(variables_export_name_out_file),
+        ),
+        float,
+    )
+    good_points_torsion = np.empty(
+        (
+            len(out_file_list),
+            len(available_aoi_ids),
+            2,
+            len(variables_export_name_out_file),
+        ),
+        float,
+    )
+    for file_counter in range(len(out_file_list)):
+        data = shared_mem.get()
+        data = np.array(data)[0]
 
-            good_points_data[file_counter] = data[:, 0]
-            good_points_torsion[file_counter] = data[:, 1:]
-            print(
-                "\r",
-                "Step 5/5: Store adjusted measurement points... ",
-                int((file_counter / len(out_file_list)) * 100),
-                "%",
-                end="",
-            )
-
-        put_to_queue_process.join()
-        for worker in workers:
-            worker.join()
-
-        # Store the points in .csv files.
         for aoi_id in range(len(available_aoi_ids)):
-            dic, dict1, dict2 = {}, {}, {}
-            for var_id in range(1, len(variables_export_name_csv_file)):
-                dic[variables_export_name_csv_file[var_id]] = good_points_data[
-                    :, aoi_id, var_id - 1
-                ]
-                dict1[variables_export_name_csv_file[var_id]] = good_points_torsion[
-                    :, aoi_id, 0, var_id - 1
-                ]
-                dict2[variables_export_name_csv_file[var_id]] = good_points_torsion[
-                    :, aoi_id, 1, var_id - 1
-                ]
-            df = pd.DataFrame(dic)
-            df_1 = pd.DataFrame(dict1)
-            df_2 = pd.DataFrame(dict2)
+            data[aoi_id, 0, 0:3] = np.dot(
+                rotation_matrix_for_aoi[aoi_id], data[aoi_id, 0, 0:3].T
+            ).T
+            data[aoi_id, 0, 3:6] = np.dot(
+                rotation_matrix_for_aoi[aoi_id], data[aoi_id, 0, 3:6].T
+            ).T
 
-            csv_filename1 = (
-                output_path3
-                + "/Blade_"
-                + str(int(blade_number_of_aoi[aoi_id]))
-                + "_AOI_"
-                + str(int(aoi_to_blade_aoi[aoi_id]))
-                + "_"
-                + str(position_of_interesting_points_2d[aoi_id])
-                + ".csv"
-            )
-            csv_filename2 = (
-                output_path4
-                + "/Blade_"
-                + str(int(blade_number_of_aoi[aoi_id]))
-                + "_AOI_"
-                + str(int(aoi_to_blade_aoi[aoi_id]))
-                + "_P1.csv"
-            )
-            csv_filename3 = (
-                output_path4
-                + "/Blade_"
-                + str(int(blade_number_of_aoi[aoi_id]))
-                + "_AOI_"
-                + str(int(aoi_to_blade_aoi[aoi_id]))
-                + "_P2.csv"
-            )
-            header_text = (
-                '"B'
-                + str(int(blade_number_of_aoi[aoi_id]))
-                + " AOI"
-                + str(int(aoi_to_blade_aoi[aoi_id]))
-                + '"'
-                + ";" * len(variables_export_name_out_file)
-            )
+        good_points_data[file_counter] = data[:, 0]
+        good_points_torsion[file_counter] = data[:, 1:]
+        print(
+            "\r",
+            "Step 5/5: Store adjusted measurement points... ",
+            int((file_counter / len(out_file_list)) * 100),
+            "%",
+            end="",
+        )
 
-            for csv_file_name in [csv_filename1, csv_filename2, csv_filename3]:
-                with open(csv_file_name, "w") as f:
-                    f.write(header_text + "\n")
-            df.to_csv(
-                csv_filename1,
-                index_label=variables_export_name_csv_file[0],
-                mode="a",
-                index=True,
-                quotechar="'",
-                sep=";",
-                decimal=",",
-            )
-            df_1.to_csv(
-                csv_filename2,
-                index_label=variables_export_name_csv_file[0],
-                mode="a",
-                index=True,
-                quotechar="'",
-                sep=";",
-                decimal=",",
-            )
-            df_2.to_csv(
-                csv_filename3,
-                index_label=variables_export_name_csv_file[0],
-                mode="a",
-                index=True,
-                quotechar="'",
-                sep=";",
-                decimal=",",
-            )
+    put_to_queue_process.join()
+    for worker in workers:
+        worker.join()
 
-        print("\r", "Step 5/5: Store adjusted measurement points...  100 %")
+    # Store the points in .csv files.
+    for aoi_id in range(len(available_aoi_ids)):
+        dic, dict1, dict2 = {}, {}, {}
+        for var_id in range(1, len(variables_export_name_csv_file)):
+            dic[variables_export_name_csv_file[var_id]] = good_points_data[
+                :, aoi_id, var_id - 1
+            ]
+            dict1[variables_export_name_csv_file[var_id]] = good_points_torsion[
+                :, aoi_id, 0, var_id - 1
+            ]
+            dict2[variables_export_name_csv_file[var_id]] = good_points_torsion[
+                :, aoi_id, 1, var_id - 1
+            ]
+        df = pd.DataFrame(dic)
+        df_1 = pd.DataFrame(dict1)
+        df_2 = pd.DataFrame(dict2)
 
-        exit()
+        csv_filename1 = (
+            output_path3
+            + "/Blade_"
+            + str(int(blade_number_of_aoi[aoi_id]))
+            + "_AOI_"
+            + str(int(aoi_to_blade_aoi[aoi_id]))
+            + "_"
+            + str(position_of_interesting_points_2d[aoi_id])
+            + ".csv"
+        )
+
+        csv_filename2 = (
+            output_path4
+            + "/Blade_"
+            + str(int(blade_number_of_aoi[aoi_id]))
+            + "_AOI_"
+            + str(int(aoi_to_blade_aoi[aoi_id]))
+            + "_P1.csv"
+        )
+        csv_filename3 = (
+            output_path4
+            + "/Blade_"
+            + str(int(blade_number_of_aoi[aoi_id]))
+            + "_AOI_"
+            + str(int(aoi_to_blade_aoi[aoi_id]))
+            + "_P2.csv"
+        )
+        header_text = (
+            '"B'
+            + str(int(blade_number_of_aoi[aoi_id]))
+            + " AOI"
+            + str(int(aoi_to_blade_aoi[aoi_id]))
+            + '"'
+            + ";" * len(variables_export_name_out_file)
+        )
+
+        for csv_file_name in [csv_filename1, csv_filename2, csv_filename3]:
+            with open(csv_file_name, "w") as f:
+                f.write(header_text + "\n")
+        df.to_csv(
+            csv_filename1,
+            index_label=variables_export_name_csv_file[0],
+            mode="a",
+            index=True,
+            quotechar="'",
+            sep=";",
+            decimal=",",
+        )
+        df_1.to_csv(
+            csv_filename2,
+            index_label=variables_export_name_csv_file[0],
+            mode="a",
+            index=True,
+            quotechar="'",
+            sep=";",
+            decimal=",",
+        )
+        df_2.to_csv(
+            csv_filename3,
+            index_label=variables_export_name_csv_file[0],
+            mode="a",
+            index=True,
+            quotechar="'",
+            sep=";",
+            decimal=",",
+        )
+
+    print("\r", "Step 5/5: Store adjusted measurement points...  100 %")
+    exit()
