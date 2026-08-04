@@ -33,7 +33,6 @@ from coordsysalign.transformation_fns import (
 SAVE_OUTPUT_FLAG = True
 SUBSET_FLAG = True
 
-FRAME_0_REF_FLAG = True
 
 # Specify the number of processors used to read and write on the files.
 N_PROCESSES = 16
@@ -585,19 +584,12 @@ if __name__ == "__main__":
     # Calculate needed rotation matrices and compute the corresponding transformations
     # ------------------------------------------------------------------------------------------------------------------
 
-    if FRAME_0_REF_FLAG:
-        # Calculate the needed rotation matrix to bring the rotor into the y-z plane based on the first frame.
-        rotation_matrix = calculate_circle_rotation_matrix(circle_direction_f0, 1)
 
-        # Center and rotate the found rotor points so the rotor is on the y-z plane.
-        coordinates_temp = np.dot(rotation_matrix, (coordinates - circle_center_f0).T).T
+    # Calculate the needed rotation matrix to bring the rotor into the y-z plane based on the averaged circle.
+    rotation_matrix = calculate_circle_rotation_matrix(circle_direction, 1)
 
-    else:
-        # Calculate the needed rotation matrix to bring the rotor into the y-z plane based on the averaged circle.
-        rotation_matrix = calculate_circle_rotation_matrix(circle_direction, 1)
-
-        # Center and rotate the found rotor points so the rotor is on the y-z plane.
-        coordinates_temp = np.dot(rotation_matrix, (coordinates - circle_center).T).T
+    # Center and rotate the found rotor points so the rotor is on the y-z plane.
+    coordinates_temp = np.dot(rotation_matrix, (coordinates - circle_center).T).T
 
     # Verify that the obtained rotation is in the correct direction.
     direction_array = np.zeros((len(coordinates_temp) - 1), np.int8)
