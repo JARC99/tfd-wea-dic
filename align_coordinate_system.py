@@ -32,7 +32,7 @@ from coordsysalign.transformation_fns import (
 # Set the values of the boolean flags used to control the program flow.
 SAVE_OUTPUT_FLAG = True
 SUBSET_FLAG = True
-YAW_ANGLE_FLAG = False
+
 FRAME_0_REF_FLAG = True
 
 # Specify the number of processors used to read and write on the files.
@@ -89,16 +89,6 @@ if __name__ == "__main__":
 
     n_frames = len(out_file_list)
 
-    # Load and compute the information needed to use the yaw angle time series
-    if YAW_ANGLE_FLAG:
-        yaw_angle_file = easygui.fileopenbox("Select the Yaw Angle Time-Series File")
-
-        yaw_angle_array = np.array(loadmat(yaw_angle_file)["yaw_wea"])[
-            :n_frames
-        ].flatten()
-
-    else:
-        pass
 
     # ------------------------------------------------------------------------------------------------------------------
     # Find suitable measurement points using the information from the first frame.
@@ -515,29 +505,7 @@ if __name__ == "__main__":
     else:
         pass
 
-    # Compute the angular offset between the rotor in the first frame and that of the averaged rotor direction.
-    if YAW_ANGLE_FLAG:
-        if FRAME_0_REF_FLAG:
-            pass
-        else:
-            delta_theta = np.rad2deg(
-                np.arccos(
-                    np.dot(circle_f0.direction, circle.direction)
-                    / (
-                        np.linalg.norm(circle_direction_f0)
-                        * np.linalg.norm(circle_direction)
-                    )
-                )
-            )
 
-            if delta_theta > 90:
-                delta_theta = delta_theta - 180
-            else:
-                pass
-
-            yaw_angle_ave = yaw_angle_array[0] - delta_theta
-    else:
-        pass
 
     # Plot the computed geometries (i.e. the averaged circle and that of the first frame).
     fig = plt.figure(figsize=(10, 10))
@@ -741,31 +709,12 @@ if __name__ == "__main__":
     # -----------------------------------------------------------------------------------------
 
     # Compute the rotations matrices to correct the yaw rotation for each of the frames depending on whether or the
-    # YAW_ANGLE_FLAG is active or not. The reference angle can be either the first frame or the average circle.
     rotation_matrix_list = []
-    if YAW_ANGLE_FLAG:
-        if FRAME_0_REF_FLAG:
-            z_rot_angle_array = np.deg2rad(-(yaw_angle_array[0] - yaw_angle_array))
-        else:
-            z_rot_angle_array = np.deg2rad(-(yaw_angle_ave - yaw_angle_array))
 
-        for z_rot_angle in z_rot_angle_array:
-            rot_z = np.array(
-                [
-                    [np.cos(z_rot_angle), -np.sin(z_rot_angle), 0],
-                    [np.sin(z_rot_angle), np.cos(z_rot_angle), 0],
-                    [0, 0, 1],
-                ]
-            )
-            rotation_matrix_list.append(
-                np.matmul(
-                    rot_z, np.matmul(rot_x, rotation_matrix)
-                )  # TODO: This could be refactored into a 3D numpy array
-            )
-    else:
-        rotation_matrix_list = [np.matmul(rot_x, rotation_matrix_ave)] * len(
-            out_file_list
-        )
+
+    rotation_matrix_list = [np.matmul(rot_x, rotation_matrix_ave)] * len(
+        out_file_list
+    )
 
     rotation_matrix_f0 = rotation_matrix_list[0]
 
@@ -783,31 +732,7 @@ if __name__ == "__main__":
         coordinates.T[0], coordinates.T[1], coordinates.T[2], label="Point Cloud"
     )
 
-    if YAW_ANGLE_FLAG:
-        circle_pts0_rot_w_yaw = np.dot(
-            rotation_matrix_f0, (circle_pts0 - circle_f0.center).T
-        ).T
-        circle_pts0_rot_wo_yaw = np.dot(
-            rotation_matrix_ave, (circle_pts0 - circle_f0.center).T
-        ).T
 
-        ax.plot(
-            circle_pts0_rot_w_yaw[:, 0],
-            circle_pts0_rot_w_yaw[:, 1],
-            circle_pts0_rot_w_yaw[:, 2],
-            color="m",
-            label="Frame 0 w/ Yaw Correction",
-        )
-        ax.plot(
-            circle_pts0_rot_wo_yaw[:, 0],
-            circle_pts0_rot_wo_yaw[:, 1],
-            circle_pts0_rot_wo_yaw[:, 2],
-            color="c",
-            label="Frame 0 w/o Yaw Correction",
-        )
-
-    else:
-        pass
 
     ax.set_title("Circular Path Used for the Coordinate Transformation")
     ax.set_xlabel("x")
