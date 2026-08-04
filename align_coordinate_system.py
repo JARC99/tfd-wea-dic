@@ -33,6 +33,8 @@ from coordsysalign.transformation_fns import (
 SAVE_OUTPUT_FLAG = True
 SUBSET_FLAG = True
 
+MULT_POINT_TORSION_CALC_FLAG = True
+
 
 # Specify the number of processors used to read and write on the files.
 N_PROCESSES = 16
