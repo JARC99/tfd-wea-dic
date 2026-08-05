@@ -739,18 +739,26 @@ def process_out_files_mult_point_tor(file_path_queue, output_path1, output_path2
         _, tail = os.path.split(file)
 
         translation_vector = (translation_vector_arg[0], translation_vector_arg[1], translation_vector_arg[2])
-        rotation_matrix = rotation_matrix_arg.copy()
+        rotation_matrix = rotation_matrix_arg[file_number].copy()
 
         translation.setTranslation(translation_vector)
         rotation_obj.setMatrix(rotation_matrix)
 
         rotation.setRotation(rotation_obj)
-        if (data.load(file) == False):
+        if data.load(file) == False:
             print("Could not load data set\n\n")
             exit(-1)
         data.transform(translation, False)
         data.transform(rotation, False)
-        # data.save(output_path1 + tail)
+
+        if SAVE_OUTPUT_FLAG:
+            data.save(output_path1 + tail)
+        else:
+            pass
+
+        # ------
+        # Part 2
+        # ------
 
         coordinates_for_ret = np.empty((data.numData(), 51, len(variables_export_name_out_file)), float)
         for aoi in range(data.numData()):
@@ -819,24 +827,28 @@ def process_out_files_mult_point_tor(file_path_queue, output_path1, output_path2
         #   data.transform(rotation, True)
         #  data.transform(translation, True)
 
-        if True:  # Starrkörperrotation deaktiviert
+        if False:  # Starrkörperrotation deaktiviert
             data.transform(rotation, True)
             data.transform(translation, True)
 
-        # data.save(output_path2 + tail)
+        if SAVE_OUTPUT_FLAG:
+            data.save(output_path2 + tail)
+        else:
+            pass
 
         for aoi in range(data.numData()):
             d = data.data(aoi)
             if len(var_ids) == 0:
                 for var in variables_export_name_out_file:
                     idx = d.varIndex(var)
-                    if (idx < 0):
+                    if idx < 0:
                         print("Could not find variable %s" % var)
                     else:
                         var_ids.append(idx)
             # coordinates_for_ret[aoi, 1] = np.array(d.values(interesting_subsets_id_vicpy[aoi, 1], var_ids))
             # coordinates_for_ret[aoi, 2] = np.array(d.values(interesting_subsets_id_vicpy[aoi, 2], var_ids))
             coordinates_for_ret[aoi, 0] = np.array(d.values(interesting_subsets_id_vicpy[aoi, 0], var_ids))
+
             for i in range(1, 51):
                 coordinates_for_ret[aoi, i] = np.array(d.values(interesting_subsets_id_vicpy[aoi, i], var_ids))
 
