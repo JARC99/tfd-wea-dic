@@ -30,11 +30,10 @@ from coordsysalign.transformation_fns import (
 # ----------------------------------------------------------------------------------------------------------------------
 
 # Set the values of the boolean flags used to control the program flow.
-SAVE_OUTPUT_FLAG = True
-SUBSET_FLAG = False
-
-
-MULT_POINT_TORSION_CALC_FLAG = True
+SAVE_OUTPUT_FLAG = False  # Save the transformed .out files / Don't save them
+SUBSET_FLAG = False  # Specify a subset of the complete raw. out file data set / Use the complete dataset
+INDIV_FRAME_ROTMAT_FLAG = True  # Transform each .out file with a rotation matrix calculated from its coordinates / Use an average rotation matrix for the whole data set
+MULT_POINT_TORSION_CALC_FLAG = True  # Uses 25 point pairs for the torsion calculation / Use a single point pair
 
 # Specify the number of processors used to read and write on the files.
 N_PROCESSES = 16
@@ -83,8 +82,11 @@ if __name__ == "__main__":
                 len(out_file_list)
             )
         )
-
-        out_file_list = out_file_list[: int(subset_size)]
+        if int(subset_size) <= len(out_file_list):
+            out_file_list = out_file_list[:int(subset_size)]
+        else:
+            print("Invalid subset size!")
+            exit()
     else:
         pass
 
@@ -516,66 +518,66 @@ if __name__ == "__main__":
     ax.set_ylabel("y")
     ax.set_zlabel("z")
 
-    random = np.array([1, 0, 0])
-    u = np.cross(circle.direction, random)
-    v = np.cross(circle.direction, u)
-    theta = np.linspace(0, 2 * np.pi, 100)
+    # random = np.array([1, 0, 0])
+    # u = np.cross(circle.direction, random)
+    # v = np.cross(circle.direction, u)
+    # theta = np.linspace(0, 2 * np.pi, 100)
+    #
+    # circle_pts = circle.radius * (
+    #         np.outer(u, np.cos(theta)) + np.outer(v, np.sin(theta))
+    # )
+    # circle_pts = circle.center + circle_pts.T
+    #
+    # ax.plot(
+    #     circle.center[0],
+    #     circle.center[1],
+    #     circle.center[2],
+    #     marker="X",
+    #     color="r",
+    # )
+    # ax.plot(circle_pts[:, 0], circle_pts[:, 1], circle_pts[:, 2], color="b")
+    #
+    # ax.quiver(
+    #     circle.center[0],
+    #     circle.center[1],
+    #     circle.center[2],
+    #     circle.direction[0] * circle.radius,
+    #     circle.direction[1] * circle.radius,
+    #     circle.direction[2] * circle.radius,
+    #     color="b",
+    #     label="Average",
+    # )
+    #
+    # random = np.array([1, 0, 0])
+    # u0 = np.cross(circle_f0.direction, random)
+    # v0 = np.cross(circle_f0.direction, u0)
+    # theta = np.linspace(0, 2 * np.pi, 100)
+    #
+    # circle_pts0 = circle.radius * (
+    #         np.outer(u0, np.cos(theta)) + np.outer(v0, np.sin(theta))
+    # )
+    # circle_pts0 = circle_f0.center + circle_pts0.T
+    #
+    # ax.plot(
+    #     circle_f0.center[0],
+    #     circle_f0.center[1],
+    #     circle_f0.center[2],
+    #     marker="D",
+    #     color="black",
+    # )
+    # ax.plot(circle_pts0[:, 0], circle_pts0[:, 1], circle_pts0[:, 2], color="m")
+    # ax.quiver(
+    #     circle_f0.center[0],
+    #     circle_f0.center[1],
+    #     circle_f0.center[2],
+    #     circle_f0.direction[0] * circle.radius,
+    #     circle_f0.direction[1] * circle.radius,
+    #     circle_f0.direction[2] * circle.radius,
+    #     color="m",
+    #     label="Frame 0",
+    # )
 
-    circle_pts = circle.radius * (
-            np.outer(u, np.cos(theta)) + np.outer(v, np.sin(theta))
-    )
-    circle_pts = circle.center + circle_pts.T
-
-    ax.plot(
-        circle.center[0],
-        circle.center[1],
-        circle.center[2],
-        marker="X",
-        color="r",
-    )
-    ax.plot(circle_pts[:, 0], circle_pts[:, 1], circle_pts[:, 2], color="b")
-
-    ax.quiver(
-        circle.center[0],
-        circle.center[1],
-        circle.center[2],
-        circle.direction[0] * circle.radius,
-        circle.direction[1] * circle.radius,
-        circle.direction[2] * circle.radius,
-        color="b",
-        label="Average",
-    )
-
-    random = np.array([1, 0, 0])
-    u0 = np.cross(circle_f0.direction, random)
-    v0 = np.cross(circle_f0.direction, u0)
-    theta = np.linspace(0, 2 * np.pi, 100)
-
-    circle_pts0 = circle.radius * (
-            np.outer(u0, np.cos(theta)) + np.outer(v0, np.sin(theta))
-    )
-    circle_pts0 = circle_f0.center + circle_pts0.T
-
-    ax.plot(
-        circle_f0.center[0],
-        circle_f0.center[1],
-        circle_f0.center[2],
-        marker="D",
-        color="black",
-    )
-    ax.plot(circle_pts0[:, 0], circle_pts0[:, 1], circle_pts0[:, 2], color="m")
-    ax.quiver(
-        circle_f0.center[0],
-        circle_f0.center[1],
-        circle_f0.center[2],
-        circle_f0.direction[0] * circle.radius,
-        circle_f0.direction[1] * circle.radius,
-        circle_f0.direction[2] * circle.radius,
-        color="m",
-        label="Frame 0",
-    )
-
-    ax.legend()
+    # ax.legend()
     ax = plt.gca()
     fig.show()
 
@@ -643,69 +645,66 @@ if __name__ == "__main__":
     # ----------------------------------------------------------------------------------------
 
     failed_list = []
-    better_rot_mat_list = []
-    for idx, out_file in enumerate(out_file_list):
-        found_array_b, coordinates_b, _, _, _ = read_file(out_file, test_subsets_list)
-
-        better_center = np.mean(coordinates_b[indices_of_inner_subsets])
-
-        better_rad = np.mean(
-            np.linalg.norm(
-                better_center - coordinates_b[indices_of_inner_subsets],
-                axis=1,
-            )
-            / 1000
-        )
-
-        initial_guess = geom3d.Circle3D(
-            np.mean(coordinates_b[indices_of_inner_subsets], axis=0),
-            [1, 0, 0],
-            better_rad,
-        )
-        better_circle = fit3d.circle3D_fit(
-            coordinates_b[indices_of_inner_subsets],
-            initial_guess=initial_guess,
-        )
-
-        try:
-            better_circle_dir = better_circle.direction
-
-            if better_circle_dir[-1] > 0:
-                better_circle_dir = better_circle_dir * -1
-
-            # Try to calculate the rotation matrix using the circle's direction
-            rotation_matrix_better = calculate_circle_rotation_matrix(
-                better_circle_dir, 1
-            )
-
-            old_direction = better_circle_dir
-        except AttributeError as e:
-            print(
-                f"Failed to calculate rotation matrix. 'better_circle' is not a valid circle object: {better_circle}"
-            )
-            failed_list.append(idx)
-            print(out_file)
-            rotation_matrix_better = calculate_circle_rotation_matrix(
-                old_direction, 1
-            )
-
-        rotation_matrix_better = np.matmul(rot_x, rotation_matrix_better)
-
-        better_rot_mat_list.append(rotation_matrix_better)
-
-    # -----------------------------------------------------------------------------------------
-
-    # Compute the rotations matrices to correct the yaw rotation for each of the frames depending on whether or the
     rotation_matrix_list = []
+    if INDIV_FRAME_ROTMAT_FLAG:
+        for idx, out_file in enumerate(out_file_list):
+            found_array_b, coordinates_b, _, _, _ = read_file(out_file, test_subsets_list)
 
-    rotation_matrix_list = [np.matmul(rot_x, rotation_matrix_ave)] * len(
-        out_file_list
-    )
+            better_center = np.mean(coordinates_b[indices_of_inner_subsets])
+
+            better_rad = np.mean(
+                np.linalg.norm(
+                    better_center - coordinates_b[indices_of_inner_subsets],
+                    axis=1,
+                )
+                / 1000
+            )
+
+            initial_guess = geom3d.Circle3D(
+                np.mean(coordinates_b[indices_of_inner_subsets], axis=0),
+                [1, 0, 0],
+                better_rad,
+            )
+            better_circle = fit3d.circle3D_fit(
+                coordinates_b[indices_of_inner_subsets],
+                initial_guess=initial_guess,
+            )
+
+            try:
+                better_circle_dir = better_circle.direction
+
+                if better_circle_dir[-1] > 0:
+                    better_circle_dir = better_circle_dir * -1
+
+                # Try to calculate the rotation matrix using the circle's direction
+                rotation_matrix_current = calculate_circle_rotation_matrix(
+                    better_circle_dir, 1
+                )
+
+                old_direction = better_circle_dir
+            except AttributeError as e:
+                print(
+                    f"Failed to calculate rotation matrix. 'better_circle' is not a valid circle object: {better_circle}"
+                )
+                failed_list.append(idx)
+                print(out_file)
+                rotation_matrix_current = calculate_circle_rotation_matrix(
+                    old_direction, 1
+                )
+
+            rotation_matrix_current = np.matmul(rot_x, rotation_matrix_current)
+
+            rotation_matrix_list.append(rotation_matrix_current)
+
+    else:
+
+        rotation_matrix_list = [np.matmul(rot_x, rotation_matrix_ave)] * len(
+            out_file_list
+        )
 
     rotation_matrix_f0 = rotation_matrix_list[0]
 
     # Rotate the points obtained from all the frame to visualize them.
-
     coordinates = np.dot(rotation_matrix_ave, (coordinates - circle_center).T).T
 
     print("\r", "Step 3/5: Calculate circle...  100 %")
@@ -717,7 +716,6 @@ if __name__ == "__main__":
     ax.scatter(
         coordinates.T[0], coordinates.T[1], coordinates.T[2], label="Point Cloud"
     )
-
     ax.set_title("Circular Path Used for the Coordinate Transformation")
     ax.set_xlabel("x")
     ax.set_ylabel("y")
@@ -760,6 +758,7 @@ if __name__ == "__main__":
     # Extract the information of each AoI and determine what points are the best to calculate the blade torsion.
     indices_for_aoi_inter_org = np.arange(len(coordinates_f0))
     indices_found = np.where(found_array_f0 == 1)
+
     if MULT_POINT_TORSION_CALC_FLAG:
         index_array = np.empty((len(available_aoi_ids), 50), int)
         for aoi_index in range(len(available_aoi_ids)):
@@ -808,7 +807,7 @@ if __name__ == "__main__":
                             break
             for i in range(len(best_points_list)):
                 assert best_points_list[i] is not None, (
-                    "Zu wenig Punkte um 25 gute Punktepaare zu finden"
+                    "Too few points available to find 25 good pairs for the torsion calculation"
                 )
                 if (
                         coordinates_f0[best_points_list[i][0]][1]
@@ -824,7 +823,6 @@ if __name__ == "__main__":
             index_array[aoi_index] = best_points_list
 
     else:
-
         index_array = np.empty((len(available_aoi_ids), 2), int)
         for aoi_index in range(len(available_aoi_ids)):
             current_best_value = float("inf")
@@ -845,7 +843,7 @@ if __name__ == "__main__":
                     p1 = local_coordinates_for_aoi[i]
                     p2 = local_coordinates_for_aoi[j]
 
-                    # TODO: Multiplikation zu + ändern und irgendwie einbauen
+                    # TODO: Change objective function from multiplication to sum
                     value = (
                             ((abs(p1[2] - p2[2]) + 100) / (abs(p1[1] - p2[1]) + 1))
                             * (norm_result[i] + norm_result[j])
@@ -862,13 +860,14 @@ if __name__ == "__main__":
                         )
 
             index_array[aoi_index] = best_points
-        print(
-            "\r",
-            "Step 4/5: Search points for rotor blade torsion calculation...",
-            int((aoi_index / len(available_aoi_ids)) * 100),
-            "%",
-            end="",
-        )
+
+    print(
+        "\r",
+        "Step 4/5: Search points for rotor blade torsion calculation...",
+        int((aoi_index / len(available_aoi_ids)) * 100),
+        "%",
+        end="",
+    )
 
     print("\r", "Step 4/5: Search points for rotor blade torsion calculation...  100 %")
 
@@ -965,8 +964,8 @@ if __name__ == "__main__":
     output_path3 = out_file_dir + "/SchlagSchwenk/"
     output_path4 = out_file_dir + "/Torsion/"
 
+    # Store for each AoI a single point in a separate in a .csv file.
     if MULT_POINT_TORSION_CALC_FLAG:
-        # Waehrend der Umformung der Out-Dateien wird pro AOI zusaetzlich ein Messpunkt seperat in einer CSV-Datei abgespeichert. Diese Messpunkte werden per SharedMemory an den Hauptprozess uebergeben, welcher diese dann abspeichert
         interesting_subsets_id_vicpy = np.empty((len(interesting_subsets), 51), int)
         interesting_subsets_id_vicpy[:, 0] = index_in_aoi_f0[interesting_subsets]
         interesting_subsets_id_vicpy[:, 1] = index_in_aoi_f0[index_array[:, 0]]
@@ -975,8 +974,8 @@ if __name__ == "__main__":
         for i in range(0, 50, 2):
             interesting_subsets_id_vicpy[:, i + 1] = index_in_aoi_f0[index_array[:, i]]
             interesting_subsets_id_vicpy[:, i + 2] = index_in_aoi_f0[index_array[:, i + 1]]
+
     else:
-        # Store for each AoI a single point in a separate in a .csv file.
         interesting_subsets_id_vicpy = np.empty((len(interesting_subsets), 3), int)
         interesting_subsets_id_vicpy[:, 0] = index_in_aoi_f0[interesting_subsets]
         interesting_subsets_id_vicpy[:, 1] = index_in_aoi_f0[index_array[:, 0]]
@@ -1034,7 +1033,7 @@ if __name__ == "__main__":
                     output_path1,
                     output_path2,
                     -circle_center,
-                    better_rot_mat_list,
+                    rotation_matrix_list,
                     aoi_ids_near_center,
                     found_array_first_frame,
                     coordinates_first_frame,
@@ -1055,8 +1054,7 @@ if __name__ == "__main__":
                     output_path1,
                     output_path2,
                     -circle_center,
-                    # rotation_matrix_list,
-                    better_rot_mat_list,
+                    rotation_matrix_list,
                     aoi_ids_near_center,
                     found_array_first_frame,
                     coordinates_first_frame,
@@ -1068,8 +1066,6 @@ if __name__ == "__main__":
             )
             worker.start()
             workers.append(worker)
-
-
 
     # The points in the interesting_points subset are brought to the 12:00 position and stored in .csv files.
     # TODO: The uncertainty calculation still needs to be updated.
@@ -1103,7 +1099,6 @@ if __name__ == "__main__":
             float,
         )
 
-
     for file_counter in range(len(out_file_list)):
         data = shared_mem.get()
         data = np.array(data)[0]
@@ -1130,8 +1125,8 @@ if __name__ == "__main__":
     for worker in workers:
         worker.join()
 
+    # Store the points in .csv files.
     if MULT_POINT_TORSION_CALC_FLAG:
-        # Die zusaetzlichen Punkte fuer die AOI abspeichern
         for i in range(0, 50, 2):
             for aoi_id in range(len(available_aoi_ids)):
                 dic, dict1, dict2 = {}, {}, {}
@@ -1143,10 +1138,22 @@ if __name__ == "__main__":
                         :, aoi_id, i + 1, var_id - 1
                     ]
 
+                    df = pd.DataFrame(dic)
                     df_1 = pd.DataFrame(dict1)
                     df_2 = pd.DataFrame(dict2)
                     if not os.path.isdir(output_path4 + "/Tor_" + str(i // 2)):
                         os.mkdir(output_path4 + "/Tor_" + str(i // 2))
+
+                    csv_filename1 = (
+                            output_path3
+                            + "/Blade_"
+                            + str(int(blade_number_of_aoi[aoi_id]))
+                            + "_AOI_"
+                            + str(int(aoi_to_blade_aoi[aoi_id]))
+                            + "_"
+                            + str(position_of_interesting_points_2d[aoi_id])
+                            + ".csv"
+                    )
 
                     csv_filename2 = (
                             output_path4
@@ -1178,9 +1185,19 @@ if __name__ == "__main__":
                     )
 
                     # Datei öffnen und Text schreiben
-                    for csv_file_name in [csv_filename2, csv_filename3]:
+                    for csv_file_name in [csv_filename1, csv_filename2, csv_filename3]:
                         with open(csv_file_name, "w") as f:
                             f.write(header_text + "\n")
+                    df.to_csv(
+                        csv_filename1,
+                        index_label=variables_export_name_csv_file[0],
+                        mode="a",
+                        index=True,
+                        quotechar="'",
+                        sep=";",
+                        decimal=",",
+                    )
+
                     df_1.to_csv(
                         csv_filename2,
                         index_label=variables_export_name_csv_file[0],
@@ -1201,7 +1218,6 @@ if __name__ == "__main__":
                     )
 
     else:
-        # Store the points in .csv files.
         for aoi_id in range(len(available_aoi_ids)):
             dic, dict1, dict2 = {}, {}, {}
             for var_id in range(1, len(variables_export_name_csv_file)):
