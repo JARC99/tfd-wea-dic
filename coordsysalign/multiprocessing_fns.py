@@ -710,6 +710,7 @@ def process_out_files_mult_point_tor(file_path_queue, output_path1, output_path2
                                      rotation_matrix_arg, roi_ids_near_center, found_array_first_frame,
                                      coordinates_first_frame, shared_mem: SharedMemory, interesting_subsets_id_vicpy,
                                      variables_export_name_out_file,
+                                     VIC3D_RB_EL_FLAG,
                                      SAVE_OUTPUT_FLAG):
     """
     Passt die Daten in den Out-Datein an, sodass das Koordinatensystem ausgerichtet ist und eliminiert die Starrkoerperrotation. Danach werden die Out-Datein jeweils erneut abgespeichert.
@@ -739,7 +740,7 @@ def process_out_files_mult_point_tor(file_path_queue, output_path1, output_path2
         _, tail = os.path.split(file)
 
         translation_vector = (translation_vector_arg[0], translation_vector_arg[1], translation_vector_arg[2])
-        #rotation_matrix = rotation_matrix_arg.copy()
+        # rotation_matrix = rotation_matrix_arg.copy()
         rotation_matrix = rotation_matrix_arg[file_number].copy()
 
         translation.setTranslation(translation_vector)
@@ -828,7 +829,7 @@ def process_out_files_mult_point_tor(file_path_queue, output_path1, output_path2
         #   data.transform(rotation, True)
         #  data.transform(translation, True)
 
-        if False:  # Starrkörperrotation deaktiviert
+        if VIC3D_RB_EL_FLAG:  # Starrkörperrotation deaktiviert
             data.transform(rotation, True)
             data.transform(translation, True)
 
