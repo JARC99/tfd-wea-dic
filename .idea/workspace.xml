@@ -4,11 +4,7 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="0efe07e9-d7b0-45db-8bf1-a434066f896b" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/align_coordinate_system.py" beforeDir="false" afterPath="$PROJECT_DIR$/align_coordinate_system.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/coordsysalign/multiprocessing_fns.py" beforeDir="false" afterPath="$PROJECT_DIR$/coordsysalign/multiprocessing_fns.py" afterDir="false" />
-    </list>
+    <list default="true" id="0efe07e9-d7b0-45db-8bf1-a434066f896b" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -42,43 +38,24 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Python.AOI Segmentation_092025 - Kopie.executor&quot;: &quot;Run&quot;,
-    &quot;Python.Aligning coordinate system_052026.executor&quot;: &quot;Run&quot;,
-    &quot;Python.Aligning coordinate system_092025.executor&quot;: &quot;Run&quot;,
-    &quot;Python.align_coordinate_system (1).executor&quot;: &quot;Run&quot;,
-    &quot;Python.align_coordinate_system.executor&quot;: &quot;Run&quot;,
-    &quot;Python.align_coordinate_system_torsion_ohneEl_Rot.executor&quot;: &quot;Run&quot;,
-    &quot;Python.calculate Deformation.executor&quot;: &quot;Run&quot;,
-    &quot;Python.calculate Torsion - many points.executor&quot;: &quot;Run&quot;,
-    &quot;Python.calculate Torsion.executor&quot;: &quot;Run&quot;,
-    &quot;Python.calculate_torsion (1).executor&quot;: &quot;Run&quot;,
-    &quot;Python.calculate_torsion.executor&quot;: &quot;Run&quot;,
-    &quot;Python.math_funcs.executor&quot;: &quot;Run&quot;,
-    &quot;Python.multiprocessing_funcs.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
-    &quot;database.data.extractors.current.export.id&quot;: &quot;Comma-separated (CSV)_id&quot;,
-    &quot;deletionFromPopupRequiresConfirmation&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;eliminate-yaw-angle&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/jarc/Desktop&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;advanced.settings&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python.AOI Segmentation_092025 - Kopie.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "codeWithMe.voiceChat.enabledByDefault": "false",
+    "git-widget-placeholder": "main",
+    "ignore.virus.scanning.warn.message": "true",
+    "last_opened_file_path": "G:/Meine Ablage/300 Professional/340 TFD/tfd-dic-post-processing",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
-  <component name="RunManager" selected="Python.align_coordinate_system">
-    <configuration name="Aligning coordinate system_092025" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="tfd-wea-dic" />
+}]]></component>
+  <component name="RunManager">
+    <configuration name="AOI Segmentation_092025 - Kopie" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="tfd-dic-post-processing" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
