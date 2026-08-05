@@ -1,0 +1,1061 @@
+import glob
+import math
+import os
+from multiprocessing import Process, Semaphore
+from multiprocessing import (
+    Queue,
+)
+
+import easygui
+import numpy as np
+import pandas as pd
+from geomfitty import fit3d, geom3d
+from matplotlib import pyplot as plt
+
+from coordsysalign.multiprocessing_fns import (
+    SharedMemory,
+    process_out_files_mult_point_tor,
+    put_to_queue,
+    read_file,
+    read_file_loop,
+    read_file_mean_aoi_pos_2d,
+    read_file_point_loop,
+    read_file_pos_2d_at_index,
+)
+from coordsysalign.transformation_fns import (
+    calculate_circle_rotation_matrix,
+    find_x_rotation_matrix,
+)
+
+# Pfad zum Ordner, im welchen sich die Out-Datein befinden, welche direkt nach der Triangulation in Vic-3D generiert wurden.
+# Wenn None, dann wird ein File-Picker Dialog angezeigt (ist zu bevorzugen).
+input_folder = None
+
+SAVE_OUTPUT_FLAG = True
+
+# Anzahl an Prozessoren zum Einlesen der Datein
+number_of_processes = 8
+
+# Gibt an, wie viele Rotorblaetter ausgewertet werden sollen/können. Dient zur Identifikation der Wurzel-ROI. Ist z.B. nur ein Blatt beklebt, dann eine eins eintregen
+number_of_marked_blades = 3
+
+# Liste mit den Variablen, welche in die einzelnen CSV-Datein abgespeichert werden sollen. Der Index ist immer dabei und an ersten Stelle
+variables_export_name_out_file = [
+    "X",
+    "Y",
+    "Z",
+    "U",
+    "V",
+    "W",
+    "SIGMA_X",
+    "SIGMA_Y",
+    "SIGMA_Z",
+    "sigma",
+]
+
+# Liste mit den Benennung der Variablen in der CSV-Datei
+variables_export_name_csv_file = [
+    '"Index [1]"',
+    '"X [mm]"',
+    '"Y [mm]"',
+    '"Z [mm]"',
+    '"U [mm]"',
+    '"V [mm]"',
+    '"W [mm]"',
+    '"Sigma_X [mm]"',
+    '"Sigma_Y [mm]"',
+    '"Sigma_Z [mm]"',
+    '"sigma [pixel]"',
+]
+
+if __name__ == "__main__":
+    # Den Benutzer den Eingabeordner waehlen lassen...
+    if input_folder is None:
+        input_folder = easygui.diropenbox("Select Folder with out-Files")
+    print("Inputfolder: ", input_folder)
+    out_file_list = glob.glob(input_folder + "/*.out")
+    out_file_list = out_file_list[:8500]
+
+    # print("Step 1/5: Search for suitable measurement points...", end="\r")
+    print("\r", "Step 1/5: Search for suitable measurement points...", end="")
+
+    # Alle Messpunkte in der ersten Out-Datei einlesen. Von diesen wird dann eine Untermenge ausgewaehlt, welche im weiteren Verlauf verarbeitet wird (z.B. zur Ermittlung, welcher Punkt die Kreisbahn
+    # zur Ausrichtung des Koordinatensystems beschreiben koennte)
+
+    test_subsets_list = []  # Die Subsets in dieser Liste werden im weiteren Verlauf betrachtet
+    if False:
+        sum_found_array = None
+        sum_xyz_sigmas = None
+        test_frame_number = min(len(out_file_list), 200)
+        frame_test_list = range(0, test_frame_number, int(test_frame_number / 10))
+        for frame in frame_test_list:
+            # print("FRAME: ", frame)
+            found_array, coordinates, xyz_sigmas, aoi_number, index_in_aoi = read_file(
+                out_file_list[frame], None, frame == 0
+            )
+            sigma_correction = np.max(
+                np.linalg.norm(xyz_sigmas, axis=1)
+            )  # + np.mean(np.linalg.norm(xyz_sigmas, axis=1))) / 2
+            xyz_sigmas_norm = np.linalg.norm(xyz_sigmas, axis=1) + np.where(
+                found_array == 0, sigma_correction, 0
+            )
+
+            if sum_found_array is None:
+                sum_found_array = found_array
+                sum_xyz_sigmas = xyz_sigmas_norm
+            else:
+                sum_found_array += found_array
+                sum_xyz_sigmas += xyz_sigmas_norm
+        for aoi_id in np.unique(aoi_number):
+            found_indices = np.where(
+                (sum_found_array >= len(frame_test_list) - 3) & (aoi_number == aoi_id)
+            )[0]
+            sum_good_xyz_sigmas = sum_xyz_sigmas[found_indices]
+            good_found = sum_found_array[found_indices]
+            step = min(10, int(len(sum_good_xyz_sigmas) / 40))
+            for i in range(0, len(found_indices) - step, step):
+                best_point_offset = np.argmin([sum_good_xyz_sigmas[i: i + step]])
+                test_subsets_list.append(found_indices[i + best_point_offset])
+                # print("Offset: ", best_point_offset, "   Sigma: ", good_found[i +  best_point_offset], "   SumFound: ", sum_good_xyz_sigmas[i +  best_point_offset])
+            print(
+                aoi_id,
+                len(found_indices),
+                len(range(0, len(found_indices) - step, step)),
+            )
+
+    else:
+        found_array, coordinates, xyz_sigmas, aoi_number, index_in_aoi = read_file(
+            out_file_list[0], None
+        )
+        found_indices = np.where(found_array == 1)[0]
+        for i in range(0, len(found_indices), 4):  # 10
+            test_subsets_list.append(found_indices[i])
+
+    test_subsets_list = np.array(test_subsets_list)
+
+    visible_counter = np.ones(
+        len(test_subsets_list), int
+    )  # zaehlt, wie haeufig ein Messpunkt sichtbar war
+    sigmas = np.zeros(
+        len(test_subsets_list), float
+    )  # Der Betrag der Messunsicherheit der einzelnen Messpunkte wird hier fuer jedes Bild addiert
+    distance = np.ones(
+        len(test_subsets_list), float
+    )  # Zurueckgelegte Distanz des Messpunktes. Daran wird erkannt, welcher Messpunkt an der Blattspitze ist und welche innen liegen
+    last_coordinates = (
+        None  # Enthaelt die Koordiaten der Messpunkte aus dem vorherigen Frame
+    )
+    found_last_time = None  # Enthaelt die Info welcher Messpunkt in vorherigen Bild sichtbar war und welcher nicht. Nur wenn im vorherigen Frame und im aktuellen Frame der Messpunkt sichtbar ist wird die Distanz berechnet
+
+    shared_mem = SharedMemory(
+        [
+            found_array[test_subsets_list],
+            coordinates[test_subsets_list],
+            xyz_sigmas[test_subsets_list],
+            aoi_number[test_subsets_list],
+        ]
+    )
+    file_path_queue = Queue(maxsize=30)
+
+    # Prozess, welcher die Pfade der Out-Dateien in eine Queue packt. Aus dieser Queue wird von den verarbeitenden Prozesses dann gelesen
+    put_to_queue_process = Process(
+        target=put_to_queue, args=(out_file_list, file_path_queue, number_of_processes)
+    )
+    put_to_queue_process.start()
+
+    # Prozesse starten, welche die Out-Dateien einlesen. Diese werden geordnet in den Shared_Memory gepackt
+    workers = []
+    for _ in range(number_of_processes):
+        worker = Process(
+            target=read_file_loop, args=(file_path_queue, shared_mem, test_subsets_list)
+        )
+        worker.start()
+        workers.append(worker)
+
+    # Verarbeiten der Daten in den Out-Datein. Ueber shared_mem.get() werden die Daten aus den Out-Dateien in dem Hauptprozess zur Verfuegung gestellt
+    file_counter = 0
+    for file_path in out_file_list:
+        found_array, coordinates, xyz_sigmas, aoi_number = shared_mem.get()
+
+        visible_counter = visible_counter + found_array
+
+        indices_found = np.where(found_array == 1)[0]
+        sigmas[indices_found] = sigmas[indices_found] + np.linalg.norm(
+            xyz_sigmas[indices_found], axis=1
+        )
+
+        if last_coordinates is None:
+            last_coordinates = coordinates
+            found_last_time = found_array
+            continue
+        else:
+            indices_found = np.where((found_array + found_last_time) == 2)[0]
+            distance[indices_found] = (
+                    distance + np.linalg.norm(last_coordinates - coordinates, axis=1)
+            )[indices_found]
+
+            last_coordinates = coordinates.copy()
+            found_last_time = found_array
+
+        file_counter = file_counter + 1
+        print(
+            "\r",
+            "Step 1/5: Search for suitable measurement points... ",
+            int((file_counter / len(out_file_list)) * 100),
+            "%",
+            end="",
+        )
+
+    # Warten, bis die Einleseprozesse sich beendet haben
+    put_to_queue_process.join()
+    for worker in workers:
+        worker.join()
+
+    # Messpunkt ermitteln, welcher zur Ermittlung der Kreisbahn benutzt wird. Der Messpunkt sollte haeufig sichbar sein und eine geringe Messunsicherheit haben
+    print("\r", "Step 1/5: Search for suitable measurement points...  100 %")
+    index_least_movement = np.argmin(
+        (distance / visible_counter) * (sigmas / visible_counter)
+        + np.where(
+            visible_counter >= np.max(visible_counter) * 0.9, 1, np.max(distance) * 1000
+        )
+    )
+    index_bad_point = np.argmin(
+        (distance / visible_counter)
+        * (
+                1 / (sigmas / visible_counter)
+                + np.where(
+            visible_counter >= np.max(visible_counter) * 0.9,
+            1,
+            np.max(distance) * 1000,
+        )
+        )
+    )
+    index_most_movement = np.argmin(
+        (1000 / (distance / visible_counter)) * (sigmas / visible_counter)
+        + np.where(
+            visible_counter >= np.max(visible_counter) * 0.9, 1, np.max(distance) * 1000
+        )
+    )
+    # index_least_movement = index_bad_point # Um schlechten Punkt fuer die Ausrichtung des Koordinatensystems zu verwenden
+
+    interesting_subsets = []
+    available_aoi_ids = np.unique(ar=aoi_number, return_counts=False)
+
+    # Ermittle fuer jede AOI einen Messpunkt, welcher zur Berechnung der Verformung der AOI gut genutzt werden kann. Dieser sollte haeufig sichtbar sein und die Messunsicherheit sollte gering sein
+    list_max_points = []
+    id_counter = 0
+    for local_aoi_id in available_aoi_ids:
+        local_sub_ids = np.where(aoi_number == local_aoi_id)[0]
+        id_of_good_subset = id_counter + np.argmin(
+            (sigmas[local_sub_ids] / visible_counter[local_sub_ids])
+            + np.where(
+                visible_counter[local_sub_ids]
+                >= np.max(visible_counter[local_sub_ids]) * 0.9,
+                1,
+                np.max(distance[local_sub_ids]) * 1000,
+            )
+        )
+        # id_of_good_subset = id_counter + np.argmin((1/(sigmas[local_sub_ids]) / visible_counter[local_sub_ids]) + np.where(visible_counter[local_sub_ids] >= np.max(visible_counter[local_sub_ids]) * 0.9, 1, np.max(distance[local_sub_ids]) * 1000))
+        interesting_subsets.append(id_of_good_subset)
+        id_counter += len(local_sub_ids)
+        list_max_points.append(np.max(visible_counter[local_sub_ids]))
+    interesting_subsets = np.array(interesting_subsets)
+
+    distance_per_frame = distance / visible_counter
+    found_array, coordinates, xyz_sigmas, aoi_number, index_in_aoi = read_file(
+        out_file_list[0], test_subsets_list
+    )
+    indices_found = np.where(found_array == 1)[0]
+
+    # Ermittel fuer jede AOI die Durchschnittsposition und Durchschnittsgeschwindigkeit der AOI. Wird benutzt, um zu erkennen, ob eine AOI aussen oder innen liegt im Rotor liegt.
+    mean_speed_array = np.empty((len(available_aoi_ids)))
+    mean_position_array = np.empty((len(available_aoi_ids), 3))
+    for aoi_index in range(len(available_aoi_ids)):
+        indices_for_aoi = np.where(aoi_number == aoi_index)[0]
+        indices_for_aoi = np.intersect1d(indices_for_aoi, indices_found)
+        distance_per_frame_aoi = distance_per_frame[indices_for_aoi]
+        positions_in_aoi = coordinates[indices_for_aoi]
+        mean_speed_aoi = np.mean(distance_per_frame_aoi)
+        mean_position_aoi = np.mean(positions_in_aoi, axis=0)
+        mean_speed_array[aoi_index] = mean_speed_aoi
+        mean_position_array[aoi_index] = mean_position_aoi
+
+    # Die AOI, die die geringste Durchschnittsgeschwindigkeit haben werden zur Eliminierung der Starrkoerperrotation benutzt
+    roi_ids_near_center = np.argsort(mean_speed_array)[:number_of_marked_blades]
+    # roi_ids_near_center_O = np.argsort(mean_speed_array)[:number_of_marked_blades]
+    # roi_ids_near_center = np.array([np.argsort(mean_speed_array)[1]])
+
+    # Speicher alle id der Messpunkte, die zu den inneren AOI gehoeren (zu Visualisierungszwecken).
+    indices_of_inner_subsets = np.array([], dtype=int)
+    for aoi_id in roi_ids_near_center:
+        indices_of_inner_subsets = np.append(
+            indices_of_inner_subsets, np.where(aoi_number == aoi_id)[0]
+        )
+
+    # Erzeuge eine Liste, welche fuer jede AOI die id des Rotorblattes enthaelt. Die id 0 muss nicht dem Rotorblatt A entsprechen.
+    blade_number_of_aoi = np.empty((len(available_aoi_ids)))
+    for aoi_id in range(len(available_aoi_ids)):
+        blade_number_of_aoi[aoi_id] = np.argmin(
+            np.linalg.norm(
+                mean_position_array[aoi_id] - mean_position_array[roi_ids_near_center],
+                axis=1,
+            )
+        )
+        # blade_number_of_aoi[aoi_id] = np.argmin(np.linalg.norm(mean_position_array[aoi_id] - mean_position_array[roi_ids_near_center_O], axis=1))
+
+    # Erzeuge eine Liste, welche fuer jede AOI die AOI-Nummer innerhalb eines Rotorblattes enthaelt. Die innerste AOI auf dem Rotorblatt bekommt die id 0.
+    aoi_to_blade_aoi = np.array([])
+    for aoi_id in range(len(available_aoi_ids)):
+        blade_id = blade_number_of_aoi[aoi_id]
+        aoi_to_blade_aoi = np.append(
+            aoi_to_blade_aoi,
+            np.searchsorted(
+                np.sort(mean_speed_array[np.where(blade_number_of_aoi == blade_id)]),
+                mean_speed_array[aoi_id],
+            ),
+        )
+
+    # Erzeuge Visualisierung, welche die berechneten Informationen in den Messdaten zeigt.
+    found_and_inner_subsets = np.intersect1d(indices_found, indices_of_inner_subsets)
+    fig = plt.figure(figsize=(10, 10))
+    ax = plt.axes(projection="3d")
+    ax.grid()
+    ax.scatter(
+        coordinates[indices_found].T[0],
+        coordinates[indices_found].T[1],
+        coordinates[indices_found].T[2],
+        c="b",
+        alpha=0.5,
+        s=10,
+    )
+    ax.scatter(
+        coordinates[index_least_movement].T[0],
+        coordinates[index_least_movement].T[1],
+        coordinates[index_least_movement].T[2],
+        c="g",
+        s=180,
+        label="Punkt für Kreisbahn",
+    )
+    ax.scatter(
+        coordinates[index_most_movement].T[0],
+        coordinates[index_most_movement].T[1],
+        coordinates[index_most_movement].T[2],
+        c="r",
+        s=80,
+        label="Rotorblattspitze",
+    )
+    ax.scatter(
+        coordinates[found_and_inner_subsets].T[0],
+        coordinates[found_and_inner_subsets].T[1],
+        coordinates[found_and_inner_subsets].T[2],
+        c="y",
+        s=30,
+        label="Blattwurzelbereiche",
+    )
+    ax.scatter(
+        coordinates[interesting_subsets].T[0],
+        coordinates[interesting_subsets].T[1],
+        coordinates[interesting_subsets].T[2],
+        c="m",
+        s=80,
+        label="Gute Punkte",
+    )
+    # ax.scatter(coordinates[index_bad_point].T[0], coordinates[index_bad_point].T[1], coordinates[index_bad_point].T[2], c = 'y', s = 80, label='Schlechter Punkt')
+    ax.scatter(
+        mean_position_array.T[0],
+        mean_position_array.T[1],
+        mean_position_array.T[2],
+        c="cyan",
+        s=80,
+        label="AOI Mittelpunkt",
+    )
+    for aoi_id in range(len(available_aoi_ids)):
+        ax.text(
+            mean_position_array[aoi_id, 0],
+            mean_position_array[aoi_id, 1],
+            mean_position_array[aoi_id, 2],
+            "%s"
+            % (
+                    str(round(blade_number_of_aoi[aoi_id]))
+                    + " "
+                    + str(round(aoi_to_blade_aoi[aoi_id]))
+            ),
+            size=10,
+            zorder=1,
+            color="k",
+        )
+    ax.set_title("Gefundene Punkte")
+    ax.set_xlabel("x-Achse")
+    ax.set_ylabel("y-Achse")
+    ax.set_zlabel("z-Achse")
+    ax = plt.gca()
+    plt.legend()
+    ax.set_aspect("equal", adjustable="box")
+    fig.show()
+    plt.pause(0)
+
+    # Die Koordinaten des Ermittelten Punktes zur Beschreibung der Kreisbahn werden nun ueber die ganze Messung hinweg eingelesen
+    print("\r", "Step 2/5: Create circle... ", end="")
+
+    # SharedMemory, in welchem die Koordinaten dieses Messpunktes abgespeichert werden, um sie im Hauptprozess zu verarbeiten
+    shared_mem = SharedMemory([found_array[[0]], coordinates[[0]]])
+    file_path_queue = Queue(maxsize=30)
+
+    # Prozess zum Bereitstellen der Pfade zu den Out-Datein
+    put_to_queue_process = Process(
+        target=put_to_queue, args=(out_file_list, file_path_queue, number_of_processes)
+    )
+    put_to_queue_process.start()
+
+    # Prozesse zum Einlesen der Out-Dateien erzeugen
+    workers = []
+    point_id_for_cycle = test_subsets_list[index_least_movement]
+    # print("point_id_for_cycle: ", point_id_for_cycle)
+    # point_id_for_cycle = 5791
+
+    for _ in range(number_of_processes):
+        worker = Process(
+            target=read_file_point_loop,
+            args=(file_path_queue, shared_mem, point_id_for_cycle),
+        )
+        worker.start()
+        workers.append(worker)
+
+    # Array erzeugen, in welchem die Koordinaten abgelegt werden. Wenn der Messpunkt in einem Frame nicht sichtbar ist wird Nichts abgespeichert
+    coordinates = np.zeros((len(out_file_list), 3), float)
+    file_counter = 0
+    not_found_counter = 0
+
+    # Abspeichern der Koordinaten
+    for file_path in out_file_list:
+        found_array, real_points = shared_mem.get()
+        if found_array[0] == 1:
+            coordinates[file_counter - not_found_counter] = real_points.copy()
+        else:
+            not_found_counter += 1
+        file_counter = file_counter + 1
+        print(
+            "\r",
+            "Step 2/5: Create circle... ",
+            int((file_counter / len(out_file_list)) * 100),
+            "%",
+            end="",
+        )
+
+    put_to_queue_process.join()
+    for worker in workers:
+        worker.join()
+
+    print("\r", "Step 2/5: Create circle...  100 % ")
+    # Array auf die Stelle kuerzen, bis zu welcher die Messpunkt abgespeichert worden sind
+
+    # coordinates = coordinates[0 : file_counter - not_found_counter]
+
+    coordinates = coordinates[
+        0:1000
+    ]  # TODO: Zum Verwednen der ersten X Frames zum Ausrichten des Koordinatensystems
+
+    # Parameter des Kreises berechnen. Hierfuer wird die Bibliothek geomfitty verwendet. Diese muss allerdings minimal angepasst werden. Die direkte Version von GitHub kann Probleme bereiten
+    print("\r", "Step 3/5: Calculate circle...", end="")
+    initial_guess = geom3d.Circle3D(np.mean(coordinates, axis=0), [1, 0, 0], 7)
+    circle = fit3d.circle3D_fit(coordinates, initial_guess=initial_guess)
+
+    fig = plt.figure(figsize=(10, 10))
+    ax = plt.axes(projection="3d")
+    ax.grid()
+    ax.scatter(coordinates.T[0], coordinates.T[1], coordinates.T[2])
+    ax.set_title("Verwendete Kreisbahn zur Ausrichtung des Koordinatensystems")
+    ax.set_xlabel("x-Achse")
+    ax.set_ylabel("y-Achse")
+    ax.set_zlabel("z-Achse")
+    ax = plt.gca()
+    fig.show()
+    plt.pause(0)
+
+    circle_center = circle.center
+    circle_direction = circle.direction
+
+    # Berechne die Rotationsmatrix, um die Kreisbahn in die yz-Ebene zu rotieren
+    rotation_matrix = calculate_circle_rotation_matrix(circle_direction, 1)
+
+    # Richte Kreisbahn um die yz-Ebene aus und lege den Koordinatenursprung in die Mittle der Kreisbahn
+    coordinates_temp = np.dot(rotation_matrix, (coordinates - circle_center).T).T
+
+    # Im Folgenden wird ermittelt, in welche Richtung sich der verfolgte Punkt um die x-Achse dreht. Also im Uhrzeigersinn oder gegen den Uhrzeigersinn.
+    # Das ist wichtig, damit die x-Achse "in Windrichtung aufsteigend ist". Um die Richtung zu bestimmen wird das Kreuzprodukt aus dem Geschwindigkeitsvektor und dem zugehörigen Messpunkt berechnet.
+    direction_array = np.zeros((len(coordinates_temp) - 1), np.int8)
+    for i in range(len(coordinates_temp) - 1):
+        pt = coordinates_temp[i]
+        v = pt - coordinates_temp[i - 1]
+        c = np.cross(pt, v)
+    if c[0] < 0:
+        direction_array[i] = -1
+    else:
+        direction_array[i] = 1
+
+    if np.mean(direction_array > 0):
+        x_axis_alignment = 1
+    else:
+        x_axis_alignment = -1
+
+    # Die Rotationsmatrix wird erneut berechnet, dieses Mal wird jedoch die Richtung der x-Achse mit berücksichtigt
+    rotation_matrix = calculate_circle_rotation_matrix(
+        circle_direction, x_axis_alignment
+    )
+
+    """
+    # Ab hier Rechnung aus der Dissertation um Rotationsmatrix zu bestimmen
+    circle_direction = np.array(circle_direction )
+    k = (x_axis_alignment * circle_direction) / (np.linalg.norm(circle_direction)) # Manchmal zeigt der Rotor in die falsche Richtung. Dann muss das Vorzeichen von k angepasst werden
+    n = np.array([1,0,0])
+    
+    v = np.cross(k, n)
+    s = np.linalg.norm(v)
+    c = np.dot(k, n)
+
+    vx = np.array([[0,      -v[2],  v[1]],
+                    [v[2],   0,      -v[0]],
+                    [-v[1],  v[0],   0]])
+
+    # finale Rotationsmatrix, die num immer zum Ausrichten des Koordinatensystems verwendet wird
+    rotation_matrix = np.identity(3) + vx + np.dot(vx, vx) * ((1-c) / s**2)
+    ## Ende Rechnung
+    """
+
+    # Messpunkte aus dem ersten Frame einlesen, um diese zu visualisieren. Hierdurch kann erkannt werden, ob die Messdaten korrekt ausgerichtet werden oder nicht
+    found_array, real_points, xyz_sigmas, aoi_number, _ = read_file(
+        out_file_list[0], test_subsets_list
+    )
+
+    # Berechne Rotationsmatrix um die x-Achse, damit das Rotorblatt nach oben zeigt
+    # most_moved_point = np.dot(rotation_matrix, (real_points[test_subsets_list[index_most_movement]] - circle_center).T).T
+    most_moved_point = np.dot(
+        rotation_matrix, (real_points[index_most_movement] - circle_center).T
+    ).T
+
+    diff = most_moved_point / np.linalg.norm(most_moved_point)
+    x0 = diff[2]
+    x1 = diff[1]
+    if x0 > 0:
+        angle = math.degrees(math.asin(x1))
+    else:
+        angle = 360 - math.degrees(math.asin(x1))
+        angle += 180
+    x_rot_angle = math.radians(angle)
+    rot_x = np.array(
+        [
+            [1, 0, 0],
+            [0, math.cos(x_rot_angle), -math.sin(x_rot_angle)],
+            [0, math.sin(x_rot_angle), math.cos(x_rot_angle)],
+        ]
+    )
+
+    rotation_matrix = np.dot(rot_x, rotation_matrix)
+    coordinates = np.dot(rotation_matrix, (coordinates - circle_center).T).T
+    print("\r", "Step 3/5: Calculate circle...  100 %")
+
+    # -------------------------------------------------------------------------------------------------------------
+    failed_list = []
+    better_rot_mat_list = []
+    for idx, out_file in enumerate(out_file_list):
+        found_array_b, coordinates_b, _, _, _ = read_file(out_file, test_subsets_list)
+
+        better_center = np.mean(coordinates_b[indices_of_inner_subsets])
+
+        better_rad = np.mean(
+            np.linalg.norm(
+                better_center - coordinates_b[indices_of_inner_subsets],
+                axis=1,
+            )
+            / 1000
+        )
+
+        initial_guess = geom3d.Circle3D(
+            np.mean(coordinates_b[indices_of_inner_subsets], axis=0),
+            [1, 0, 0],
+            better_rad,
+        )
+        better_circle = fit3d.circle3D_fit(
+            coordinates_b[indices_of_inner_subsets],
+            initial_guess=initial_guess,
+        )
+
+        try:
+            better_circle_dir = better_circle.direction
+
+            if better_circle_dir[-1] > 0:
+                better_circle_dir = better_circle_dir * -1
+
+            # Try to calculate the rotation matrix using the circle's direction
+            rotation_matrix_better = calculate_circle_rotation_matrix(
+                better_circle_dir, 1
+            )
+
+            old_direction = better_circle_dir
+        except AttributeError as e:
+            print(
+                f"Failed to calculate rotation matrix. 'better_circle' is not a valid circle object: {better_circle}"
+            )
+            failed_list.append(idx)
+            print(out_file)
+            rotation_matrix_better = calculate_circle_rotation_matrix(old_direction, 1)
+
+        rotation_matrix_better = np.matmul(rot_x, rotation_matrix_better)
+
+        better_rot_mat_list.append(rotation_matrix_better)
+    # --------------------------------------------------------------------------------------------------------------
+
+    fig = plt.figure(figsize=(10, 10))
+    ax = plt.axes(projection="3d")
+    ax.grid()
+    ax.scatter(coordinates.T[0][1:], coordinates.T[1][1:], coordinates.T[2][1:])
+    ax.scatter(coordinates.T[0][0], coordinates.T[1][0], coordinates.T[2][0], c="g")
+    ax.set_title("Verwendete Kreisbahn zur Ausrichtung des Koordinatensystems")
+    ax.set_xlabel("x-Achse")
+    ax.set_ylabel("y-Achse")
+    ax.set_zlabel("z-Achse")
+    ax = plt.gca()
+    fig.show()
+    plt.pause(0)
+
+    print(
+        "\r", "Step 4/5: Search points for rotor blade torsion calculation...", end=""
+    )
+
+    coordinates = np.dot(rotation_matrix, (real_points - circle_center).T).T
+    mean_position_array = np.dot(
+        rotation_matrix, (mean_position_array - circle_center).T
+    ).T
+
+    rotation_matrix_for_aoi = np.empty((len(available_aoi_ids), 3, 3), float)
+    for aoi_id in range(len(available_aoi_ids)):
+        index_highest_AOI_on_blade = np.where(
+            (blade_number_of_aoi == blade_number_of_aoi[aoi_id])
+            & (aoi_to_blade_aoi == np.max(aoi_to_blade_aoi))
+        )[0][0]
+        rotation_matrix_for_aoi[aoi_id] = find_x_rotation_matrix(
+            mean_position_array[index_highest_AOI_on_blade]
+        )
+
+    indices_found = np.where(found_array == 1)
+    indices_for_aoi_inter_org = np.arange(len(coordinates))
+
+    index_array = np.empty((len(available_aoi_ids), 50), int)
+    for aoi_index in range(len(available_aoi_ids)):
+        current_best_value_list = []
+        best_points_list = []
+        for i in range(0, 25):
+            current_best_value_list.append(float("inf"))
+            best_points_list.append(None)
+
+        indices_for_aoi = np.where(aoi_number == aoi_index)[0]
+        indices_for_aoi_inter = np.intersect1d(indices_for_aoi, indices_found)
+        local_coordinates_for_aoi = coordinates[indices_for_aoi_inter]
+        local_coordinates_for_aoi = np.dot(
+            rotation_matrix_for_aoi[aoi_index], local_coordinates_for_aoi.T
+        ).T
+        local_sigmas = xyz_sigmas[indices_for_aoi_inter]
+        local_visible_counter = visible_counter[indices_for_aoi_inter]
+        indices_for_aoi_local = indices_for_aoi_inter_org[indices_for_aoi_inter]
+        norm_result = (np.linalg.norm(local_sigmas, axis=1) + 1) ** 8
+        k = 0
+        for i in range(len(local_coordinates_for_aoi)):
+            for j in range(i):
+                p1 = local_coordinates_for_aoi[i]
+                p2 = local_coordinates_for_aoi[j]
+                value = (
+                        ((abs(p1[2] - p2[2]) + 100) / (abs(p1[1] - p2[1]) + 1))
+                        * (norm_result[i] + norm_result[j])
+                        * (
+                                (np.max(local_visible_counter) + np.max(local_visible_counter))
+                                / (local_visible_counter[i] + local_visible_counter[j])
+                        )
+                )
+                # print((abs(p1[2] - p2[2]) + 1) / (abs(p1[1] - p2[1]) + 1) )
+                for k in range(0, 10):
+                    if value < current_best_value_list[k]:
+                        current_best_value_list.insert(k, value)
+                        best_points_list.insert(
+                            k,
+                            np.array(
+                                [indices_for_aoi_local[i], indices_for_aoi_local[j]]
+                            ),
+                        )
+                        del best_points_list[-1]
+                        del current_best_value_list[-1]
+                        # print((abs(p1[2] - p2[2])) / (abs(p1[1] - p2[1]) + 0.1) , (abs(p1[2] - p2[2])), (abs(p1[1] - p2[1]) + 0.1))
+                        break
+        for i in range(len(best_points_list)):
+            assert best_points_list[i] is not None, (
+                "Zu wenig Punkte um 25 gute Punktepaare zu finden"
+            )
+            if (
+                    coordinates[best_points_list[i][0]][1]
+                    > coordinates[best_points_list[i][1]][1]
+            ):
+                best_points_list[i][0], best_points_list[i][1] = (
+                    best_points_list[i][1],
+                    best_points_list[i][0],
+                )
+
+        best_points_list = np.array(best_points_list)
+        best_points_list = best_points_list.flatten()
+        index_array[aoi_index] = best_points_list
+        print(
+            "\r",
+            "Step 4/5: Search points for rotor blade torsion calculation...",
+            int((aoi_index / len(available_aoi_ids)) * 100),
+            "%",
+            end="",
+        )
+
+    print("\r", "Step 4/5: Search points for rotor blade torsion calculation...  100 %")
+
+    fig = plt.figure(figsize=(10, 10))
+    ax = plt.axes(projection="3d")
+    ax.grid()
+
+    for aoi_index in range(len(available_aoi_ids)):
+        for i in range(0, len(index_array[aoi_index]), 2):
+            index_start = index_array[aoi_index, i]
+            index_end = index_array[aoi_index, i + 1]
+            ax.plot(
+                [coordinates[index_start][0], coordinates[index_end][0]],
+                [coordinates[index_start][1], coordinates[index_end][1]],
+                zs=[coordinates[index_start][2], coordinates[index_end][2]],
+            )
+            ax.scatter(
+                [coordinates[index_start][0], coordinates[index_end][0]],
+                [coordinates[index_start][1], coordinates[index_end][1]],
+                zs=[coordinates[index_start][2], coordinates[index_end][2]],
+                s=80,
+            )
+
+    ax.scatter(
+        coordinates[indices_found].T[0],
+        coordinates[indices_found].T[1],
+        coordinates[indices_found].T[2],
+        c="b",
+        alpha=0.35,
+        s=5,
+    )
+    # ax.scatter(coordinates[index_array].T[0], coordinates[index_array].T[1], coordinates[index_array].T[2], c = 'r', s = 80, label='Gute Punkte fuer Rotorblatttorsion')
+    ax.set_title("Ausgerichtetes Koordinatensystem und Punkte für Torsionsmessung")
+    ax.set_xlabel("x-Achse")
+    ax.set_ylabel("y-Achse")
+    ax.set_zlabel("z-Achse")
+    ax.set_xlim((-60000, 60000))
+    fig.show()
+    plt.pause(0)
+
+    # Nun werden die ganzen Messpunkte in den Out-Dateien angepasst und als Kopie abgespeichert
+    _, _, _, _, index_in_aoi = read_file(out_file_list[0], test_subsets_list)
+    found_array, coordinates, xyz_sigmas, aoi_number, _ = read_file(
+        out_file_list[0], None
+    )
+
+    indices_of_inner_subsets = np.array([], dtype=int)
+    for roi_id in roi_ids_near_center:
+        indices_of_inner_subsets = np.append(
+            indices_of_inner_subsets, np.where(aoi_number == roi_id)[0]
+        )
+
+    found_array_first_frame = found_array[indices_of_inner_subsets]
+    coordinates_first_frame = coordinates[indices_of_inner_subsets]
+    coordinates_first_frame = np.dot(
+        rotation_matrix, (coordinates_first_frame - circle_center).T
+    ).T
+
+    print("\r", "Step 5/5: Store adjusted measurement points...", end="")
+
+    # Anzeigen des Bildes mit Benennung der AOI
+    two_d_coordinates = read_file_mean_aoi_pos_2d(out_file_list[0])
+    fig, ax = plt.subplots()
+    ax.scatter(
+        two_d_coordinates.T[0], np.max(two_d_coordinates.T[1]) - two_d_coordinates.T[1]
+    )
+    plt.title("Bennenung der gefundenen AOI (zum Bild 0 der Kamera 0)")
+    for aoi_id in range(len(two_d_coordinates)):
+        annotation = (
+                "B: "
+                + str(int(blade_number_of_aoi[aoi_id]))
+                + "  A: "
+                + str(int(aoi_to_blade_aoi[aoi_id]))
+        )
+        ax.annotate(
+            annotation,
+            (
+                two_d_coordinates.T[0][aoi_id],
+                np.max(two_d_coordinates.T[1]) - two_d_coordinates.T[1][aoi_id],
+            ),
+        )
+    plt.show()
+    fig.savefig(input_folder + "/AOI Benennung.png", dpi=fig.dpi)
+    plt.pause(1)
+
+    # Erzeuge Ordner, in welchen die angepassten Out-Dateien abgespeichert werden
+    if not os.path.isdir(input_folder + "/koordNachGL/"):
+        os.mkdir(input_folder + "/koordNachGL/")
+    if not os.path.isdir(input_folder + "/koordNachGL_noRot/"):
+        os.mkdir(input_folder + "/koordNachGL_noRot/")
+    if not os.path.isdir(input_folder + "/SchlagSchwenk/"):
+        os.mkdir(input_folder + "/SchlagSchwenk/")
+    if not os.path.isdir(input_folder + "/Torsion/"):
+        os.mkdir(input_folder + "/Torsion/")
+
+    output_path1 = input_folder + "/koordNachGL/"
+    output_path2 = input_folder + "/koordNachGL_noRot/"
+    output_path3 = input_folder + "/SchlagSchwenk/"
+    output_path4 = input_folder + "/Torsion/"
+
+    # Waehrend der Umformung der Out-Dateien wird pro AOI zusaetzlich ein Messpunkt seperat in einer CSV-Datei abgespeichert. Diese Messpunkte werden per SharedMemory an den Hauptprozess uebergeben, welcher diese dann abspeichert
+    interesting_subsets_id_vicpy = np.empty((len(interesting_subsets), 51), int)
+    interesting_subsets_id_vicpy[:, 0] = index_in_aoi[interesting_subsets]
+    interesting_subsets_id_vicpy[:, 1] = index_in_aoi[index_array[:, 0]]
+    interesting_subsets_id_vicpy[:, 2] = index_in_aoi[index_array[:, 1]]
+
+    for i in range(0, 50, 2):
+        interesting_subsets_id_vicpy[:, i + 1] = index_in_aoi[index_array[:, i]]
+        interesting_subsets_id_vicpy[:, i + 2] = index_in_aoi[index_array[:, i + 1]]
+
+    # interesting_subsets_id_vicpy[:, 0] = [ 866, 1126,  996, 1700, 2948, 1376, 1485, 1178, 2098, 2245, 1187, 1022,  384,  192,  655]
+    # interesting_subsets_id_vicpy[:,1] = [2200,  389, 2484, 3620, 2798, 1947,  762, 3791, 3370, 2493, 1337, 2167,  918,  372,  319]
+    # interesting_subsets_id_vicpy[:,2] = [1131,  372, 1881, 2094, 1359, 1148,  417, 1294, 1138,  972,  551, 2109,  888,  325,  293]
+
+    # print("interesting_subsets_id_vicpy[:,0]: ", interesting_subsets_id_vicpy[:,0])
+    # print("interesting_subsets_id_vicpy[:,1]: ", interesting_subsets_id_vicpy[:,1])
+    # print("interesting_subsets_id_vicpy[:,2]: ", interesting_subsets_id_vicpy[:,2])
+
+    position_of_interesting_points_2d = read_file_pos_2d_at_index(
+        out_file_list[0], interesting_subsets_id_vicpy[:, 0]
+    )
+
+    # print("position_of_interesting_points_2d: ", position_of_interesting_points_2d)
+
+    shared_mem = SharedMemory(
+        [
+            np.empty(
+                (
+                    len(interesting_subsets_id_vicpy),
+                    51,
+                    len(variables_export_name_out_file),
+                ),
+                np.float32,
+            )
+        ]
+    )
+    file_path_queue = Queue(maxsize=30)
+
+    # Prozess zum Bereitstellen der Pfade zu den Out-Datein
+    put_to_queue_process = Process(
+        target=put_to_queue, args=(out_file_list, file_path_queue, number_of_processes)
+    )
+    put_to_queue_process.start()
+
+    semaphore = Semaphore(0)  # wird benutzt um die Fortschrittsanzeige zu aktualisieren
+
+    # Verarbeitungsprozesse starten...
+    workers = []
+    for _ in range(number_of_processes):
+        worker = Process(
+            target=process_out_files_mult_point_tor,
+            args=(
+                file_path_queue,
+                output_path1,
+                output_path2,
+                -circle_center,
+                better_rot_mat_list,
+                roi_ids_near_center,
+                found_array_first_frame,
+                coordinates_first_frame,
+                shared_mem,
+                interesting_subsets_id_vicpy,
+                variables_export_name_out_file,
+                SAVE_OUTPUT_FLAG,
+            ),
+        )
+        worker.start()
+        workers.append(worker)
+
+    # Die zusaetzlich berechneten Messpunkte fuer die CSV-Datei werden pro Rotorblatt auf die 12-Uhr-Stellung gedreht. WICHTIG: Die Messunsicherheit wird dabei nicht angepasst und ist somit aktuell nicht korrekt.
+    # TODO: Messunsicherheit korrekt anpassen
+    good_points_data = np.empty(
+        (
+            len(out_file_list),
+            len(available_aoi_ids),
+            len(variables_export_name_out_file),
+        ),
+        float,
+    )
+    good_points_torsion = np.empty(
+        (
+            len(out_file_list),
+            len(available_aoi_ids),
+            50,
+            len(variables_export_name_out_file),
+        ),
+        float,
+    )
+    for file_counter in range(len(out_file_list)):
+        data = shared_mem.get()
+        data = np.array(data)[0]
+
+        for aoi_id in range(len(available_aoi_ids)):
+            data[aoi_id, 0, 0:3] = np.dot(
+                rotation_matrix_for_aoi[aoi_id], data[aoi_id, 0, 0:3].T
+            ).T
+            data[aoi_id, 0, 3:6] = np.dot(
+                rotation_matrix_for_aoi[aoi_id], data[aoi_id, 0, 3:6].T
+            ).T
+        #    #data[aoi_id, 0, 6:9] = np.dot(rotation_matrix[aoi_id], data[aoi_id, 0, 6:9].T).T
+        good_points_data[file_counter] = data[:, 0]
+        good_points_torsion[file_counter] = data[:, 1:]
+        print(
+            "\r",
+            "Step 5/5: Store adjusted measurement points... ",
+            int((file_counter / len(out_file_list)) * 100),
+            "%",
+            end="",
+        )
+
+    """
+    fig = plt.figure(figsize = (10,10))
+    ax = plt.axes(projection='3d')
+    ax.grid()
+    ax.scatter(good_points_data.T[0] + good_points_data.T[3], good_points_data.T[1] + good_points_data.T[4], good_points_data.T[2] + good_points_data.T[5], c = 'g', s = 10)
+    #ax.scatter(good_points_torsion[0,:,0,0] + good_points_torsion[0,:,0,3], good_points_torsion[0,:,0,1] + good_points_torsion[0,:,0,4], good_points_torsion[0,:,0,2] + good_points_torsion[0,:,0,5], c = 'r', s = 10)
+    #ax.scatter(good_points_torsion[0,:,1,0] + good_points_torsion[0,:,1,3], good_points_torsion[0,:,1,1] + good_points_torsion[0,:,1,4], good_points_torsion[0,:,1,2] + good_points_torsion[0,:,1,5], c = 'b', s = 10)
+    ax.set_title('Bildnummer: ' + str(file_counter))
+    ax.set_xlim((-60000,60000))
+    ax.set_ylim((-60000,60000))
+    ax.set_zlim((-60000,60000))
+    ax.view_init(0, 180, 0)
+    ax.set_xlabel('x-Achse')
+    ax.set_ylabel('y-Achse')
+    ax.set_zlabel('z-Achse')
+    ax = plt.gca()
+    ax.set_aspect('equal', adjustable='box')
+    plt.show()
+    """
+
+    # Warte darauf, dass sich die Verarbeitungsprozesse beenden
+    put_to_queue_process.join()
+    for worker in workers:
+        worker.join()
+
+    # Die zusaetzlichen Punkte fuer die AOI abspeichern
+    for i in range(0, 50, 2):
+        for aoi_id in range(len(available_aoi_ids)):
+            dic, dict1, dict2 = {}, {}, {}
+            for var_id in range(1, len(variables_export_name_csv_file)):
+                dict1[variables_export_name_csv_file[var_id]] = good_points_torsion[
+                    :, aoi_id, i, var_id - 1
+                ]
+                dict2[variables_export_name_csv_file[var_id]] = good_points_torsion[
+                    :, aoi_id, i + 1, var_id - 1
+                ]
+
+                df_1 = pd.DataFrame(dict1)
+                df_2 = pd.DataFrame(dict2)
+                if not os.path.isdir(output_path4 + "/Tor_" + str(i // 2)):
+                    os.mkdir(output_path4 + "/Tor_" + str(i // 2))
+
+                csv_filename2 = (
+                        output_path4
+                        + "/Tor_"
+                        + str(i // 2)
+                        + "/Blade_"
+                        + str(int(blade_number_of_aoi[aoi_id]))
+                        + "_AOI_"
+                        + str(int(aoi_to_blade_aoi[aoi_id]))
+                        + "_P1.csv"
+                )
+                csv_filename3 = (
+                        output_path4
+                        + "/Tor_"
+                        + str(i // 2)
+                        + "/Blade_"
+                        + str(int(blade_number_of_aoi[aoi_id]))
+                        + "_AOI_"
+                        + str(int(aoi_to_blade_aoi[aoi_id]))
+                        + "_P2.csv"
+                )
+                header_text = (
+                        '"B'
+                        + str(int(blade_number_of_aoi[aoi_id]))
+                        + " AOI"
+                        + str(int(aoi_to_blade_aoi[aoi_id]))
+                        + '"'
+                        + ";" * len(variables_export_name_out_file)
+                )
+
+                # Datei öffnen und Text schreiben
+                for csv_file_name in [csv_filename2, csv_filename3]:
+                    with open(csv_file_name, "w") as f:
+                        f.write(header_text + "\n")
+                df_1.to_csv(
+                    csv_filename2,
+                    index_label=variables_export_name_csv_file[0],
+                    mode="a",
+                    index=True,
+                    quotechar="'",
+                    sep=";",
+                    decimal=",",
+                )
+                df_2.to_csv(
+                    csv_filename3,
+                    index_label=variables_export_name_csv_file[0],
+                    mode="a",
+                    index=True,
+                    quotechar="'",
+                    sep=";",
+                    decimal=",",
+                )
+
+    print("\r", "Step 5/5: Store adjusted measurement points...  100 %")
+
+    exit()
+
+    # Falls notwendig kann fuer jeden Frame eine Visualisierung der Messdaten abgespeichert werden.
+
+    print("Step 6/5 (Test): Store Images...", end="\r")
+    file_counter = 0
+    out_file_list = glob.glob(input_folder + "/koordNachGL_noRot/*.out")
+    for file_path in out_file_list:
+        print(file_path)
+        found_array, real_points, xyz_sigmas, aoi_number, index_in_aoi = read_file(
+            file_path, None
+        )
+        print(
+            "Step 6/5 (Test): Store Images... ",
+            int((file_counter / len(out_file_list)) * 100),
+            "%",
+            end="\r",
+        )
+
+        indices_found = np.where(found_array == 1)
+        fig = plt.figure(figsize=(10, 10))
+        ax = plt.axes(projection="3d")
+        ax.grid()
+        ax.scatter(
+            real_points[indices_found].T[0],
+            real_points[indices_found].T[1],
+            real_points[indices_found].T[2],
+            c="g",
+            s=10,
+        )
+        ax.set_title("Bildnummer: " + str(file_counter))
+        ax.set_xlim((-60000, 60000))
+        ax.set_ylim((-60000, 60000))
+        ax.set_zlim((-60000, 60000))
+        ax.view_init(0, 180, 0)
+        ax.set_xlabel("x-Achse")
+        ax.set_ylabel("y-Achse")
+        ax.set_zlabel("z-Achse")
+        ax = plt.gca()
+        ax.set_aspect("equal", adjustable="box")
+        fig.savefig("D:/Scatter/fig" + str(file_counter) + ".png", dpi=fig.dpi)
+        plt.close()
+        file_counter += 1
+
+    print("")
