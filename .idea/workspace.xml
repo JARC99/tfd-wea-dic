@@ -77,7 +77,7 @@
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
-  <component name="RunManager" selected="Python.align_coordinate_system">
+  <component name="RunManager" selected="Python.calculate Torsion - many points">
     <configuration name="Aligning coordinate system_092025" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="tfd-wea-dic" />
       <option name="ENV_FILES" value="" />
@@ -205,9 +205,9 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.calculate Torsion - many points" />
         <item itemvalue="Python.align_coordinate_system" />
         <item itemvalue="Python.align_coordinate_system_torsion_ohneEl_Rot" />
-        <item itemvalue="Python.calculate Torsion - many points" />
         <item itemvalue="Python.calculate_torsion" />
         <item itemvalue="Python.Aligning coordinate system_092025" />
       </list>
@@ -275,7 +275,7 @@
       <workItem from="1785834757711" duration="360000" />
       <workItem from="1785835582078" duration="1206000" />
       <workItem from="1785836970260" duration="15885000" />
-      <workItem from="1785910824210" duration="2047000" />
+      <workItem from="1785910824210" duration="12516000" />
     </task>
     <servers />
   </component>
@@ -295,21 +295,6 @@
           <line>7</line>
           <option name="timeStamp" value="30" />
         </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/coordsysalign/multiprocessing_fns.py</url>
-          <line>849</line>
-          <option name="timeStamp" value="32" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/coordsysalign/multiprocessing_fns.py</url>
-          <line>762</line>
-          <option name="timeStamp" value="33" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/coordsysalign/multiprocessing_fns.py</url>
-          <line>771</line>
-          <option name="timeStamp" value="34" />
-        </line-breakpoint>
       </breakpoints>
       <default-breakpoints>
         <breakpoint type="python-exception">
@@ -323,17 +308,17 @@
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/tfd_wea_dic$align_coordinate_system__1_.coverage" NAME="align_coordinate_system (1) Coverage Results" MODIFIED="1782740373572" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/tfd_dic_post_processing$AOI_Segmentation_092025___Kopie.coverage" NAME="AOI Segmentation_092025 - Kopie Coverage Results" MODIFIED="1778069815128" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="E:/HiWi Cordova/Python/Code_Post-Processing" />
-    <SUITE FILE_PATH="coverage/tfd_wea_dic$align_coordinate_system.coverage" NAME="align_coordinate_system Coverage Results" MODIFIED="1785912631463" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/tfd_wea_dic$align_coordinate_system.coverage" NAME="align_coordinate_system Coverage Results" MODIFIED="1785922169651" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/tfd_wea_dic$multiprocessing_funcs.coverage" NAME="multiprocessing_funcs Coverage Results" MODIFIED="1781599011857" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tfd_wea_dic" />
     <SUITE FILE_PATH="coverage/tfd_wea_dic$Aligning_coordinate_system_052026.coverage" NAME="Aligning coordinate system_052026 Coverage Results" MODIFIED="1782394766800" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/Aligning_coordinate_system_092025_py$Aligning_coordinate_system_052026.coverage" NAME="Aligning coordinate system_052026 Coverage Results" MODIFIED="1780390836425" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/tfd_wea_dic$math_funcs.coverage" NAME="math_funcs Coverage Results" MODIFIED="1781598933986" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tfd_wea_dic" />
     <SUITE FILE_PATH="coverage/tfd_wea_dic$calculate_Torsion.coverage" NAME="calculate Torsion Coverage Results" MODIFIED="1782727685193" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/tfd_wea_dic$calculate_torsion__1_.coverage" NAME="calculate_torsion (1) Coverage Results" MODIFIED="1782740496724" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/tfd_wea_dic$calculate_Torsion___many_points.coverage" NAME="calculate Torsion - many points Coverage Results" MODIFIED="1783710295856" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/tfd_wea_dic$calculate_Torsion___many_points.coverage" NAME="calculate Torsion - many points Coverage Results" MODIFIED="1785923907610" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/tfd_wea_dic$calculate_Deformation.coverage" NAME="calculate Deformation Coverage Results" MODIFIED="1782392214616" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/tfd_wea_dic$align_coordinate_system_torsion_ohneEl_Rot.coverage" NAME="align_coordinate_system_torsion_ohneEl_Rot Coverage Results" MODIFIED="1785844404605" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/tfd_wea_dic$align_coordinate_system_torsion_ohneEl_Rot.coverage" NAME="align_coordinate_system_torsion_ohneEl_Rot Coverage Results" MODIFIED="1785920690197" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/tfd_wea_dic$Aligning_coordinate_system_092025.coverage" NAME="Aligning coordinate system_092025 Coverage Results" MODIFIED="1783091304870" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="E:/HiWi Cordova/Python/Code_Post-Processing" />
-    <SUITE FILE_PATH="coverage/tfd_wea_dic$calculate_torsion.coverage" NAME="calculate_torsion Coverage Results" MODIFIED="1783685832209" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/tfd_wea_dic$calculate_torsion.coverage" NAME="calculate_torsion Coverage Results" MODIFIED="1785914381396" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>

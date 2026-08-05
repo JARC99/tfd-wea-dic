@@ -864,7 +864,7 @@ if __name__ == "__main__":
                 output_path1,
                 output_path2,
                 -circle_center,
-                rotation_matrix,
+                better_rot_mat_list,
                 roi_ids_near_center,
                 found_array_first_frame,
                 coordinates_first_frame,

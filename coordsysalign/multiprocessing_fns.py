@@ -739,6 +739,7 @@ def process_out_files_mult_point_tor(file_path_queue, output_path1, output_path2
         _, tail = os.path.split(file)
 
         translation_vector = (translation_vector_arg[0], translation_vector_arg[1], translation_vector_arg[2])
+        #rotation_matrix = rotation_matrix_arg.copy()
         rotation_matrix = rotation_matrix_arg[file_number].copy()
 
         translation.setTranslation(translation_vector)

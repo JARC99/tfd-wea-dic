@@ -33,6 +33,7 @@ from coordsysalign.transformation_fns import (
 SAVE_OUTPUT_FLAG = True
 SUBSET_FLAG = False
 
+
 MULT_POINT_TORSION_CALC_FLAG = True
 
 # Specify the number of processors used to read and write on the files.
@@ -1033,7 +1034,7 @@ if __name__ == "__main__":
                     output_path1,
                     output_path2,
                     -circle_center,
-                    rotation_matrix_list,
+                    better_rot_mat_list,
                     aoi_ids_near_center,
                     found_array_first_frame,
                     coordinates_first_frame,
@@ -1129,89 +1130,160 @@ if __name__ == "__main__":
     for worker in workers:
         worker.join()
 
-    # Store the points in .csv files.
-    for aoi_id in range(len(available_aoi_ids)):
-        dic, dict1, dict2 = {}, {}, {}
-        for var_id in range(1, len(variables_export_name_csv_file)):
-            dic[variables_export_name_csv_file[var_id]] = good_points_data[
-                :, aoi_id, var_id - 1
-            ]
-            dict1[variables_export_name_csv_file[var_id]] = good_points_torsion[
-                :, aoi_id, 0, var_id - 1
-            ]
-            dict2[variables_export_name_csv_file[var_id]] = good_points_torsion[
-                :, aoi_id, 1, var_id - 1
-            ]
-        df = pd.DataFrame(dic)
-        df_1 = pd.DataFrame(dict1)
-        df_2 = pd.DataFrame(dict2)
+    if MULT_POINT_TORSION_CALC_FLAG:
+        # Die zusaetzlichen Punkte fuer die AOI abspeichern
+        for i in range(0, 50, 2):
+            for aoi_id in range(len(available_aoi_ids)):
+                dic, dict1, dict2 = {}, {}, {}
+                for var_id in range(1, len(variables_export_name_csv_file)):
+                    dict1[variables_export_name_csv_file[var_id]] = good_points_torsion[
+                        :, aoi_id, i, var_id - 1
+                    ]
+                    dict2[variables_export_name_csv_file[var_id]] = good_points_torsion[
+                        :, aoi_id, i + 1, var_id - 1
+                    ]
 
-        csv_filename1 = (
-                output_path3
-                + "/Blade_"
-                + str(int(blade_number_of_aoi[aoi_id]))
-                + "_AOI_"
-                + str(int(aoi_to_blade_aoi[aoi_id]))
-                + "_"
-                + str(position_of_interesting_points_2d[aoi_id])
-                + ".csv"
-        )
+                    df_1 = pd.DataFrame(dict1)
+                    df_2 = pd.DataFrame(dict2)
+                    if not os.path.isdir(output_path4 + "/Tor_" + str(i // 2)):
+                        os.mkdir(output_path4 + "/Tor_" + str(i // 2))
 
-        csv_filename2 = (
-                output_path4
-                + "/Blade_"
-                + str(int(blade_number_of_aoi[aoi_id]))
-                + "_AOI_"
-                + str(int(aoi_to_blade_aoi[aoi_id]))
-                + "_P1.csv"
-        )
-        csv_filename3 = (
-                output_path4
-                + "/Blade_"
-                + str(int(blade_number_of_aoi[aoi_id]))
-                + "_AOI_"
-                + str(int(aoi_to_blade_aoi[aoi_id]))
-                + "_P2.csv"
-        )
-        header_text = (
-                '"B'
-                + str(int(blade_number_of_aoi[aoi_id]))
-                + " AOI"
-                + str(int(aoi_to_blade_aoi[aoi_id]))
-                + '"'
-                + ";" * len(variables_export_name_out_file)
-        )
+                    csv_filename2 = (
+                            output_path4
+                            + "/Tor_"
+                            + str(i // 2)
+                            + "/Blade_"
+                            + str(int(blade_number_of_aoi[aoi_id]))
+                            + "_AOI_"
+                            + str(int(aoi_to_blade_aoi[aoi_id]))
+                            + "_P1.csv"
+                    )
+                    csv_filename3 = (
+                            output_path4
+                            + "/Tor_"
+                            + str(i // 2)
+                            + "/Blade_"
+                            + str(int(blade_number_of_aoi[aoi_id]))
+                            + "_AOI_"
+                            + str(int(aoi_to_blade_aoi[aoi_id]))
+                            + "_P2.csv"
+                    )
+                    header_text = (
+                            '"B'
+                            + str(int(blade_number_of_aoi[aoi_id]))
+                            + " AOI"
+                            + str(int(aoi_to_blade_aoi[aoi_id]))
+                            + '"'
+                            + ";" * len(variables_export_name_out_file)
+                    )
 
-        for csv_file_name in [csv_filename1, csv_filename2, csv_filename3]:
-            with open(csv_file_name, "w") as f:
-                f.write(header_text + "\n")
-        df.to_csv(
-            csv_filename1,
-            index_label=variables_export_name_csv_file[0],
-            mode="a",
-            index=True,
-            quotechar="'",
-            sep=";",
-            decimal=",",
-        )
-        df_1.to_csv(
-            csv_filename2,
-            index_label=variables_export_name_csv_file[0],
-            mode="a",
-            index=True,
-            quotechar="'",
-            sep=";",
-            decimal=",",
-        )
-        df_2.to_csv(
-            csv_filename3,
-            index_label=variables_export_name_csv_file[0],
-            mode="a",
-            index=True,
-            quotechar="'",
-            sep=";",
-            decimal=",",
-        )
+                    # Datei öffnen und Text schreiben
+                    for csv_file_name in [csv_filename2, csv_filename3]:
+                        with open(csv_file_name, "w") as f:
+                            f.write(header_text + "\n")
+                    df_1.to_csv(
+                        csv_filename2,
+                        index_label=variables_export_name_csv_file[0],
+                        mode="a",
+                        index=True,
+                        quotechar="'",
+                        sep=";",
+                        decimal=",",
+                    )
+                    df_2.to_csv(
+                        csv_filename3,
+                        index_label=variables_export_name_csv_file[0],
+                        mode="a",
+                        index=True,
+                        quotechar="'",
+                        sep=";",
+                        decimal=",",
+                    )
+
+    else:
+        # Store the points in .csv files.
+        for aoi_id in range(len(available_aoi_ids)):
+            dic, dict1, dict2 = {}, {}, {}
+            for var_id in range(1, len(variables_export_name_csv_file)):
+                dic[variables_export_name_csv_file[var_id]] = good_points_data[
+                    :, aoi_id, var_id - 1
+                ]
+                dict1[variables_export_name_csv_file[var_id]] = good_points_torsion[
+                    :, aoi_id, 0, var_id - 1
+                ]
+                dict2[variables_export_name_csv_file[var_id]] = good_points_torsion[
+                    :, aoi_id, 1, var_id - 1
+                ]
+            df = pd.DataFrame(dic)
+            df_1 = pd.DataFrame(dict1)
+            df_2 = pd.DataFrame(dict2)
+
+            csv_filename1 = (
+                    output_path3
+                    + "/Blade_"
+                    + str(int(blade_number_of_aoi[aoi_id]))
+                    + "_AOI_"
+                    + str(int(aoi_to_blade_aoi[aoi_id]))
+                    + "_"
+                    + str(position_of_interesting_points_2d[aoi_id])
+                    + ".csv"
+            )
+
+            csv_filename2 = (
+                    output_path4
+                    + "/Blade_"
+                    + str(int(blade_number_of_aoi[aoi_id]))
+                    + "_AOI_"
+                    + str(int(aoi_to_blade_aoi[aoi_id]))
+                    + "_P1.csv"
+            )
+            csv_filename3 = (
+                    output_path4
+                    + "/Blade_"
+                    + str(int(blade_number_of_aoi[aoi_id]))
+                    + "_AOI_"
+                    + str(int(aoi_to_blade_aoi[aoi_id]))
+                    + "_P2.csv"
+            )
+            header_text = (
+                    '"B'
+                    + str(int(blade_number_of_aoi[aoi_id]))
+                    + " AOI"
+                    + str(int(aoi_to_blade_aoi[aoi_id]))
+                    + '"'
+                    + ";" * len(variables_export_name_out_file)
+            )
+
+            for csv_file_name in [csv_filename1, csv_filename2, csv_filename3]:
+                with open(csv_file_name, "w") as f:
+                    f.write(header_text + "\n")
+            df.to_csv(
+                csv_filename1,
+                index_label=variables_export_name_csv_file[0],
+                mode="a",
+                index=True,
+                quotechar="'",
+                sep=";",
+                decimal=",",
+            )
+            df_1.to_csv(
+                csv_filename2,
+                index_label=variables_export_name_csv_file[0],
+                mode="a",
+                index=True,
+                quotechar="'",
+                sep=";",
+                decimal=",",
+            )
+            df_2.to_csv(
+                csv_filename3,
+                index_label=variables_export_name_csv_file[0],
+                mode="a",
+                index=True,
+                quotechar="'",
+                sep=";",
+                decimal=",",
+            )
 
     print("\r", "Step 5/5: Store adjusted measurement points...  100 %")
     exit()
