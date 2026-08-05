@@ -3,9 +3,9 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-paths = []#[r"E:\HiWi Cordova\Messung 19_noyaw\out\DEFAULT\Torsion", r"E:\HiWi Cordova\Messung 19_noyaw\out\YAW_AVE\Torsion", r"E:\HiWi Cordova\Messung 19_noyaw\out\YAW_F0\Torsion"] #[r"E:\HiWi Cordova\Messung 19_noyaw\out\DEFAULT\Torsion", r"E:\HiWi Cordova\Messung 19_noyaw\out\YAW_F0\Torsion"]
+paths = []
 paths.append(easygui.diropenbox("Select Folder with out-Files"))#[r"E:\HiWi Cordova\Messung 19_noyaw\out\ANGEL\Torsion"]#[r"E:\HiWi Cordova\Messung24\plots\DEFAULT\Torsion", r"E:\HiWi Cordova\Messung24\plots\YAW_AVE\Torsion", r"E:\HiWi Cordova\Messung24\plots\YAW_F0\Torsion"]
-names = ["Angel"]#["Default (Ohne Starrkörper Eliminierung)", "Yaw Correction (Averager Circle)", "Yaw Correction (Frame 0 Circle)"] #["No Yaw Correction","Yaw Correction (Frame 0 Circle)"]
+names = ["Default"]
 
 assert len(paths) > 0
 
