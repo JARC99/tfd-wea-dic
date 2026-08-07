@@ -6,8 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="0efe07e9-d7b0-45db-8bf1-a434066f896b" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/indices_of_inner_subsets.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/messung25_008943_0.out" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -56,7 +54,9 @@
     "git-widget-placeholder": "main",
     "ignore.virus.scanning.warn.message": "true",
     "last_opened_file_path": "G:/Meine Ablage/300 Professional/340 TFD/tfd-dic-post-processing",
+    "node.js.detected.package.eslint": "true",
     "node.js.detected.package.jshint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.jshint": "",
     "vue.rearranger.settings.migration": "true"
   }
@@ -260,6 +260,7 @@
       <workItem from="1785835582078" duration="1206000" />
       <workItem from="1785836970260" duration="15885000" />
       <workItem from="1785910824210" duration="16855000" />
+      <workItem from="1786030486564" duration="171000" />
     </task>
     <servers />
   </component>
