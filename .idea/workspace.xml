@@ -5,14 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="0efe07e9-d7b0-45db-8bf1-a434066f896b" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/geomfitty/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/geomfitty/_descriptor.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/geomfitty/_util.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/geomfitty/fit3d.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/geomfitty/geom3d.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/geomfitty/plot.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/geomfitty/transform.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/tfd-wea-dic.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/tfd-wea-dic.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/coordsysalign/multiprocessing_fns.py" beforeDir="false" afterPath="$PROJECT_DIR$/coordsysalign/multiprocessing_fns.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -63,7 +58,7 @@
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
     "codeWithMe.voiceChat.enabledByDefault": "false",
-    "git-widget-placeholder": "main",
+    "git-widget-placeholder": "upgrade-to-vicpyx",
     "ignore.virus.scanning.warn.message": "true",
     "last_opened_file_path": "C:/Users/messen/Desktop/tfd-wea-dic_08_2026",
     "node.js.detected.package.eslint": "true",

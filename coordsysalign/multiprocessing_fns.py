@@ -8,7 +8,7 @@ from multiprocessing import (
 )
 
 import numpy as np
-from VicPy import (
+from vicpyx import (
     RigidTransformation,
     Rotation,
     VicDataSet,
