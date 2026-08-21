@@ -123,12 +123,20 @@ plt.ylabel("Änderung Distanz Punkte")
 plt.title("Abstand Punktepaare zu Referenzbild besseren Hälfte an Punktepaaren")
 plt.show()
 
+# ----------------------------------
+blender_data = pd.read_csv("BLENDER Blade BLADE_A_1.csv", sep=";", decimal=",")
+
+real_angle = blender_data[" Winkel"] - blender_data[" Winkel"].iloc[0]
+
+
+# ----------------------------------------
+
 angles = np.array(angles)
 angle_mean = np.nanmean(angles[good_values], axis=0)
 
 plt.plot(angle_mean, label="angle_mean", color='black')
 if len(angle) == len(real_angle):
-    plt.plot(real_angle, label="real_angle")
+    plt.plot(real_angle, label="Blender Angle")
 plt.legend()
 plt.xlabel("Bildnummer")
 plt.ylabel("Durchschnittswinkeländerung in °")
@@ -137,7 +145,7 @@ plt.show()
 
 filename = paths[0][0:paths[0].rfind("/")] + "/Torsion/mean_angle.csv"
 df = pd.DataFrame({"mean_angle": angle_mean})
-df.to_csv(filename, index=True, quotechar="'", sep=';', decimal=',')
+#df.to_csv(filename, index=True, quotechar="'", sep=';', decimal=',')
 
 if len(diff_list) == 0:
     exit()

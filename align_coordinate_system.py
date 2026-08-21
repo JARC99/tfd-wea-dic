@@ -33,7 +33,7 @@ from coordsysalign.transformation_fns import (
 SAVE_OUTPUT_FLAG = False  # Save the transformed .out files / Don't save them
 SUBSET_FLAG = False  # Specify a subset of the complete raw. out file data set / Use the complete dataset
 
-MULT_POINT_TORSION_CALC_FLAG = True  # Uses 25 point pairs for the torsion calculation / Use a single point pair
+MULT_POINT_TORSION_CALC_FLAG = False  # Uses 25 point pairs for the torsion calculation / Use a single point pair
 INDIV_FRAME_ROTMAT_FLAG = True  # Transform each .out file with a rotation matrix calculated from its coordinates / Use an average rotation matrix for the whole data set
 VIC3D_RB_EL_FLAG = True  # Use the built-in VicPy function to eliminate rigid body rotation.
 
