@@ -81,7 +81,7 @@ def read_file(file_name, subset_index, check_aoi_is_empty=False):
     index = 0
     for aoi in range(data.num_data()):
         d = data.data(aoi)
-        rows = d.as_array(
+        rows = d.get_values(
             ["sigma", "X", "Y", "Z", "U", "V", "W", "SIGMA_X", "SIGMA_Y", "SIGMA_Z"]
         )  # TODO: This array is the same as the hardcoded one on top?
         rows = rows.view(np.float32).reshape(rows.shape[0], -1)
@@ -135,7 +135,7 @@ def read_file_mean_aoi_pos_2d(file_name):
     )  # enthaelt die Koordinaten der Subsets
     for aoi in range(data.num_data()):
         d = data.data(aoi)
-        rows = d.as_array(["sigma", "x", "y", "u", "v"])
+        rows = d.get_values(["sigma", "x", "y", "u", "v"])
         rows = rows.view(np.float32).reshape(rows.shape[0], -1)
         rows = rows.T
         found_array_for_aoi = np.where(rows[0] < 0, 0, 1)
@@ -340,7 +340,7 @@ def read_file_loop(file_name_queue, shared_memory: SharedMemory, subset_index):
         index = 0
         for aoi in range(data.num_data()):
             d = data.data(aoi)
-            rows = d.as_array(
+            rows = d.get_values(
                 ["sigma", "X", "Y", "Z", "U", "V", "W", "SIGMA_X", "SIGMA_Y", "SIGMA_Z"]
             )
             rows = rows.view(np.float32).reshape(rows.shape[0], -1)
@@ -463,7 +463,7 @@ def read_file_loop(file_name_queue, shared_memory: SharedMemory, subset_index):
 #         for aoi in roi_ids_near_center:
 #             d = data.data(aoi)
 #
-#             rows = d.as_array(["sigma", "X", "Y", "Z", "U", "V", "W"])
+#             rows = d.get_values(["sigma", "X", "Y", "Z", "U", "V", "W"])
 #             rows = rows.view(np.float32).reshape(rows.shape[0], -1)
 #
 #             rows = rows.T
@@ -633,7 +633,7 @@ def process_out_files(
         for aoi in roi_ids_near_center:
             d = data.data(aoi)
 
-            rows = d.as_array(["sigma", "X", "Y", "Z", "U", "V", "W"])
+            rows = d.get_values(["sigma", "X", "Y", "Z", "U", "V", "W"])
             rows = rows.view(np.float32).reshape(rows.shape[0], -1)
 
             rows = rows.T
@@ -785,7 +785,7 @@ def process_out_files_mult_point_tor(file_path_queue, output_path1, output_path2
         for aoi in roi_ids_near_center:
             d = data.data(aoi)
 
-            rows = d.as_array(["sigma", "X", "Y", "Z", "U", "V", "W"])
+            rows = d.get_values(["sigma", "X", "Y", "Z", "U", "V", "W"])
             rows = rows.view(np.float32).reshape(rows.shape[0], -1)
 
             rows = rows.T
