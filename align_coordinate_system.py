@@ -34,8 +34,8 @@ SAVE_OUTPUT_FLAG = False  # Save the transformed .out files / Don't save them
 SUBSET_FLAG = False  # Specify a subset of the complete raw. out file data set / Use the complete dataset
 
 MULT_POINT_TORSION_CALC_FLAG = True  # Uses 25 point pairs for the torsion calculation / Use a single point pair
-INDIV_FRAME_ROTMAT_FLAG = False  # Transform each .out file with a rotation matrix calculated from its coordinates / Use an average rotation matrix for the whole data set
-VIC3D_RB_EL_FLAG = True  # Use the built-in VicPy function to eliminate rigid body rotation.
+INDIV_FRAME_ROTMAT_FLAG = True  # Transform each .out file with a rotation matrix calculated from its coordinates / Use an average rotation matrix for the whole data set
+VIC3D_RB_EL_FLAG = False  # Use the built-in VicPy function to eliminate rigid body rotation.
 
 # Specify the number of processors used to read and write on the files.
 N_PROCESSES = 16

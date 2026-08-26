@@ -136,7 +136,7 @@ angle_mean = np.nanmean(angles[good_values], axis=0)
 
 plt.plot(angle_mean, label="angle_mean", color='black')
 if len(angle) == len(real_angle):
-    plt.plot(-real_angle, label="Blender Angle")
+    plt.plot(real_angle, label="Blender Angle")
 plt.legend()
 plt.xlabel("Bildnummer")
 plt.ylabel("Durchschnittswinkeländerung in °")
