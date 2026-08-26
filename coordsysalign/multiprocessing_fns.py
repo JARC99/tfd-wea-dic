@@ -50,20 +50,25 @@ def read_file(file_name, subset_index, check_aoi_is_empty=False):
 
     data = VicDataSet()  # Creates an instance of a VicDataSet() class
 
-    if not data.load(
-            file_name
-    ):  # Tries to load a .out file into the VicDataSet() instance, it exits if it fails
-        print("Could not load data set\n\n")
+    # Tries to load a .out file into the VicDataSet() instance, it exits if it fails
+    if data.load(file_name) == False:
+        print("Could not load data set\n")
         exit(-1)
+
+    # if not data.load(
+    #         file_name
+    # ):  # Tries to load a .out file into the VicDataSet() instance, it exits if it fails
+    #     print("Could not load data set\n\n")
+    #     exit(-1)
 
     size = 0
     for aoi in range(
-            data.numData()
-    ):  # The numData() method returns the number of areas of interest in the dataset
+            data.num_data()
+    ):  # The num_data() method returns the number of areas of interest in the dataset
         d = data.data(
             aoi
         )  # Returns a pointer to VicData objet for the specific AOI in the dataset
-        size += d.matrixSize()
+        size += d.matrix_size()
 
     found_array = np.empty(
         (size), int
@@ -74,9 +79,9 @@ def read_file(file_name, subset_index, check_aoi_is_empty=False):
     index_in_aoi = np.empty((size), int)  # Index des Subsets innerhalb der AOI
 
     index = 0
-    for aoi in range(data.numData()):
+    for aoi in range(data.num_data()):
         d = data.data(aoi)
-        rows = d.asArray(
+        rows = d.as_array(
             ["sigma", "X", "Y", "Z", "U", "V", "W", "SIGMA_X", "SIGMA_Y", "SIGMA_Z"]
         )  # TODO: This array is the same as the hardcoded one on top?
         rows = rows.view(np.float32).reshape(rows.shape[0], -1)
@@ -126,11 +131,11 @@ def read_file_mean_aoi_pos_2d(file_name):
         exit(-1)
 
     coordinates = np.empty(
-        (data.numData(), 2), float
+        (data.num_data(), 2), float
     )  # enthaelt die Koordinaten der Subsets
-    for aoi in range(data.numData()):
+    for aoi in range(data.num_data()):
         d = data.data(aoi)
-        rows = d.asArray(["sigma", "x", "y", "u", "v"])
+        rows = d.as_array(["sigma", "x", "y", "u", "v"])
         rows = rows.view(np.float32).reshape(rows.shape[0], -1)
         rows = rows.T
         found_array_for_aoi = np.where(rows[0] < 0, 0, 1)
@@ -153,11 +158,11 @@ def read_file_pos_2d_at_index(file_name, interesting_subsets_id_vicpy):
         print("Could not load data set\n\n")
         exit(-1)
     coordinates = np.empty((0, 2), int)  # enthaelt die Koordinaten der Subsets
-    for aoi in range(data.numData()):
+    for aoi in range(data.num_data()):
         d = data.data(aoi)
         if len(var_ids) == 0:
             for var in ["x", "y", "u", "v"]:
-                idx = d.varIndex(var)
+                idx = d.variable_index(var)
                 if idx < 0:
                     print("Could not find variable %s" % var)
                 else:
@@ -268,9 +273,9 @@ def read_file_point_loop(file_name_queue, shared_memory: SharedMemory, subset_in
 
         startindex_roi = 0
         coordinate = None
-        for aoi in range(data.numData()):
+        for aoi in range(data.num_data()):
             d = data.data(aoi)
-            current_size = d.matrixSize()
+            current_size = d.matrix_size()
             if (
                     subset_index < startindex_roi
                     or subset_index > startindex_roi + current_size
@@ -282,7 +287,7 @@ def read_file_point_loop(file_name_queue, shared_memory: SharedMemory, subset_in
 
             if len(var_ids) == 0:
                 for var in var_names:
-                    idx = d.varIndex(var)
+                    idx = d.variable_index(var)
                     if idx < 0:
                         print("Could not find variable %s" % var)
                     else:
@@ -319,9 +324,9 @@ def read_file_loop(file_name_queue, shared_memory: SharedMemory, subset_index):
             exit(-1)
 
         size = 0
-        for aoi in range(data.numData()):
+        for aoi in range(data.num_data()):
             d = data.data(aoi)
-            size += d.matrixSize()
+            size += d.matrix_size()
 
         found_array = np.empty(
             (size), int
@@ -333,9 +338,9 @@ def read_file_loop(file_name_queue, shared_memory: SharedMemory, subset_index):
         aoi_number = np.empty((size), int)  # gibt an in welcher AOI ein Subset liegt
 
         index = 0
-        for aoi in range(data.numData()):
+        for aoi in range(data.num_data()):
             d = data.data(aoi)
-            rows = d.asArray(
+            rows = d.as_array(
                 ["sigma", "X", "Y", "Z", "U", "V", "W", "SIGMA_X", "SIGMA_Y", "SIGMA_Z"]
             )
             rows = rows.view(np.float32).reshape(rows.shape[0], -1)
@@ -414,10 +419,10 @@ def read_file_loop(file_name_queue, shared_memory: SharedMemory, subset_index):
 #         )
 #         rotation_matrix = rotation_matrix_arg[file_number].copy()
 #
-#         translation.setTranslation(translation_vector)
-#         rotation_obj.setMatrix(rotation_matrix)
+#         translation.set_translation(translation_vector)
+#         rotation_obj.set_matrix(rotation_matrix)
 #
-#         rotation.setRotation(rotation_obj)
+#         rotation.set_rotation(rotation_obj)
 #         if data.load(file) == False:
 #             print("Could not load data set\n\n")
 #             exit(-1)
@@ -435,13 +440,13 @@ def read_file_loop(file_name_queue, shared_memory: SharedMemory, subset_index):
 #
 #         # Torsion point pair P1 n
 #         coordinates_for_ret = np.empty(
-#             (data.numData(), 3, len(variables_export_name_out_file)), float
+#             (data.num_data(), 3, len(variables_export_name_out_file)), float
 #         )
-#         for aoi in range(data.numData()):
+#         for aoi in range(data.num_data()):
 #             d = data.data(aoi)
 #             if len(var_ids) == 0:
 #                 for var in variables_export_name_out_file:
-#                     idx = d.varIndex(var)
+#                     idx = d.variable_index(var)
 #                     if idx < 0:
 #                         print("Could not find variable %s" % var)
 #                     else:
@@ -458,7 +463,7 @@ def read_file_loop(file_name_queue, shared_memory: SharedMemory, subset_index):
 #         for aoi in roi_ids_near_center:
 #             d = data.data(aoi)
 #
-#             rows = d.asArray(["sigma", "X", "Y", "Z", "U", "V", "W"])
+#             rows = d.as_array(["sigma", "X", "Y", "Z", "U", "V", "W"])
 #             rows = rows.view(np.float32).reshape(rows.shape[0], -1)
 #
 #             rows = rows.T
@@ -501,13 +506,13 @@ def read_file_loop(file_name_queue, shared_memory: SharedMemory, subset_index):
 #             found_translation[1],
 #             found_translation[2],
 #         )
-#         translation.setTranslation(translation_vector)
+#         translation.set_translation(translation_vector)
 #
 #         rotation_obj = Rotation()
-#         rotation_obj.setMatrix(found_rot_mat)
+#         rotation_obj.set_matrix(found_rot_mat)
 #
 #         rotation = RigidTransformation()
-#         rotation.setRotation(rotation_obj)
+#         rotation.set_rotation(rotation_obj)
 #
 #         if file_number > 0:
 #             data.transform(rotation, True)
@@ -518,11 +523,11 @@ def read_file_loop(file_name_queue, shared_memory: SharedMemory, subset_index):
 #         else:
 #             pass
 #
-#         for aoi in range(data.numData()):
+#         for aoi in range(data.num_data()):
 #             d = data.data(aoi)
 #             if len(var_ids) == 0:
 #                 for var in variables_export_name_out_file:
-#                     idx = d.varIndex(var)
+#                     idx = d.variable_index(var)
 #                     if idx < 0:
 #                         print("Could not find variable %s" % var)
 #                     else:
@@ -584,10 +589,10 @@ def process_out_files(
         )
         rotation_matrix = rotation_matrix_arg[file_number].copy()
 
-        translation.setTranslation(translation_vector)
-        rotation_obj.setMatrix(rotation_matrix)
+        translation.set_translation(translation_vector)
+        rotation_obj.set_matrix(rotation_matrix)
 
-        rotation.setRotation(rotation_obj)
+        rotation.set_rotation(rotation_obj)
         if data.load(file) == False:
             print("Could not load data set\n\n")
             exit(-1)
@@ -605,13 +610,13 @@ def process_out_files(
 
         # Torsion point pair P1 n
         coordinates_for_ret = np.empty(
-            (data.numData(), 3, len(variables_export_name_out_file)), float
+            (data.num_data(), 3, len(variables_export_name_out_file)), float
         )
-        for aoi in range(data.numData()):
+        for aoi in range(data.num_data()):
             d = data.data(aoi)
             if len(var_ids) == 0:
                 for var in variables_export_name_out_file:
-                    idx = d.varIndex(var)
+                    idx = d.variable_index(var)
                     if idx < 0:
                         print("Could not find variable %s" % var)
                     else:
@@ -628,7 +633,7 @@ def process_out_files(
         for aoi in roi_ids_near_center:
             d = data.data(aoi)
 
-            rows = d.asArray(["sigma", "X", "Y", "Z", "U", "V", "W"])
+            rows = d.as_array(["sigma", "X", "Y", "Z", "U", "V", "W"])
             rows = rows.view(np.float32).reshape(rows.shape[0], -1)
 
             rows = rows.T
@@ -671,13 +676,13 @@ def process_out_files(
             found_translation[1],
             found_translation[2],
         )
-        translation.setTranslation(translation_vector)
+        translation.set_translation(translation_vector)
 
         rotation_obj = Rotation()
-        rotation_obj.setMatrix(found_rot_mat)
+        rotation_obj.set_matrix(found_rot_mat)
 
         rotation = RigidTransformation()
-        rotation.setRotation(rotation_obj)
+        rotation.set_rotation(rotation_obj)
 
         if file_number > 0:
             data.transform(rotation, True)
@@ -688,11 +693,11 @@ def process_out_files(
         else:
             pass
 
-        for aoi in range(data.numData()):
+        for aoi in range(data.num_data()):
             d = data.data(aoi)
             if len(var_ids) == 0:
                 for var in variables_export_name_out_file:
-                    idx = d.varIndex(var)
+                    idx = d.variable_index(var)
                     if idx < 0:
                         print("Could not find variable %s" % var)
                     else:
@@ -743,10 +748,10 @@ def process_out_files_mult_point_tor(file_path_queue, output_path1, output_path2
         # rotation_matrix = rotation_matrix_arg.copy()
         rotation_matrix = rotation_matrix_arg[file_number].copy()
 
-        translation.setTranslation(translation_vector)
-        rotation_obj.setMatrix(rotation_matrix)
+        translation.set_translation(translation_vector)
+        rotation_obj.set_matrix(rotation_matrix)
 
-        rotation.setRotation(rotation_obj)
+        rotation.set_rotation(rotation_obj)
         if data.load(file) == False:
             print("Could not load data set\n\n")
             exit(-1)
@@ -762,12 +767,12 @@ def process_out_files_mult_point_tor(file_path_queue, output_path1, output_path2
         # Part 2
         # ------
 
-        coordinates_for_ret = np.empty((data.numData(), 51, len(variables_export_name_out_file)), float)
-        for aoi in range(data.numData()):
+        coordinates_for_ret = np.empty((data.num_data(), 51, len(variables_export_name_out_file)), float)
+        for aoi in range(data.num_data()):
             d = data.data(aoi)
             if len(var_ids) == 0:
                 for var in variables_export_name_out_file:
-                    idx = d.varIndex(var)
+                    idx = d.variable_index(var)
                     if idx < 0:
                         print("Could not find variable %s" % var)
                     else:
@@ -780,7 +785,7 @@ def process_out_files_mult_point_tor(file_path_queue, output_path1, output_path2
         for aoi in roi_ids_near_center:
             d = data.data(aoi)
 
-            rows = d.asArray(["sigma", "X", "Y", "Z", "U", "V", "W"])
+            rows = d.as_array(["sigma", "X", "Y", "Z", "U", "V", "W"])
             rows = rows.view(np.float32).reshape(rows.shape[0], -1)
 
             rows = rows.T
@@ -812,13 +817,13 @@ def process_out_files_mult_point_tor(file_path_queue, output_path1, output_path2
 
         translation = RigidTransformation()
         translation_vector = (found_translation[0], found_translation[1], found_translation[2])
-        translation.setTranslation(translation_vector)
+        translation.set_translation(translation_vector)
 
         rotation_obj = Rotation()
-        rotation_obj.setMatrix(found_rot_mat)
+        rotation_obj.set_matrix(found_rot_mat)
 
         rotation = RigidTransformation()
-        rotation.setRotation(rotation_obj)
+        rotation.set_rotation(rotation_obj)
 
         """ToggleNR. Hier lässt sich die Eliminierung der Rotation einstellen. Wird der erste Code Block aktiviert wird die Eliminierung
         durchgeführt. Ist der zweite Block aktiv kommt es nicht zur Eliminierung der Rotation, bevor die Punktepaare zur späteren Bestimmung
@@ -838,11 +843,11 @@ def process_out_files_mult_point_tor(file_path_queue, output_path1, output_path2
         else:
             pass
 
-        for aoi in range(data.numData()):
+        for aoi in range(data.num_data()):
             d = data.data(aoi)
             if len(var_ids) == 0:
                 for var in variables_export_name_out_file:
-                    idx = d.varIndex(var)
+                    idx = d.variable_index(var)
                     if idx < 0:
                         print("Could not find variable %s" % var)
                     else:

@@ -78,7 +78,7 @@ def find_rotation(right_co, left_co):
             ],
         ]
     )
-    eigenvalues, eigenvectors = np.linalg.eig(N)
+    eigenvalues, eigenvectors = np.linalg.eigh(N)
     eigenvectors = eigenvectors.T
     max_index = np.argmax(eigenvalues)
     test = eigenvectors[max_index] / np.linalg.norm(eigenvectors[max_index])
