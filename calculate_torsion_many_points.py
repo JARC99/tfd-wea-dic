@@ -25,8 +25,8 @@ angles = []
 
 for i in range(len(paths)):
 
-    file_1 = paths[i] + "/Blade_2_AOI_2_P1.csv"
-    file_2 = paths[i] + "/Blade_2_AOI_2_P2.csv"
+    file_1 = paths[i] + "/Blade_0_AOI_2_P1.csv"
+    file_2 = paths[i] + "/Blade_0_AOI_2_P2.csv"
 
     df1 = pd.read_csv(file_1, sep=";", decimal=',', skiprows=1, header=0)
     df2 = pd.read_csv(file_2, sep=";", decimal=',', skiprows=1, header=0)
@@ -136,7 +136,7 @@ angle_mean = np.nanmean(angles[good_values], axis=0)
 
 plt.plot(angle_mean, label="angle_mean", color='black')
 if len(angle) == len(real_angle):
-    plt.plot(real_angle, label="Blender Angle")
+    plt.plot(-real_angle, label="Blender Angle")
 plt.legend()
 plt.xlabel("Bildnummer")
 plt.ylabel("Durchschnittswinkeländerung in °")
