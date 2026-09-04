@@ -31,11 +31,11 @@ from coordsysalign.transformation_fns import (
 
 # Set the values of the boolean flags used to control the program flow.
 SAVE_OUTPUT_FLAG = False  # Save the transformed .out files / Don't save them
-SUBSET_FLAG = False  # Specify a subset of the complete raw. out file data set / Use the complete dataset
+SUBSET_FLAG = False  # Specify a subset of the complete raw .out file data set / Use the complete dataset
 
-MULT_POINT_TORSION_CALC_FLAG = True  # Uses 25 point pairs for the torsion calculation / Use a single point pair
-INDIV_FRAME_ROTMAT_FLAG = True  # Transform each .out file with a rotation matrix calculated from its coordinates / Use an average rotation matrix for the whole data set
-VIC3D_RB_EL_FLAG = False  # Use the built-in VicPy function to eliminate rigid body rotation.
+MULT_POINT_TORSION_CALC_FLAG = False  # Uses 25 point pairs for the torsion calculation / Use a single point pair
+INDIV_FRAME_ROTMAT_FLAG = False  # Transform each .out file with a rotation matrix calculated from its coordinates / Use an average rotation matrix for the whole data set
+VIC3D_RB_EL_FLAG = False  # Use the built-in VicPy function to eliminate rigid body rotation / Don't use it
 
 # Specify the number of processors used to read and write on the files.
 N_PROCESSES = 16
@@ -74,7 +74,7 @@ variables_export_name_csv_file = [
 ]
 
 if __name__ == "__main__":
-    out_file_dir = easygui.diropenbox("Select the folder containing the .out-files")
+    out_file_dir = easygui.diropenbox("Select the folder containing the .out files")
     print("Directory containing the .out files: ", out_file_dir)
     out_file_list = sorted(glob.glob(out_file_dir + "/*.out"))
 
@@ -111,11 +111,11 @@ if __name__ == "__main__":
 
     # Fill the index list with 1 out of 10 of the visible points and then turn it into an array.
     test_subsets_list = []
-    for i in range(0, len(found_indices_f0), 4):
+    for i in range(0, len(found_indices_f0), 10):
         test_subsets_list.append(found_indices_f0[i])
     test_subsets_list = np.array(test_subsets_list)
 
-    # Initialize the class instances needed for the parallel processing of the .out files multiprocessing package. The
+    # Initialize the class instances from the multiprocessing package needed for the parallel processing of the .out files. The
     # previously found test_subsets_list is specified so not all the points in the file need to be read.
     shared_mem = SharedMemory(
         [
@@ -161,11 +161,11 @@ if __name__ == "__main__":
         visible_counter = visible_counter + found_array
 
         # Determine the indices of the points that are visible for the current frame
-        indices_found = np.nonzero(found_array == 1)[0]
+        found_indices = np.nonzero(found_array == 1)[0]
 
         # Add the uncertainty values for the visible points for each frame.
-        sigmas[indices_found] = sigmas[indices_found] + np.linalg.norm(
-            xyz_sigmas[indices_found], axis=1
+        sigmas[found_indices] = sigmas[found_indices] + np.linalg.norm(
+            xyz_sigmas[found_indices], axis=1
         )
 
         # Capture the edge case for the first file.
@@ -176,12 +176,12 @@ if __name__ == "__main__":
 
         else:
             # Find the indexes of the points that are visible in both the current and the previous file.
-            indices_found = np.nonzero((found_array + found_last_time) == 2)[0]
+            indices_found_2f = np.nonzero((found_array + found_last_time) == 2)[0]
 
             # Compute the distance traveled between the last and the current frame
-            distance[indices_found] = (
+            distance[indices_found_2f] = (
                     distance + np.linalg.norm(last_coordinates - coordinates, axis=1)
-            )[indices_found]
+            )[indices_found_2f]
 
             # Prepare the last_coordinates and found_last_time arrays for the next loop of calculations
             last_coordinates = coordinates.copy()
@@ -208,7 +208,7 @@ if __name__ == "__main__":
     # Compute the needed AoI arrays (AoI number, order, Blade, etc)
     # ------------------------------------------------------------------------------------------------------------------
 
-    # Find the index of the point for which the product of the distance per frame and the uncertainty per frame is
+    # Find the index of the point for which the product of the average distance per frame and the uncertainty per frame is
     # the smallest (i.e. the point with the least movement). An additional soft constraint is added so the point to be
     # visible at least 90% of the time.
     index_least_movement = np.argmin(
@@ -275,7 +275,7 @@ if __name__ == "__main__":
     # rotor the AoI is located.
     mean_speed_array = np.empty((len(available_aoi_ids)))
     mean_position_array = np.empty((len(available_aoi_ids), 3))
-    for aoi_index in range(len(available_aoi_ids)):
+    for aoi_index in available_aoi_ids: # TODO: Unify these two for loops into one
         # Get the indices of the points located within the current AoI and are visible.
         indices_for_aoi = np.nonzero(aoi_number_f0 == aoi_index)[0]
 
@@ -287,7 +287,7 @@ if __name__ == "__main__":
         mean_speed_aoi = np.mean(distance_per_frame_aoi)
         mean_position_aoi = np.mean(positions_in_aoi, axis=0)
 
-        # Add the computed mean speed nd position values to the corresponding array for the current AoI.
+        # Add the computed mean speed and position values to the corresponding array for the current AoI.
         mean_speed_array[aoi_index] = mean_speed_aoi
         mean_position_array[aoi_index] = mean_position_aoi
 
@@ -313,7 +313,7 @@ if __name__ == "__main__":
     # those of the AoIs closest to the rotor hub are computed. The smallest distance gives away which blade the AoI
     # belongs to.
     blade_number_of_aoi = np.empty((len(available_aoi_ids)))
-    for aoi_id in range(len(available_aoi_ids)):
+    for aoi_id in available_aoi_ids:
         blade_number_of_aoi[aoi_id] = np.argmin(
             np.linalg.norm(
                 mean_position_array[aoi_id] - mean_position_array[aoi_ids_near_center],
@@ -324,7 +324,7 @@ if __name__ == "__main__":
     # Create a list that contains the position of each of the AoIs within their corresponding rotor blade. The
     # innermost AoI always has the index 0.
     aoi_to_blade_aoi = np.array([])
-    for aoi_id in range(len(available_aoi_ids)):
+    for aoi_id in available_aoi_ids:
         blade_id = blade_number_of_aoi[aoi_id]
         aoi_to_blade_aoi = np.append(
             aoi_to_blade_aoi,
@@ -519,66 +519,6 @@ if __name__ == "__main__":
     ax.set_xlabel("x")
     ax.set_ylabel("y")
     ax.set_zlabel("z")
-
-    # random = np.array([1, 0, 0])
-    # u = np.cross(circle.direction, random)
-    # v = np.cross(circle.direction, u)
-    # theta = np.linspace(0, 2 * np.pi, 100)
-    #
-    # circle_pts = circle.radius * (
-    #         np.outer(u, np.cos(theta)) + np.outer(v, np.sin(theta))
-    # )
-    # circle_pts = circle.center + circle_pts.T
-    #
-    # ax.plot(
-    #     circle.center[0],
-    #     circle.center[1],
-    #     circle.center[2],
-    #     marker="X",
-    #     color="r",
-    # )
-    # ax.plot(circle_pts[:, 0], circle_pts[:, 1], circle_pts[:, 2], color="b")
-    #
-    # ax.quiver(
-    #     circle.center[0],
-    #     circle.center[1],
-    #     circle.center[2],
-    #     circle.direction[0] * circle.radius,
-    #     circle.direction[1] * circle.radius,
-    #     circle.direction[2] * circle.radius,
-    #     color="b",
-    #     label="Average",
-    # )
-    #
-    # random = np.array([1, 0, 0])
-    # u0 = np.cross(circle_f0.direction, random)
-    # v0 = np.cross(circle_f0.direction, u0)
-    # theta = np.linspace(0, 2 * np.pi, 100)
-    #
-    # circle_pts0 = circle.radius * (
-    #         np.outer(u0, np.cos(theta)) + np.outer(v0, np.sin(theta))
-    # )
-    # circle_pts0 = circle_f0.center + circle_pts0.T
-    #
-    # ax.plot(
-    #     circle_f0.center[0],
-    #     circle_f0.center[1],
-    #     circle_f0.center[2],
-    #     marker="D",
-    #     color="black",
-    # )
-    # ax.plot(circle_pts0[:, 0], circle_pts0[:, 1], circle_pts0[:, 2], color="m")
-    # ax.quiver(
-    #     circle_f0.center[0],
-    #     circle_f0.center[1],
-    #     circle_f0.center[2],
-    #     circle_f0.direction[0] * circle.radius,
-    #     circle_f0.direction[1] * circle.radius,
-    #     circle_f0.direction[2] * circle.radius,
-    #     color="m",
-    #     label="Frame 0",
-    # )
-
     # ax.legend()
     ax = plt.gca()
     fig.show()
@@ -759,7 +699,7 @@ if __name__ == "__main__":
 
     # Extract the information of each AoI and determine what points are the best to calculate the blade torsion.
     indices_for_aoi_inter_org = np.arange(len(coordinates_f0))
-    indices_found = np.where(found_array_f0 == 1)
+    found_indices = np.where(found_array_f0 == 1)
 
     if MULT_POINT_TORSION_CALC_FLAG:
         index_array = np.empty((len(available_aoi_ids), 50), int)
@@ -771,7 +711,7 @@ if __name__ == "__main__":
                 best_points_list.append(None)
 
             indices_for_aoi = np.where(aoi_number_f0 == aoi_index)[0]
-            indices_for_aoi_inter = np.intersect1d(indices_for_aoi, indices_found)
+            indices_for_aoi_inter = np.intersect1d(indices_for_aoi, found_indices)
             local_coordinates_for_aoi = coordinates_f0[indices_for_aoi_inter]
             local_coordinates_for_aoi = np.dot(
                 rotation_matrix_for_aoi[aoi_index], local_coordinates_for_aoi.T
