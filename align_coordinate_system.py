@@ -30,11 +30,11 @@ from coordsysalign.transformation_fns import (
 # ----------------------------------------------------------------------------------------------------------------------
 
 # Set the values of the boolean flags used to control the program flow.
-SAVE_OUTPUT_FLAG = False  # Save the transformed .out files / Don't save them
+SAVE_OUTPUT_FLAG = True  # Save the transformed .out files / Don't save them
 SUBSET_FLAG = False  # Specify a subset of the complete raw .out file data set / Use the complete dataset
 
-MULT_POINT_TORSION_CALC_FLAG = False  # Uses 25 point pairs for the torsion calculation / Use a single point pair
-INDIV_FRAME_ROTMAT_FLAG = False  # Transform each .out file with a rotation matrix calculated from its coordinates / Use an average rotation matrix for the whole data set
+MULT_POINT_TORSION_CALC_FLAG = True  # Uses 25 point pairs for the torsion calculation / Use a single point pair
+INDIV_FRAME_ROTMAT_FLAG = True  # Transform each .out file with a rotation matrix calculated from its coordinates / Use an average rotation matrix for the whole data set
 VIC3D_RB_EL_FLAG = False  # Use the built-in VicPy function to eliminate rigid body rotation / Don't use it
 
 # Specify the number of processors used to read and write on the files.
@@ -275,7 +275,7 @@ if __name__ == "__main__":
     # rotor the AoI is located.
     mean_speed_array = np.empty((len(available_aoi_ids)))
     mean_position_array = np.empty((len(available_aoi_ids), 3))
-    for aoi_index in available_aoi_ids: # TODO: Unify these two for loops into one
+    for aoi_index in available_aoi_ids:  # TODO: Unify these two for loops into one
         # Get the indices of the points located within the current AoI and are visible.
         indices_for_aoi = np.nonzero(aoi_number_f0 == aoi_index)[0]
 
@@ -388,7 +388,7 @@ if __name__ == "__main__":
         s=80,
         label="AoI Average Location",
     )
-    for aoi_id in range(len(available_aoi_ids)):
+    for aoi_id in available_aoi_ids:
         ax.text(
             mean_position_array[aoi_id, 0],
             mean_position_array[aoi_id, 1],
@@ -428,7 +428,7 @@ if __name__ == "__main__":
         / 1000
     )
 
-    # AVERAGED: Initialize the multiprocessing class instances needed for reading the point-cloud dta to compute the averaged circle.
+    # AVERAGED: Initialize the multiprocessing class instances needed for reading the point-cloud data to compute the averaged circle.
     shared_mem = SharedMemory([found_array_f0[[0]], coordinates_f0[[0]]])
     file_path_queue = Queue(maxsize=30)
 
@@ -531,9 +531,9 @@ if __name__ == "__main__":
     rotation_matrix = calculate_circle_rotation_matrix(circle_direction, 1)
 
     # Center and rotate the found rotor points so the rotor is on the y-z plane.
-    coordinates_temp = np.dot(rotation_matrix, (coordinates - circle_center).T).T
+    coordinates_temp = np.matmul(rotation_matrix, (coordinates - circle_center).T).T
 
-    # Verify that the obtained rotation is in the correct direction.
+    # TODO: Verify that the obtained rotation is in the correct direction (this is probably not needed anymore).
     direction_array = np.zeros((len(coordinates_temp) - 1), np.int8)
     for i in range(len(coordinates_temp) - 1):
         pt = coordinates_temp[i]
@@ -584,7 +584,9 @@ if __name__ == "__main__":
 
     rotation_matrix_ave = np.matmul(rot_x, rotation_matrix)
 
-    # ----------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
+    # Calculate rotation matrices based on individual circles
+    # ------------------------------------------------------------------------------------------------------------------
 
     failed_list = []
     rotation_matrix_list = []
@@ -649,7 +651,7 @@ if __name__ == "__main__":
     # Rotate the points obtained from all the frame to visualize them.
     coordinates = np.dot(rotation_matrix_ave, (coordinates - circle_center).T).T
 
-    print("\r", "Step 3/5: Calculate circle...  100 %")
+    print("\r", "Step 3/5: Calculate circle...  100 %")  # TODO: make dynamic and parallel progess bar.
 
     # Plot the reference circles after applying the coordinate transformations.
     fig = plt.figure(figsize=(10, 10))
@@ -688,7 +690,8 @@ if __name__ == "__main__":
 
     # Create an 3D array where you will store the rotation matrices around the x-axis for each individual AoI.
     rotation_matrix_for_aoi = np.empty((len(available_aoi_ids), 3, 3), float)
-    for aoi_id in range(len(available_aoi_ids)):
+
+    for aoi_id in available_aoi_ids:
         index_highest_point_on_blade = np.nonzero(
             (blade_number_of_aoi == blade_number_of_aoi[aoi_id])
             & (aoi_to_blade_aoi == np.max(aoi_to_blade_aoi))
@@ -699,18 +702,19 @@ if __name__ == "__main__":
 
     # Extract the information of each AoI and determine what points are the best to calculate the blade torsion.
     indices_for_aoi_inter_org = np.arange(len(coordinates_f0))
-    found_indices = np.where(found_array_f0 == 1)
+    found_indices = np.nonzero(found_array_f0 == 1)[0]
 
     if MULT_POINT_TORSION_CALC_FLAG:
-        index_array = np.empty((len(available_aoi_ids), 50), int)
-        for aoi_index in range(len(available_aoi_ids)):
+        index_array = np.empty((len(available_aoi_ids), 50),
+                               int)  # TODO: add flag to change the number of points that can be used
+        for aoi_index in available_aoi_ids:
             current_best_value_list = []
             best_points_list = []
-            for i in range(0, 25):
+            for i in range(0, 25):  # TODO: this for loop is not needed
                 current_best_value_list.append(float("inf"))
                 best_points_list.append(None)
 
-            indices_for_aoi = np.where(aoi_number_f0 == aoi_index)[0]
+            indices_for_aoi = np.nonzero(aoi_number_f0 == aoi_index)[0]
             indices_for_aoi_inter = np.intersect1d(indices_for_aoi, found_indices)
             local_coordinates_for_aoi = coordinates_f0[indices_for_aoi_inter]
             local_coordinates_for_aoi = np.dot(
@@ -733,8 +737,8 @@ if __name__ == "__main__":
                                     / (local_visible_counter[i] + local_visible_counter[j])
                             )
                     )
-                    # print((abs(p1[2] - p2[2]) + 1) / (abs(p1[1] - p2[1]) + 1) )
-                    for k in range(0, 10):
+
+                    for k in range(0, 25):  # TODO: check original
                         if value < current_best_value_list[k]:
                             current_best_value_list.insert(k, value)
                             best_points_list.insert(
@@ -745,8 +749,8 @@ if __name__ == "__main__":
                             )
                             del best_points_list[-1]
                             del current_best_value_list[-1]
-                            # print((abs(p1[2] - p2[2])) / (abs(p1[1] - p2[1]) + 0.1) , (abs(p1[2] - p2[2])), (abs(p1[1] - p2[1]) + 0.1))
                             break
+
             for i in range(len(best_points_list)):
                 assert best_points_list[i] is not None, (
                     "Too few points available to find 25 good pairs for the torsion calculation"
@@ -766,7 +770,7 @@ if __name__ == "__main__":
 
     else:
         index_array = np.empty((len(available_aoi_ids), 2), int)
-        for aoi_index in range(len(available_aoi_ids)):
+        for aoi_index in available_aoi_ids:
             current_best_value = float("inf")
             best_points = None
 
@@ -797,9 +801,17 @@ if __name__ == "__main__":
 
                     if value < current_best_value:
                         current_best_value = value
-                        best_points = np.array(
-                            [indices_for_aoi_local[i], indices_for_aoi_local[j]]
-                        )
+
+                        # Store the points so that P1 is always to the left of P2
+                        if p1[1] > p2[1]:
+                            best_points = np.array(
+                                [indices_for_aoi_local[j], indices_for_aoi_local[i]]
+                            )
+                        else:
+                            best_points = np.array(
+                                [indices_for_aoi_local[i], indices_for_aoi_local[j]]
+                            )
+
 
             index_array[aoi_index] = best_points
 
@@ -887,7 +899,7 @@ if __name__ == "__main__":
                 np.max(two_d_coordinates.T[1]) - two_d_coordinates.T[1][aoi_id],
             ),
         )
-    plt.show()
+    fig.show()
     fig.savefig(out_file_dir + "/AoI_Naming.png", dpi=fig.dpi)
     plt.pause(0)
 
@@ -1046,7 +1058,7 @@ if __name__ == "__main__":
         data = shared_mem.get()
         data = np.array(data)[0]
 
-        for aoi_id in range(len(available_aoi_ids)):
+        for aoi_id in available_aoi_ids:
             data[aoi_id, 0, 0:3] = np.dot(
                 rotation_matrix_for_aoi[aoi_id], data[aoi_id, 0, 0:3].T
             ).T
@@ -1161,7 +1173,7 @@ if __name__ == "__main__":
                     )
 
     else:
-        for aoi_id in range(len(available_aoi_ids)):
+        for aoi_id in available_aoi_ids:
             dic, dict1, dict2 = {}, {}, {}
             for var_id in range(1, len(variables_export_name_csv_file)):
                 dic[variables_export_name_csv_file[var_id]] = good_points_data[

@@ -806,7 +806,7 @@ def process_out_files_mult_point_tor(file_path_queue, output_path1, output_path2
         indices_in_both_frames = np.where(sum_found_array == 2)[0]
 
         assert len(
-            indices_in_both_frames) > 5, f"Nicht genug Punkte im Blattwurzelbereich vorhanden, um die Eliminierung der Starrkörperrotation durchzuführen. Datei: {file}"
+            indices_in_both_frames) > 5, f"Not enough points in the root AoI to conducto rigid body elimination. File: {file}"
 
         coordinates_in_ref_frame = coordinates_first_frame[indices_in_both_frames]
         coordinates_in_current_frame = coordinates[indices_in_both_frames]
