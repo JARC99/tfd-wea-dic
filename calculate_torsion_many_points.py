@@ -6,7 +6,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 base = easygui.diropenbox(
-    "Select Folder with out-Files")
+    "Select the folder containing the /Tor_* folders:")
 paths = glob.glob(base + "/Tor_*")
 assert len(paths) > 0
 
