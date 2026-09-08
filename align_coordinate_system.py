@@ -11,7 +11,6 @@ from matplotlib import pyplot as plt
 
 from coordsysalign.multiprocessing_fns import (
     SharedMemory,
-    process_out_files,
     process_out_files_mult_point_tor,
     put_to_queue,
     read_file,
@@ -30,20 +29,20 @@ from coordsysalign.transformation_fns import (
 # ----------------------------------------------------------------------------------------------------------------------
 
 # Set the values of the boolean flags used to control the program flow.
-SAVE_OUTPUT_FLAG = True  # Save the transformed .out files / Don't save them
+SAVE_OUTPUT_FLAG = False  # Save the transformed .out files / Don't save them
 SUBSET_FLAG = False  # Specify a subset of the complete raw .out file data set / Use the complete dataset
 
-INDIV_FRAME_ROTMAT_FLAG = False  # Transform each .out file with a rotation matrix calculated from its coordinates / Use an average rotation matrix for the whole data set
+INDIV_FRAME_ROTMAT_FLAG = True  # Transform each .out file with a rotation matrix calculated from its coordinates / Use an average rotation matrix for the whole data set
 VIC3D_RB_EL_FLAG = False  # Use the built-in VicPy function to eliminate rigid body rotation / Don't use it
-
-# Specify the number of point pairs used for the torsion calculation
-N_TOR_POINT_PAIRS = 25
 
 # Specify the number of processors used to read and write on the files.
 N_PROCESSES = 16
 
 # Specify the number of marked blades. This number is used to identify the AoIs closest to the rotor hub.
 N_MARKED_BLADES = 3
+
+# Specify the number of point pairs used for the torsion calculation
+N_TOR_POINT_PAIRS = 30
 
 # List the variables that should be stored in the final .csv files. The first column of the file will always contain
 # the index.
@@ -706,15 +705,11 @@ if __name__ == "__main__":
     indices_for_aoi_inter_org = np.arange(len(coordinates_f0))
     found_indices = np.nonzero(found_array_f0 == 1)[0]
 
-
     index_array = np.empty((len(available_aoi_ids), 2 * N_TOR_POINT_PAIRS),
-                           int)  # TODO: add flag to change the number of points that can be used
+                           int)
     for aoi_index in available_aoi_ids:
-        current_best_value_list = []
-        best_points_list = []
-        for i in range(0, N_TOR_POINT_PAIRS):  # TODO: this for loop is not needed
-            current_best_value_list.append(float("inf"))
-            best_points_list.append(None)
+        current_best_value_list = [float("inf")] * N_TOR_POINT_PAIRS
+        best_points_list = [None] * N_TOR_POINT_PAIRS
 
         indices_for_aoi = np.nonzero(aoi_number_f0 == aoi_index)[0]
         indices_for_aoi_inter = np.intersect1d(indices_for_aoi, found_indices)
@@ -740,7 +735,7 @@ if __name__ == "__main__":
                         )
                 )
 
-                for k in range(0, N_TOR_POINT_PAIRS):  # TODO: check original
+                for k in range(0, N_TOR_POINT_PAIRS):
                     if value < current_best_value_list[k]:
                         current_best_value_list.insert(k, value)
                         best_points_list.insert(
@@ -755,7 +750,7 @@ if __name__ == "__main__":
 
         for i in range(len(best_points_list)):
             assert best_points_list[i] is not None, (
-                "Too few points available to find 25 good pairs for the torsion calculation"
+                "Too few points available to find {0} good pairs for the torsion calculation".format(N_TOR_POINT_PAIRS)
             )
             if (
                     coordinates_f0[best_points_list[i][0]][1]
