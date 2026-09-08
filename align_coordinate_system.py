@@ -32,8 +32,8 @@ from coordsysalign.transformation_fns import (
 SAVE_OUTPUT_FLAG = False  # Save the transformed .out files / Don't save them
 SUBSET_FLAG = False  # Specify a subset of the complete raw .out file data set / Use the complete dataset
 
-INDIV_FRAME_ROTMAT_FLAG = True  # Transform each .out file with a rotation matrix calculated from its coordinates / Use an average rotation matrix for the whole data set
-VIC3D_RB_EL_FLAG = False  # Use the built-in VicPy function to eliminate rigid body rotation / Don't use it
+INDIV_FRAME_ROTMAT_FLAG = False  # Transform each .out file with a rotation matrix calculated from its coordinates / Use an average rotation matrix for the whole data set
+VIC3D_RB_EL_FLAG = True  # Use the built-in VicPy function to eliminate rigid body rotation / Don't use it
 
 # Specify the number of processors used to read and write on the files.
 N_PROCESSES = 16
@@ -42,7 +42,7 @@ N_PROCESSES = 16
 N_MARKED_BLADES = 3
 
 # Specify the number of point pairs used for the torsion calculation
-N_TOR_POINT_PAIRS = 30
+N_TOR_POINT_PAIRS = 25
 
 # List the variables that should be stored in the final .csv files. The first column of the file will always contain
 # the index.
@@ -966,13 +966,6 @@ if __name__ == "__main__":
 
         good_points_data[file_counter] = data[:, 0]
         good_points_torsion[file_counter] = data[:, 1:]
-        print(
-            "\r",
-            "Step 5/5: Store adjusted measurement points... ",
-            int((file_counter / len(out_file_list)) * 100),
-            "%",
-            end="",
-        )
 
     put_to_queue_process.join()
     for worker in workers:
@@ -1070,6 +1063,14 @@ if __name__ == "__main__":
                     sep=";",
                     decimal=",",
                 )
+
+        print(
+            "\r",
+            "Step 5/5: Store adjusted measurement points... ",
+            int((i / (2 * N_TOR_POINT_PAIRS)) * 100),
+            "%",
+            end="",
+        )
 
     print("\r", "Step 5/5: Store adjusted measurement points...  100 %")
     exit()
