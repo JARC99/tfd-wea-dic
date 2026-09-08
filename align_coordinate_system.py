@@ -1,7 +1,7 @@
 import glob
 import math
 import os
-from multiprocessing import Process, Queue, Semaphore
+from multiprocessing import Process, Queue, Semaphore, set_start_method
 
 import easygui
 import numpy as np
@@ -42,7 +42,7 @@ N_PROCESSES = 16
 N_MARKED_BLADES = 3
 
 # Specify the number of point pairs used for the torsion calculation
-N_TOR_POINT_PAIRS = 25
+N_TOR_POINT_PAIRS = 20
 
 # List the variables that should be stored in the final .csv files. The first column of the file will always contain
 # the index.
@@ -410,7 +410,7 @@ if __name__ == "__main__":
     ax = plt.gca()
     plt.legend()
     ax.set_aspect("equal", adjustable="box")
-    fig.show()
+    plt.show(block=False)
 
     # ------------------------------------------------------------------------------------------------------------------
     # Compute the reference circles.
@@ -522,7 +522,7 @@ if __name__ == "__main__":
     ax.set_zlabel("z")
     # ax.legend()
     ax = plt.gca()
-    fig.show()
+    plt.show(block=False)
 
     # ------------------------------------------------------------------------------------------------------------------
     # Calculate needed rotation matrices and compute the corresponding transformations
@@ -668,8 +668,7 @@ if __name__ == "__main__":
     ax = plt.gca()
     ax.legend()
     ax.set_aspect("equal")
-    fig.show()
-    plt.pause(0)
+    plt.show(block=False)
 
     # ------------------------------------------------------------------------------------------------------------------
     # Find a pair of points for each AoI for the torsion calculation
@@ -801,8 +800,7 @@ if __name__ == "__main__":
     ax.set_zlabel("z")
     ax.set_xlim((-60000, 60000))
     plt.legend()
-    fig.show()
-    plt.pause(0)
+    plt.show(block=False)
 
     # ------------------------------------------------------------------------------------------------------------------
     # Save the transformed .out files into the previously created folders.
@@ -849,9 +847,8 @@ if __name__ == "__main__":
                 np.max(two_d_coordinates.T[1]) - two_d_coordinates.T[1][aoi_id],
             ),
         )
-    fig.show()
+    plt.show(block=False)
     fig.savefig(out_file_dir + "/AoI_Naming.png", dpi=fig.dpi)
-    plt.pause(0)
 
     # If not existent already, create the folders needed to store the processed .out files.
     if not os.path.isdir(out_file_dir + "/koordNachGL/"):
