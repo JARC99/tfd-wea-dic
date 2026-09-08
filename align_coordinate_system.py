@@ -33,12 +33,11 @@ from coordsysalign.transformation_fns import (
 SAVE_OUTPUT_FLAG = True  # Save the transformed .out files / Don't save them
 SUBSET_FLAG = False  # Specify a subset of the complete raw .out file data set / Use the complete dataset
 
-MULT_POINT_TORSION_CALC_FLAG = True  # Uses 25 point pairs for the torsion calculation / Use a single point pair
 INDIV_FRAME_ROTMAT_FLAG = False  # Transform each .out file with a rotation matrix calculated from its coordinates / Use an average rotation matrix for the whole data set
 VIC3D_RB_EL_FLAG = False  # Use the built-in VicPy function to eliminate rigid body rotation / Don't use it
 
 # Specify the number of point pairs used for the torsion calculation
-N_TOR_POINT_PAIRS = 1
+N_TOR_POINT_PAIRS = 25
 
 # Specify the number of processors used to read and write on the files.
 N_PROCESSES = 16
@@ -707,69 +706,69 @@ if __name__ == "__main__":
     indices_for_aoi_inter_org = np.arange(len(coordinates_f0))
     found_indices = np.nonzero(found_array_f0 == 1)[0]
 
-    if MULT_POINT_TORSION_CALC_FLAG:
-        index_array = np.empty((len(available_aoi_ids), 2 * N_TOR_POINT_PAIRS),
-                               int)  # TODO: add flag to change the number of points that can be used
-        for aoi_index in available_aoi_ids:
-            current_best_value_list = []
-            best_points_list = []
-            for i in range(0, N_TOR_POINT_PAIRS):  # TODO: this for loop is not needed
-                current_best_value_list.append(float("inf"))
-                best_points_list.append(None)
 
-            indices_for_aoi = np.nonzero(aoi_number_f0 == aoi_index)[0]
-            indices_for_aoi_inter = np.intersect1d(indices_for_aoi, found_indices)
-            local_coordinates_for_aoi = coordinates_f0[indices_for_aoi_inter]
-            local_coordinates_for_aoi = np.dot(
-                rotation_matrix_for_aoi[aoi_index], local_coordinates_for_aoi.T
-            ).T
-            local_sigmas = xyz_sigmas_f0[indices_for_aoi_inter]
-            local_visible_counter = visible_counter[indices_for_aoi_inter]
-            indices_for_aoi_local = indices_for_aoi_inter_org[indices_for_aoi_inter]
-            norm_result = (np.linalg.norm(local_sigmas, axis=1) + 1) ** 8
-            k = 0
-            for i in range(len(local_coordinates_for_aoi)):
-                for j in range(i):
-                    p1 = local_coordinates_for_aoi[i]
-                    p2 = local_coordinates_for_aoi[j]
-                    value = (
-                            ((abs(p1[2] - p2[2]) + 100) / (abs(p1[1] - p2[1]) + 1))
-                            * (norm_result[i] + norm_result[j])
-                            * (
-                                    (np.max(local_visible_counter) + np.max(local_visible_counter))
-                                    / (local_visible_counter[i] + local_visible_counter[j])
-                            )
-                    )
+    index_array = np.empty((len(available_aoi_ids), 2 * N_TOR_POINT_PAIRS),
+                           int)  # TODO: add flag to change the number of points that can be used
+    for aoi_index in available_aoi_ids:
+        current_best_value_list = []
+        best_points_list = []
+        for i in range(0, N_TOR_POINT_PAIRS):  # TODO: this for loop is not needed
+            current_best_value_list.append(float("inf"))
+            best_points_list.append(None)
 
-                    for k in range(0, N_TOR_POINT_PAIRS):  # TODO: check original
-                        if value < current_best_value_list[k]:
-                            current_best_value_list.insert(k, value)
-                            best_points_list.insert(
-                                k,
-                                np.array(
-                                    [indices_for_aoi_local[i], indices_for_aoi_local[j]]
-                                ),
-                            )
-                            del best_points_list[-1]
-                            del current_best_value_list[-1]
-                            break
-
-            for i in range(len(best_points_list)):
-                assert best_points_list[i] is not None, (
-                    "Too few points available to find 25 good pairs for the torsion calculation"
+        indices_for_aoi = np.nonzero(aoi_number_f0 == aoi_index)[0]
+        indices_for_aoi_inter = np.intersect1d(indices_for_aoi, found_indices)
+        local_coordinates_for_aoi = coordinates_f0[indices_for_aoi_inter]
+        local_coordinates_for_aoi = np.dot(
+            rotation_matrix_for_aoi[aoi_index], local_coordinates_for_aoi.T
+        ).T
+        local_sigmas = xyz_sigmas_f0[indices_for_aoi_inter]
+        local_visible_counter = visible_counter[indices_for_aoi_inter]
+        indices_for_aoi_local = indices_for_aoi_inter_org[indices_for_aoi_inter]
+        norm_result = (np.linalg.norm(local_sigmas, axis=1) + 1) ** 8
+        k = 0
+        for i in range(len(local_coordinates_for_aoi)):
+            for j in range(i):
+                p1 = local_coordinates_for_aoi[i]
+                p2 = local_coordinates_for_aoi[j]
+                value = (
+                        ((abs(p1[2] - p2[2]) + 100) / (abs(p1[1] - p2[1]) + 1))
+                        * (norm_result[i] + norm_result[j])
+                        * (
+                                (np.max(local_visible_counter) + np.max(local_visible_counter))
+                                / (local_visible_counter[i] + local_visible_counter[j])
+                        )
                 )
-                if (
-                        coordinates_f0[best_points_list[i][0]][1]
-                        > coordinates_f0[best_points_list[i][1]][1]
-                ):
-                    best_points_list[i][0], best_points_list[i][1] = (
-                        best_points_list[i][1],
-                        best_points_list[i][0],
-                    )
 
-            best_points_list = np.array(best_points_list)
-            best_points_list = best_points_list.flatten()
-            index_array[aoi_index] = best_points_list
+                for k in range(0, N_TOR_POINT_PAIRS):  # TODO: check original
+                    if value < current_best_value_list[k]:
+                        current_best_value_list.insert(k, value)
+                        best_points_list.insert(
+                            k,
+                            np.array(
+                                [indices_for_aoi_local[i], indices_for_aoi_local[j]]
+                            ),
+                        )
+                        del best_points_list[-1]
+                        del current_best_value_list[-1]
+                        break
+
+        for i in range(len(best_points_list)):
+            assert best_points_list[i] is not None, (
+                "Too few points available to find 25 good pairs for the torsion calculation"
+            )
+            if (
+                    coordinates_f0[best_points_list[i][0]][1]
+                    > coordinates_f0[best_points_list[i][1]][1]
+            ):
+                best_points_list[i][0], best_points_list[i][1] = (
+                    best_points_list[i][1],
+                    best_points_list[i][0],
+                )
+
+        best_points_list = np.array(best_points_list)
+        best_points_list = best_points_list.flatten()
+        index_array[aoi_index] = best_points_list
 
     print(
         "\r",
@@ -875,34 +874,33 @@ if __name__ == "__main__":
     output_path4 = out_file_dir + "/Torsion/"
 
     # Store for each AoI a single point in a separate in a .csv file.
-    if MULT_POINT_TORSION_CALC_FLAG:
-        interesting_subsets_id_vicpy = np.empty((len(interesting_subsets), 2 * N_TOR_POINT_PAIRS + 1), int)
-        interesting_subsets_id_vicpy[:, 0] = index_in_aoi_f0[interesting_subsets]
-        interesting_subsets_id_vicpy[:, 1] = index_in_aoi_f0[index_array[:, 0]]
-        interesting_subsets_id_vicpy[:, 2] = index_in_aoi_f0[index_array[:, 1]]
 
-        for i in range(0, 2 * N_TOR_POINT_PAIRS, 2):
-            interesting_subsets_id_vicpy[:, i + 1] = index_in_aoi_f0[index_array[:, i]]
-            interesting_subsets_id_vicpy[:, i + 2] = index_in_aoi_f0[index_array[:, i + 1]]
+    interesting_subsets_id_vicpy = np.empty((len(interesting_subsets), 2 * N_TOR_POINT_PAIRS + 1), int)
+    interesting_subsets_id_vicpy[:, 0] = index_in_aoi_f0[interesting_subsets]
+    interesting_subsets_id_vicpy[:, 1] = index_in_aoi_f0[index_array[:, 0]]
+    interesting_subsets_id_vicpy[:, 2] = index_in_aoi_f0[index_array[:, 1]]
+
+    for i in range(0, 2 * N_TOR_POINT_PAIRS, 2):
+        interesting_subsets_id_vicpy[:, i + 1] = index_in_aoi_f0[index_array[:, i]]
+        interesting_subsets_id_vicpy[:, i + 2] = index_in_aoi_f0[index_array[:, i + 1]]
 
     position_of_interesting_points_2d = read_file_pos_2d_at_index(
         out_file_list[0], interesting_subsets_id_vicpy[:, 0]
     )
 
     # Initiate the needed multiprocessing instances to process and store the .out files.
-    if MULT_POINT_TORSION_CALC_FLAG:
-        shared_mem = SharedMemory(
-            [
-                np.empty(
-                    (
-                        len(interesting_subsets_id_vicpy),
-                        2 * N_TOR_POINT_PAIRS + 1,
-                        len(variables_export_name_out_file),
-                    ),
-                    np.float32,
-                )
-            ]
-        )
+    shared_mem = SharedMemory(
+        [
+            np.empty(
+                (
+                    len(interesting_subsets_id_vicpy),
+                    2 * N_TOR_POINT_PAIRS + 1,
+                    len(variables_export_name_out_file),
+                ),
+                np.float32,
+            )
+        ]
+    )
 
     file_path_queue = Queue(maxsize=30)
 
@@ -915,29 +913,28 @@ if __name__ == "__main__":
     semaphore = Semaphore(0)
 
     workers = []
-    if MULT_POINT_TORSION_CALC_FLAG:
-        for _ in range(N_PROCESSES):
-            worker = Process(
-                target=process_out_files_mult_point_tor,
-                args=(
-                    file_path_queue,
-                    output_path1,
-                    output_path2,
-                    -circle_center,
-                    rotation_matrix_list,
-                    aoi_ids_near_center,
-                    found_array_first_frame,
-                    coordinates_first_frame,
-                    shared_mem,
-                    interesting_subsets_id_vicpy,
-                    variables_export_name_out_file,
-                    VIC3D_RB_EL_FLAG,
-                    N_TOR_POINT_PAIRS,
-                    SAVE_OUTPUT_FLAG,
-                ),
-            )
-            worker.start()
-            workers.append(worker)
+    for _ in range(N_PROCESSES):
+        worker = Process(
+            target=process_out_files_mult_point_tor,
+            args=(
+                file_path_queue,
+                output_path1,
+                output_path2,
+                -circle_center,
+                rotation_matrix_list,
+                aoi_ids_near_center,
+                found_array_first_frame,
+                coordinates_first_frame,
+                shared_mem,
+                interesting_subsets_id_vicpy,
+                variables_export_name_out_file,
+                VIC3D_RB_EL_FLAG,
+                N_TOR_POINT_PAIRS,
+                SAVE_OUTPUT_FLAG,
+            ),
+        )
+        worker.start()
+        workers.append(worker)
 
     # The points in the interesting_points subset are brought to the 12:00 position and stored in .csv files.
     # TODO: The uncertainty calculation still needs to be updated.
@@ -950,16 +947,15 @@ if __name__ == "__main__":
         float,
     )
 
-    if MULT_POINT_TORSION_CALC_FLAG:
-        good_points_torsion = np.empty(
-            (
-                len(out_file_list),
-                len(available_aoi_ids),
-                2 * N_TOR_POINT_PAIRS,
-                len(variables_export_name_out_file),
-            ),
-            float,
-        )
+    good_points_torsion = np.empty(
+        (
+            len(out_file_list),
+            len(available_aoi_ids),
+            2 * N_TOR_POINT_PAIRS,
+            len(variables_export_name_out_file),
+        ),
+        float,
+    )
 
     for file_counter in range(len(out_file_list)):
         data = shared_mem.get()
@@ -988,98 +984,97 @@ if __name__ == "__main__":
         worker.join()
 
     # Store the points in .csv files.
-    if MULT_POINT_TORSION_CALC_FLAG:
-        for i in range(0, 2 * N_TOR_POINT_PAIRS, 2):
-            for aoi_id in available_aoi_ids:
-                dic, dict1, dict2 = {}, {}, {}
-                for var_id in range(1, len(variables_export_name_csv_file)):
-                    dic[variables_export_name_csv_file[var_id]] = good_points_data[
-                        :, aoi_id, var_id - 1]
-                    dict1[variables_export_name_csv_file[var_id]] = good_points_torsion[
-                        :, aoi_id, i, var_id - 1
-                    ]
-                    dict2[variables_export_name_csv_file[var_id]] = good_points_torsion[
-                        :, aoi_id, i + 1, var_id - 1
-                    ]
+    for i in range(0, 2 * N_TOR_POINT_PAIRS, 2):
+        for aoi_id in available_aoi_ids:
+            dic, dict1, dict2 = {}, {}, {}
+            for var_id in range(1, len(variables_export_name_csv_file)):
+                dic[variables_export_name_csv_file[var_id]] = good_points_data[
+                    :, aoi_id, var_id - 1]
+                dict1[variables_export_name_csv_file[var_id]] = good_points_torsion[
+                    :, aoi_id, i, var_id - 1
+                ]
+                dict2[variables_export_name_csv_file[var_id]] = good_points_torsion[
+                    :, aoi_id, i + 1, var_id - 1
+                ]
 
-                    df = pd.DataFrame(dic)
-                    df_1 = pd.DataFrame(dict1)
-                    df_2 = pd.DataFrame(dict2)
-                    if not os.path.isdir(output_path4 + "/Tor_" + str(i // 2)):
-                        os.mkdir(output_path4 + "/Tor_" + str(i // 2))
+                df = pd.DataFrame(dic)
+                df_1 = pd.DataFrame(dict1)
+                df_2 = pd.DataFrame(dict2)
+                if not os.path.isdir(output_path4 + "/Tor_" + str(i // 2)):
+                    os.mkdir(output_path4 + "/Tor_" + str(i // 2))
 
-                    csv_filename1 = (
-                            output_path3
-                            + "/Blade_"
-                            + str(int(blade_number_of_aoi[aoi_id]))
-                            + "_AOI_"
-                            + str(int(aoi_to_blade_aoi[aoi_id]))
-                            + "_"
-                            + str(position_of_interesting_points_2d[aoi_id])
-                            + ".csv"
-                    )
+                csv_filename1 = (
+                        output_path3
+                        + "/Blade_"
+                        + str(int(blade_number_of_aoi[aoi_id]))
+                        + "_AOI_"
+                        + str(int(aoi_to_blade_aoi[aoi_id]))
+                        + "_"
+                        + str(position_of_interesting_points_2d[aoi_id])
+                        + ".csv"
+                )
 
-                    csv_filename2 = (
-                            output_path4
-                            + "/Tor_"
-                            + str(i // 2)
-                            + "/Blade_"
-                            + str(int(blade_number_of_aoi[aoi_id]))
-                            + "_AOI_"
-                            + str(int(aoi_to_blade_aoi[aoi_id]))
-                            + "_P1.csv"
-                    )
-                    csv_filename3 = (
-                            output_path4
-                            + "/Tor_"
-                            + str(i // 2)
-                            + "/Blade_"
-                            + str(int(blade_number_of_aoi[aoi_id]))
-                            + "_AOI_"
-                            + str(int(aoi_to_blade_aoi[aoi_id]))
-                            + "_P2.csv"
-                    )
-                    header_text = (
-                            '"B'
-                            + str(int(blade_number_of_aoi[aoi_id]))
-                            + " AOI"
-                            + str(int(aoi_to_blade_aoi[aoi_id]))
-                            + '"'
-                            + ";" * len(variables_export_name_out_file)
-                    )
+                csv_filename2 = (
+                        output_path4
+                        + "/Tor_"
+                        + str(i // 2)
+                        + "/Blade_"
+                        + str(int(blade_number_of_aoi[aoi_id]))
+                        + "_AOI_"
+                        + str(int(aoi_to_blade_aoi[aoi_id]))
+                        + "_P1.csv"
+                )
+                csv_filename3 = (
+                        output_path4
+                        + "/Tor_"
+                        + str(i // 2)
+                        + "/Blade_"
+                        + str(int(blade_number_of_aoi[aoi_id]))
+                        + "_AOI_"
+                        + str(int(aoi_to_blade_aoi[aoi_id]))
+                        + "_P2.csv"
+                )
+                header_text = (
+                        '"B'
+                        + str(int(blade_number_of_aoi[aoi_id]))
+                        + " AOI"
+                        + str(int(aoi_to_blade_aoi[aoi_id]))
+                        + '"'
+                        + ";" * len(variables_export_name_out_file)
+                )
 
-                    # Datei öffnen und Text schreiben
-                    for csv_file_name in [csv_filename1, csv_filename2, csv_filename3]:
-                        with open(csv_file_name, "w") as f:
-                            f.write(header_text + "\n")
-                    df.to_csv(
-                        csv_filename1,
-                        index_label=variables_export_name_csv_file[0],
-                        mode="a",
-                        index=True,
-                        quotechar="'",
-                        sep=";",
-                        decimal=",",
-                    )
+                # Datei öffnen und Text schreiben
+                for csv_file_name in [csv_filename1, csv_filename2, csv_filename3]:
+                    with open(csv_file_name, "w") as f:
+                        f.write(header_text + "\n")
+                df.to_csv(
+                    csv_filename1,
+                    index_label=variables_export_name_csv_file[0],
+                    mode="a",
+                    index=True,
+                    quotechar="'",
+                    sep=";",
+                    decimal=",",
+                )
 
-                    df_1.to_csv(
-                        csv_filename2,
-                        index_label=variables_export_name_csv_file[0],
-                        mode="a",
-                        index=True,
-                        quotechar="'",
-                        sep=";",
-                        decimal=",",
-                    )
-                    df_2.to_csv(
-                        csv_filename3,
-                        index_label=variables_export_name_csv_file[0],
-                        mode="a",
-                        index=True,
-                        quotechar="'",
-                        sep=";",
-                        decimal=",",
-                    )
+                df_1.to_csv(
+                    csv_filename2,
+                    index_label=variables_export_name_csv_file[0],
+                    mode="a",
+                    index=True,
+                    quotechar="'",
+                    sep=";",
+                    decimal=",",
+                )
+                df_2.to_csv(
+                    csv_filename3,
+                    index_label=variables_export_name_csv_file[0],
+                    mode="a",
+                    index=True,
+                    quotechar="'",
+                    sep=";",
+                    decimal=",",
+                )
 
     print("\r", "Step 5/5: Store adjusted measurement points...  100 %")
     exit()
