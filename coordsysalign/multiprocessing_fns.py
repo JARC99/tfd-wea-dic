@@ -8,6 +8,7 @@ from multiprocessing import (
 )
 
 import numpy as np
+import numpy_typing_compat
 from vicpyx import (
     RigidTransformation,
     Rotation,
@@ -48,24 +49,18 @@ def read_file(file_name, subset_index, check_aoi_is_empty=False):
         subset_index - Gibt an, welche Subsets zurueckgegeben werden sollen
     """
 
-    data = VicDataSet()  # Creates an instance of a VicDataSet() class
+    dataset = VicDataSet()  # Creates an instance of a VicDataSet() class
 
     # Tries to load a .out file into the VicDataSet() instance, it exits if it fails
-    if data.load(file_name) == False:
+    if dataset.load(file_name) == False:
         print("Could not load data set\n")
         exit(-1)
 
-    # if not data.load(
-    #         file_name
-    # ):  # Tries to load a .out file into the VicDataSet() instance, it exits if it fails
-    #     print("Could not load data set\n\n")
-    #     exit(-1)
-
     size = 0
     for aoi in range(
-            data.num_data()
+            dataset.num_data()
     ):  # The num_data() method returns the number of areas of interest in the dataset
-        d = data.data(
+        d = dataset.data(
             aoi
         )  # Returns a pointer to VicData objet for the specific AOI in the dataset
         size += d.matrix_size()
@@ -79,8 +74,8 @@ def read_file(file_name, subset_index, check_aoi_is_empty=False):
     index_in_aoi = np.empty((size), int)  # Index des Subsets innerhalb der AOI
 
     index = 0
-    for aoi in range(data.num_data()):
-        d = data.data(aoi)
+    for aoi in range(dataset.num_data()):
+        d = dataset.data(aoi)
         rows = d.get_values(
             ["sigma", "X", "Y", "Z", "U", "V", "W", "SIGMA_X", "SIGMA_Y", "SIGMA_Z"]
         )  # TODO: This array is the same as the hardcoded one on top?
@@ -594,7 +589,7 @@ def process_out_files(
 
         rotation.set_rotation(rotation_obj)
         if data.load(file) == False:
-            print("Could not load data set\n\n")
+            print("Could not load data set\n")
             exit(-1)
         data.transform(translation, False)
         data.transform(rotation, False)
@@ -716,6 +711,7 @@ def process_out_files_mult_point_tor(file_path_queue, output_path1, output_path2
                                      coordinates_first_frame, shared_mem: SharedMemory, interesting_subsets_id_vicpy,
                                      variables_export_name_out_file,
                                      VIC3D_RB_EL_FLAG,
+                                     N_TOR_POINT_PAIRS,
                                      SAVE_OUTPUT_FLAG):
     """
     Passt die Daten in den Out-Datein an, sodass das Koordinatensystem ausgerichtet ist und eliminiert die Starrkoerperrotation. Danach werden die Out-Datein jeweils erneut abgespeichert.
@@ -745,7 +741,7 @@ def process_out_files_mult_point_tor(file_path_queue, output_path1, output_path2
         _, tail = os.path.split(file)
 
         translation_vector = (translation_vector_arg[0], translation_vector_arg[1], translation_vector_arg[2])
-        # rotation_matrix = rotation_matrix_arg.copy()
+        # rotation_matrix = rotation_matrix_arg.copy() FIXME: modification
         rotation_matrix = rotation_matrix_arg[file_number].copy()
 
         translation.set_translation(translation_vector)
@@ -761,13 +757,14 @@ def process_out_files_mult_point_tor(file_path_queue, output_path1, output_path2
         if SAVE_OUTPUT_FLAG:
             data.save(output_path1 + tail)
         else:
-            pass
+            pass  # todo: hasta aquí todo bien
 
         # ------
         # Part 2
         # ------
 
-        coordinates_for_ret = np.empty((data.num_data(), 51, len(variables_export_name_out_file)), float)
+        coordinates_for_ret = np.empty(
+            (data.num_data(), 2 * N_TOR_POINT_PAIRS + 1, len(variables_export_name_out_file)), float)
         for aoi in range(data.num_data()):
             d = data.data(aoi)
             if len(var_ids) == 0:
@@ -777,8 +774,8 @@ def process_out_files_mult_point_tor(file_path_queue, output_path1, output_path2
                         print("Could not find variable %s" % var)
                     else:
                         var_ids.append(idx)
-            # for i in range(1, 51):
-            #    coordinates_for_ret[aoi, i] = np.array(d.values(interesting_subsets_id_vicpy[aoi, i], var_ids))
+            for i in range(1, 2 * N_TOR_POINT_PAIRS + 1):  # fixme:was commented
+                coordinates_for_ret[aoi, i] = np.array(d.values(interesting_subsets_id_vicpy[aoi, i], var_ids))  # fixme
 
         found_array = np.empty((0), int)
         coordinates = np.empty((0, 3), float)
@@ -806,7 +803,7 @@ def process_out_files_mult_point_tor(file_path_queue, output_path1, output_path2
         indices_in_both_frames = np.where(sum_found_array == 2)[0]
 
         assert len(
-            indices_in_both_frames) > 5, f"Nicht genug Punkte im Blattwurzelbereich vorhanden, um die Eliminierung der Starrkörperrotation durchzuführen. Datei: {file}"
+            indices_in_both_frames) > 5, f"Not enough points in the root AoI to conducto rigid body elimination. File: {file}"
 
         coordinates_in_ref_frame = coordinates_first_frame[indices_in_both_frames]
         coordinates_in_current_frame = coordinates[indices_in_both_frames]
@@ -830,13 +827,13 @@ def process_out_files_mult_point_tor(file_path_queue, output_path1, output_path2
         der Torsion exportiert werden."""
         "#1"
 
-        # if file_number > 0:
-        #   data.transform(rotation, True)
-        #  data.transform(translation, True)
-
-        if VIC3D_RB_EL_FLAG:  # Starrkörperrotation deaktiviert
+        if file_number > 0:
             data.transform(rotation, True)
             data.transform(translation, True)
+
+        # if VIC3D_RB_EL_FLAG:  # Starrkörperrotation deaktiviert
+        #     data.transform(rotation, True)
+        #     data.transform(translation, True)
 
         if SAVE_OUTPUT_FLAG:
             data.save(output_path2 + tail)
@@ -856,7 +853,7 @@ def process_out_files_mult_point_tor(file_path_queue, output_path1, output_path2
             # coordinates_for_ret[aoi, 2] = np.array(d.values(interesting_subsets_id_vicpy[aoi, 2], var_ids))
             coordinates_for_ret[aoi, 0] = np.array(d.values(interesting_subsets_id_vicpy[aoi, 0], var_ids))
 
-            for i in range(1, 51):
+            for i in range(1, 2 * N_TOR_POINT_PAIRS + 1):
                 coordinates_for_ret[aoi, i] = np.array(d.values(interesting_subsets_id_vicpy[aoi, i], var_ids))
 
         shared_mem.put(file_number, [coordinates_for_ret])
