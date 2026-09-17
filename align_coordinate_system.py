@@ -1,13 +1,14 @@
 import glob
 import math
 import os
-from multiprocessing import Process, Queue, Semaphore, set_start_method
+from multiprocessing import Process, Queue, Semaphore
 
 import easygui
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from geomfitty import fit3d, geom3d
-from matplotlib import pyplot as plt
+import scipy.io
+from vicpyx import VicDataSet
 
 from coordsysalign.multiprocessing_fns import (
     SharedMemory,
@@ -21,8 +22,10 @@ from coordsysalign.multiprocessing_fns import (
 )
 from coordsysalign.transformation_fns import (
     calculate_circle_rotation_matrix,
-    find_x_rotation_matrix,
+    find_x_rotation_matrix, find_blade_axis, calculate_circle_rotation_matrix_2, rotation_matrix_z,
+    correct_pitch_in_out_file
 )
+from geomfitty import fit3d, geom3d
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Define input values.
@@ -30,10 +33,12 @@ from coordsysalign.transformation_fns import (
 
 # Set the values of the boolean flags used to control the program flow.
 SAVE_OUTPUT_FLAG = False  # Save the transformed .out files / Don't save them
-SUBSET_FLAG = False  # Specify a subset of the complete raw .out file data set / Use the complete dataset
+SUBSET_FLAG = True  # Specify a subset of the complete raw .out file data set / Use the complete dataset
 
 INDIV_FRAME_ROTMAT_FLAG = False  # Transform each .out file with a rotation matrix calculated from its coordinates / Use an average rotation matrix for the whole data set
 VIC3D_RB_EL_FLAG = True  # Use the built-in VicPy function to eliminate rigid body rotation / Don't use it
+
+BLADE_PITCH_CORR_FLAG = True  # Using a pitch angle time-series, eliminate the pitch angle of ech blade
 
 # Specify the number of processors used to read and write on the files.
 N_PROCESSES = 16
@@ -42,7 +47,7 @@ N_PROCESSES = 16
 N_MARKED_BLADES = 3
 
 # Specify the number of point pairs used for the torsion calculation
-N_TOR_POINT_PAIRS = 20
+N_TOR_POINT_PAIRS = 1
 
 # List the variables that should be stored in the final .csv files. The first column of the file will always contain
 # the index.
@@ -80,13 +85,9 @@ if __name__ == "__main__":
     out_file_list = sorted(glob.glob(out_file_dir + "/*.out"))
 
     if SUBSET_FLAG:
-        subset_size = input(
-            "Specify how many files should be considered (must be <= {0}): ".format(
-                len(out_file_list)
-            )
-        )
-        if int(subset_size) <= len(out_file_list):
-            out_file_list = out_file_list[:int(subset_size)]
+        subset_size = int(input(f"Specify how many files should be considered (must be <= {len(out_file_list)}): "))
+        if subset_size <= len(out_file_list):
+            out_file_list = out_file_list[:subset_size]
         else:
             print("Invalid subset size!")
             exit()
@@ -338,10 +339,10 @@ if __name__ == "__main__":
     # Plot a diagram with the obtained information.
     blade_name_list = ["A", "B", "C"]
 
-    fig = plt.figure(figsize=(10, 10))
-    ax = plt.axes(projection="3d")
-    ax.grid()
-    ax.scatter(
+    fig1 = plt.figure(figsize=(10, 10))
+    ax1 = plt.axes(projection="3d")
+    ax1.grid()
+    ax1.scatter(
         coordinates_f0.T[0],
         coordinates_f0.T[1],
         coordinates_f0.T[2],
@@ -349,7 +350,7 @@ if __name__ == "__main__":
         alpha=0.25,
         s=10,
     )
-    ax.scatter(
+    ax1.scatter(
         coordinates_f0[index_least_movement].T[0],
         coordinates_f0[index_least_movement].T[1],
         coordinates_f0[index_least_movement].T[2],
@@ -357,7 +358,7 @@ if __name__ == "__main__":
         s=180,
         label="Rotor Path Computation Point",
     )
-    ax.scatter(
+    ax1.scatter(
         coordinates_f0[index_most_movement].T[0],
         coordinates_f0[index_most_movement].T[1],
         coordinates_f0[index_most_movement].T[2],
@@ -365,7 +366,7 @@ if __name__ == "__main__":
         s=80,
         label="Blade Tips",
     )
-    ax.scatter(
+    ax1.scatter(
         coordinates_f0[indices_of_inner_subsets].T[0],
         coordinates_f0[indices_of_inner_subsets].T[1],
         coordinates_f0[indices_of_inner_subsets].T[2],
@@ -373,7 +374,7 @@ if __name__ == "__main__":
         s=30,
         label="Blade Roots",
     )
-    ax.scatter(
+    ax1.scatter(
         coordinates_f0[interesting_subsets].T[0],
         coordinates_f0[interesting_subsets].T[1],
         coordinates_f0[interesting_subsets].T[2],
@@ -381,7 +382,7 @@ if __name__ == "__main__":
         s=80,
         label="Good Points",
     )
-    ax.scatter(
+    ax1.scatter(
         mean_position_array.T[0],
         mean_position_array.T[1],
         mean_position_array.T[2],
@@ -390,7 +391,7 @@ if __name__ == "__main__":
         label="AoI Average Location",
     )
     for aoi_id in available_aoi_ids:
-        ax.text(
+        ax1.text(
             mean_position_array[aoi_id, 0],
             mean_position_array[aoi_id, 1],
             mean_position_array[aoi_id, 2],
@@ -402,18 +403,71 @@ if __name__ == "__main__":
             zorder=1,
             color="k",
         )
-    ax.set_aspect("equal")
-    ax.set_title("Found Points")
-    ax.set_xlabel("x")
-    ax.set_ylabel("y")
-    ax.set_zlabel("z")
-    ax = plt.gca()
-    plt.legend()
-    ax.set_aspect("equal", adjustable="box")
-    plt.show(block=False)
+    ax1.set_aspect("equal")
+    ax1.set_title("Found Points")
+    ax1.set_xlabel("x")
+    ax1.set_ylabel("y")
+    ax1.set_zlabel("z")
+    ax1 = plt.gca()
+    ax1.legend()
+    ax1.set_aspect("equal", adjustable="box")
 
     # ------------------------------------------------------------------------------------------------------------------
-    # Compute the reference circles.
+    # Calculate the pitch rotation matrices for the blades for each frame
+    # ------------------------------------------------------------------------------------------------------------------
+
+    if BLADE_PITCH_CORR_FLAG:
+        pitch_corrected_dir = os.path.join(out_file_dir, "woPitch")
+        if not os.path.isdir(pitch_corrected_dir):
+            os.mkdir(pitch_corrected_dir)
+
+        pitch_angle_file = easygui.fileopenbox("Select the .mat file with the pitch angle time-series:")
+        pitch_angle_data = scipy.io.loadmat(pitch_angle_file)
+        pitch_angle_data = pitch_angle_data["pitch_wea_bladeA"].flatten()
+
+        if SUBSET_FLAG:
+            pitch_angle_data = pitch_angle_data[:subset_size]
+        else:
+            pass
+
+        pitch_angle_data = pitch_angle_data - pitch_angle_data[0]
+
+        file_path_queue = Queue(maxsize=30)
+
+        put_to_queue_process = Process(
+            target=put_to_queue, args=(out_file_list, file_path_queue, N_PROCESSES)
+        )
+        put_to_queue_process.start()
+
+        # Create Semaphore object to monitor the processing progress.
+        # semaphore = Semaphore(0)
+
+        workers = []
+        for _ in range(N_PROCESSES):
+            worker = Process(
+                target=correct_pitch_in_out_file,
+                args=(
+                    file_path_queue,
+                    pitch_angle_data,
+                    aoi_ids_near_center,
+                    blade_name_list,
+                    blade_number_of_aoi,
+                    pitch_corrected_dir,
+                ),
+            )
+            worker.start()
+            workers.append(worker)
+
+        put_to_queue_process.join()
+        for worker in workers:
+            worker.join()
+
+        out_file_list = sorted(glob.glob(pitch_corrected_dir + "/*.out"))
+
+        print("\r", "Step 1.5/5: Remove pitch angle from the individual blades... 100 % ")
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # Compute the reference circle
     # ------------------------------------------------------------------------------------------------------------------
 
     print("\r", "Step 2/5: Create circle... ", end="")
@@ -453,7 +507,7 @@ if __name__ == "__main__":
     file_counter = 0
     not_found_counter = 0
 
-    # Store the point's coordinates for each .out file contianed in the folder.
+    # Store the point's coordinates for each .out file contained in the folder
     for out_file in out_file_list:
         found_array, real_points = shared_mem.get()
         if found_array[0] == 1:
@@ -511,18 +565,18 @@ if __name__ == "__main__":
         pass
 
     # Plot the computed geometries (i.e. the averaged circle and that of the first frame).
-    fig = plt.figure(figsize=(10, 10))
-    ax = plt.axes(projection="3d")
-    ax.grid()
-    ax.scatter(coordinates.T[0], coordinates.T[1], coordinates.T[2])
-    ax.set_aspect("equal")
-    ax.set_title("Average and First Frame Circle")
-    ax.set_xlabel("x")
-    ax.set_ylabel("y")
-    ax.set_zlabel("z")
-    # ax.legend()
-    ax = plt.gca()
-    plt.show(block=False)
+    fig2 = plt.figure(figsize=(10, 10))
+    ax2 = plt.axes(projection="3d")
+    ax2.grid()
+    ax2.scatter(coordinates.T[0], coordinates.T[1], coordinates.T[2])
+    # ax2.scatter(coordinates_f0.T[0], coordinates_f0.T[1], coordinates_f0.T[2])
+    ax2.set_aspect("equal")
+    ax2.set_title("Average and First Frame Circle")
+    ax2.set_xlabel("x")
+    ax2.set_ylabel("y")
+    ax2.set_zlabel("z")
+    # ax2.legend()
+    ax2 = plt.gca()
 
     # ------------------------------------------------------------------------------------------------------------------
     # Calculate needed rotation matrices and compute the corresponding transformations
@@ -558,7 +612,7 @@ if __name__ == "__main__":
 
     # Calculate the needed rotation around the x-axis, so that Blade A is always at 12:00.
     most_moved_point = np.dot(
-        rotation_matrix, (coordinates_f0[index_most_movement] - circle_center).T
+        rotation_matrix, (coordinates_f0[index_most_movement] - circle_center_f0).T
     ).T
     most_moved_point_blade = blade_number_of_aoi[aoi_number_f0[index_most_movement]]
 
@@ -572,7 +626,7 @@ if __name__ == "__main__":
     else:
         angle = 360 - math.degrees(math.asin(x1))
         angle += 180
-    angle += -120 * most_moved_point_blade
+    angle += -120 * most_moved_point_blade  # TOdo: COMMENT?
 
     x_rot_angle = math.radians(angle)
     rot_x = np.array(
@@ -586,14 +640,14 @@ if __name__ == "__main__":
     rotation_matrix_ave = np.matmul(rot_x, rotation_matrix)
 
     # ------------------------------------------------------------------------------------------------------------------
-    # Calculate rotation matrices based on individual circles
+    # Calculate rotation matrices based on individual circles TODO: Parallelize
     # ------------------------------------------------------------------------------------------------------------------
 
     failed_list = []
     rotation_matrix_list = []
     if INDIV_FRAME_ROTMAT_FLAG:
         for idx, out_file in enumerate(out_file_list):
-            found_array_b, coordinates_b, _, _, _ = read_file(out_file, test_subsets_list)
+            visibility_b, coordinates_b, _, _, _ = read_file(out_file, test_subsets_list)
 
             better_center = np.mean(coordinates_b[indices_of_inner_subsets])
 
@@ -643,7 +697,7 @@ if __name__ == "__main__":
 
     else:
 
-        rotation_matrix_list = [np.matmul(rot_x, rotation_matrix_ave)] * len(
+        rotation_matrix_list = [rotation_matrix_ave] * len(
             out_file_list
         )
 
@@ -655,20 +709,19 @@ if __name__ == "__main__":
     print("\r", "Step 3/5: Calculate circle...  100 %")  # TODO: make dynamic and parallel progess bar.
 
     # Plot the reference circles after applying the coordinate transformations.
-    fig = plt.figure(figsize=(10, 10))
-    ax = plt.axes(projection="3d")
-    ax.grid()
-    ax.scatter(
+    fig3 = plt.figure(figsize=(10, 10))
+    ax3 = plt.axes(projection="3d")
+    ax3.grid()
+    ax3.scatter(
         coordinates.T[0], coordinates.T[1], coordinates.T[2], label="Point Cloud"
     )
-    ax.set_title("Circular Path Used for the Coordinate Transformation")
-    ax.set_xlabel("x")
-    ax.set_ylabel("y")
-    ax.set_zlabel("z")
-    ax = plt.gca()
-    ax.legend()
-    ax.set_aspect("equal")
-    plt.show(block=False)
+    ax3.set_title("Circular Path Used for the Coordinate Transformation")
+    ax3.set_xlabel("x")
+    ax3.set_ylabel("y")
+    ax3.set_zlabel("z")
+    ax3 = plt.gca()
+    ax3.legend()
+    ax3.set_aspect("equal")
 
     # ------------------------------------------------------------------------------------------------------------------
     # Find a pair of points for each AoI for the torsion calculation
@@ -690,7 +743,6 @@ if __name__ == "__main__":
 
     # Create an 3D array where you will store the rotation matrices around the x-axis for each individual AoI.
     rotation_matrix_for_aoi = np.empty((len(available_aoi_ids), 3, 3), float)
-
     for aoi_id in available_aoi_ids:
         index_highest_point_on_blade = np.nonzero(
             (blade_number_of_aoi == blade_number_of_aoi[aoi_id])
@@ -764,20 +816,20 @@ if __name__ == "__main__":
         best_points_list = best_points_list.flatten()
         index_array[aoi_index] = best_points_list
 
-    print(
-        "\r",
-        "Step 4/5: Search points for rotor blade torsion calculation...",
-        int((aoi_index / len(available_aoi_ids)) * 100),
-        "%",
-        end="",
-    )
+        print(
+            "\r",
+            "Step 4/5: Search points for rotor blade torsion calculation...",
+            int((aoi_index / len(available_aoi_ids)) * 100),
+            "%",
+            end="",
+        )
 
     print("\r", "Step 4/5: Search points for rotor blade torsion calculation...  100 %")
 
-    fig = plt.figure(figsize=(10, 10))
-    ax = plt.axes(projection="3d")
-    ax.grid()
-    ax.scatter(
+    fig4 = plt.figure(figsize=(10, 10))
+    ax4 = plt.axes(projection="3d")
+    ax4.grid()
+    ax4.scatter(
         coordinates_f0[found_indices_f0].T[0],
         coordinates_f0[found_indices_f0].T[1],
         coordinates_f0[found_indices_f0].T[2],
@@ -785,7 +837,7 @@ if __name__ == "__main__":
         alpha=0.25,
         s=10,
     )
-    ax.scatter(
+    ax4.scatter(
         coordinates_f0[index_array].T[0],
         coordinates_f0[index_array].T[1],
         coordinates_f0[index_array].T[2],
@@ -793,14 +845,13 @@ if __name__ == "__main__":
         s=80,
         label="Good Points for the torsion calculations",
     )
-    ax.set_aspect("equal")
-    ax.set_title("Transformed Coordinate System")
-    ax.set_xlabel("x")
-    ax.set_ylabel("y")
-    ax.set_zlabel("z")
-    ax.set_xlim((-60000, 60000))
-    plt.legend()
-    plt.show(block=False)
+    ax4.set_aspect("equal")
+    ax4.set_title("Transformed Coordinate System")
+    ax4.set_xlabel("x")
+    ax4.set_ylabel("y")
+    ax4.set_zlabel("z")
+    ax4.set_xlim((-60000, 60000))
+    ax4.legend()
 
     # ------------------------------------------------------------------------------------------------------------------
     # Save the transformed .out files into the previously created folders.
@@ -827,8 +878,8 @@ if __name__ == "__main__":
 
     # Show a 2D image with the named AoIs.
     two_d_coordinates = read_file_mean_aoi_pos_2d(out_file_list[0])
-    fig, ax = plt.subplots()
-    ax.scatter(
+    fig5, ax5 = plt.subplots()
+    ax5.scatter(
         two_d_coordinates.T[0],
         np.max(two_d_coordinates.T[1]) - two_d_coordinates.T[1],
     )
@@ -840,7 +891,7 @@ if __name__ == "__main__":
             int(aoi_to_blade_aoi[aoi_id]),
         )
 
-        ax.annotate(
+        ax5.annotate(
             annotation,
             (
                 two_d_coordinates.T[0][aoi_id],
@@ -848,7 +899,7 @@ if __name__ == "__main__":
             ),
         )
     plt.show(block=False)
-    fig.savefig(out_file_dir + "/AoI_Naming.png", dpi=fig.dpi)
+    # fig5.savefig(out_file_dir + "/AoI_Naming.png", dpi=fig5.dpi)
 
     # If not existent already, create the folders needed to store the processed .out files.
     if not os.path.isdir(out_file_dir + "/koordNachGL/"):
@@ -912,7 +963,7 @@ if __name__ == "__main__":
                 file_path_queue,
                 output_path1,
                 output_path2,
-                -circle_center,
+                -circle_center_f0,
                 rotation_matrix_list,
                 aoi_ids_near_center,
                 found_array_first_frame,
@@ -963,6 +1014,13 @@ if __name__ == "__main__":
 
         good_points_data[file_counter] = data[:, 0]
         good_points_torsion[file_counter] = data[:, 1:]
+        print(
+            "\r",
+            "Step 5/5: Store adjusted measurement points... ",
+            int((i / (2 * N_TOR_POINT_PAIRS)) * 100),
+            "%",
+            end="",
+        )
 
     put_to_queue_process.join()
     for worker in workers:
@@ -972,7 +1030,7 @@ if __name__ == "__main__":
     for i in range(0, 2 * N_TOR_POINT_PAIRS, 2):
         for aoi_id in available_aoi_ids:
             dic, dict1, dict2 = {}, {}, {}
-            for var_id in range(1, len(variables_export_name_csv_file)):
+            for var_id in range(1, len(variables_export_name_csv_file)):  # TODO: this should be taken out of the loop
                 dic[variables_export_name_csv_file[var_id]] = good_points_data[
                     :, aoi_id, var_id - 1]
                 dict1[variables_export_name_csv_file[var_id]] = good_points_torsion[
@@ -1060,14 +1118,6 @@ if __name__ == "__main__":
                     sep=";",
                     decimal=",",
                 )
-
-        print(
-            "\r",
-            "Step 5/5: Store adjusted measurement points... ",
-            int((i / (2 * N_TOR_POINT_PAIRS)) * 100),
-            "%",
-            end="",
-        )
 
     print("\r", "Step 5/5: Store adjusted measurement points...  100 %")
     exit()

@@ -12,12 +12,13 @@ paths.append(base)
 
 AOI_name = "Blade_0_AOI_2_"
 
-names = [AOI_name]
+names = 3*[AOI_name]
+
 
 diff_list = []
-for i in range(len(paths)):
+for i in range(3*len(paths)):
 
-    file_1 = paths[i] + "/" + AOI_name
+    file_1 = paths[0] + "/" + AOI_name
     full_file_name = glob.glob(file_1 + "*")[0]
     print(full_file_name)
     df = pd.read_csv(full_file_name, sep=";", decimal=',', skiprows=1, header=0)
@@ -54,9 +55,9 @@ plt.title("Fehler Schlagverformung")
 plt.show()
 
 diff_list = []
-for i in range(len(paths)):
+for i in range(3*len(paths)):
     # real_V = df_real[" Schwenk"].to_numpy()
-    file_1 = paths[i] + "/" + AOI_name
+    file_1 = paths[0] + "/" + AOI_name
     full_file_name = glob.glob(file_1 + "*")[0]
     df = pd.read_csv(full_file_name, sep=";", decimal=',', skiprows=1, header=0)
     sigma = df["sigma [pixel]"].to_numpy(copy=True)
