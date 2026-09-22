@@ -38,7 +38,7 @@ SUBSET_FLAG = True  # Specify a subset of the complete raw .out file data set / 
 INDIV_FRAME_ROTMAT_FLAG = False  # Transform each .out file with a rotation matrix calculated from its coordinates / Use an average rotation matrix for the whole data set
 VIC3D_RB_EL_FLAG = True  # Use the built-in VicPy function to eliminate rigid body rotation / Don't use it
 
-BLADE_PITCH_CORR_FLAG = True  # Using a pitch angle time-series, eliminate the pitch angle of ech blade
+BLADE_PITCH_CORR_FLAG = False  # Using a pitch angle time-series, eliminate the pitch angle of ech blade
 
 # Specify the number of processors used to read and write on the files.
 N_PROCESSES = 16
