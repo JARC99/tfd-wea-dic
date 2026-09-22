@@ -8,7 +8,6 @@ from multiprocessing import (
 )
 
 import numpy as np
-import numpy_typing_compat
 from vicpyx import (
     RigidTransformation,
     Rotation,

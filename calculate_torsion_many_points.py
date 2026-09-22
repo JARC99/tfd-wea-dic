@@ -19,6 +19,14 @@ names = [i for i in range(len(paths))]
 # Wenn  echte Messung, sodass der echte eingestellte Winkel nicht bekannt ist:
 real_angle = None
 
+# ----------------------------------
+blender_data = pd.read_csv("sandbox/BLENDER Blade BLADE_A_1.csv", sep=";", decimal=",")
+
+real_angle = blender_data[" Winkel"] - blender_data[" Winkel"].iloc[0]
+
+
+# ----------------------------------------
+
 diff_list = []
 point_pair_diff_list = []
 angles = []
@@ -123,13 +131,7 @@ plt.ylabel("Änderung Distanz Punkte")
 plt.title("Abstand Punktepaare zu Referenzbild besseren Hälfte an Punktepaaren")
 plt.show()
 
-# ----------------------------------
-blender_data = pd.read_csv("BLENDER Blade BLADE_A_1.csv", sep=";", decimal=",")
 
-real_angle = blender_data[" Winkel"] - blender_data[" Winkel"].iloc[0]
-
-
-# ----------------------------------------
 
 angles = np.array(angles)
 angle_mean = np.nanmean(angles[good_values], axis=0)
