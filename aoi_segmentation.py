@@ -18,7 +18,7 @@ from matplotlib import pyplot as plt
 #OUTPUT_PATH = "D:/Masterarbeit Jannis/Output/"
 #OUTPUT_PATH = "D:/Masterarbeit Jannis/Output"
 MODEL_PATH = r"H:\HiWi Cordova\Python\Code_Kiel/ROI_NET_22.04.25MehrParameter.pt"
-PATH_TO_IMAGES = r"H:\HiWi Cordova\animation_pitch/*0.tif"
+PATH_TO_IMAGES = r"H:\HiWi Cordova\animation_pitch/*1.tif"
 OUTPUT_PATH = r"H:\HiWi Cordova\animation_pitch\mosaic"
 
 # Legt fest, wie gross der ausgeschnittene Bereich sein soll. Pixelgroesse des Bereichs ist: sub_image_size * 2 * (256-2*border)

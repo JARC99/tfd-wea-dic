@@ -9,13 +9,13 @@ import timeit
  
 
 # Ordner, in der die CSV-Datein fuer die Ausrichtung der AOI sind. Werden von vorherigen Programm zusammen mit den Bildern abgespeichert
-path_to_image_and_csv_foulder = "C:/Users/printezis_adm/Desktop/animation_2/MOSAIC"
+path_to_image_and_csv_foulder = r"H:\HiWi Cordova\animation_pitch\mosaic"
 
 # VIC-3D Projektdatei, in welcher für die Ausgeschnittenen AOI die Startpunktsuche ausgeführt wurde
-path_to_input_zip = "C:/Users/printezis_adm/Desktop/animation_2/MOSAIC/animation_2.z3d"
+path_to_input_zip = r"H:\HiWi Cordova\animation_pitch\animation_pitch.z3d"
 
 # Ordner, in dem die Bilder sind, die für die finale Auswertung verwendet werden sollen
-path_to_real_images = r"C:\Users\printezis_adm\Desktop\animation_2"
+path_to_real_images = r"H:\HiWi Cordova\animation_pitch"
 
 
 # Anzahl an Prozessen, welche die parallel die Berechnung durchfuehren

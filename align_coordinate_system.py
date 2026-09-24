@@ -45,7 +45,7 @@ N_PROCESSES = 24
 N_MARKED_BLADES = 3
 
 # Specify the number of point pairs used for the torsion calculation
-N_TOR_POINT_PAIRS = 25
+N_TOR_POINT_PAIRS = 1
 
 # List the variables that should be stored in the final .csv files. The first column of the file will always contain
 # the index.
