@@ -7,3 +7,5 @@ img = cv2.imread('sandbox/myplot.png')
 cv2.imshow('Image', img)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
+
+# This is a comment
