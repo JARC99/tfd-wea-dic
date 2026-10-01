@@ -342,6 +342,101 @@ def correct_pitch_in_out_file(file_path_queue, pitch_angle, aoi_ids_near_center,
             blade_point_coords = found_coordinates[blade_point_idxs]
 
             first_rot = calculate_circle_rotation_matrix_2(blade_dir, 1)
+            second_rot = rotation_matrix_z(-np.deg2rad(pitch_angle[out_file_idx]))
+            third_rot = np.linalg.inv(first_rot)
+            total_pitch_rot = np.matmul(third_rot, np.matmul(second_rot, first_rot))
+
+            blade_point_coords_wo_pitch = np.dot(total_pitch_rot,
+                                                 (blade_point_coords - blade_anchor_pt).T).T + blade_anchor_pt
+
+            new_coordinates[found_idx[blade_point_idxs]] = blade_point_coords_wo_pitch
+
+        new_u = new_coordinates[:, 0] - data["X"]
+        new_v = new_coordinates[:, 1] - data["Y"]
+        new_w = new_coordinates[:, 2] - data["Z"]
+        dataset.set_values({"U": new_u, "V": new_v, "W": new_w})
+
+        if dataset.save(os.path.join(corrected_folder, os.path.basename(out_file))) == False:
+            print("Could not save the dataset\n")
+            exit(-1)
+
+        print(
+            "\r", "Step 1.5/5: Remove pitch angle from the individual blades... {0} % ".format(
+                int(out_file_idx / len(pitch_angle) * 100)), end="")
+        # return os.path.join(corrected_folder, os.path.basename(out_file))
+
+
+
+
+def correct_pitch_in_out_file_simple(file_path_queue, pitch_angle, aoi_ids_near_center, blade_name_list,
+                              blade_number_of_aoi,
+                              corrected_folder):
+    # Load .out file as VicDataSet instance, basically a reformed version of read_file function. TODO: I should probably rewrite that one.
+    dataset = VicDataSet()
+    while True:
+        content = file_path_queue.get()
+        if content is None:
+            break
+        out_file_idx, out_file = content
+
+        if dataset.load(out_file) == False:
+            print("Could not load data set\n")
+            exit(-1)
+
+        size_tot = dataset.matrix_size()
+        data = dataset.get_values(["sigma", "X", "Y", "Z", "U", "V", "W", "SIGMA_X", "SIGMA_Y", "SIGMA_Z"])
+
+        visibility = np.where(data["sigma"] < 0, 0, 1)
+
+        coordinates = np.empty((size_tot, 3))
+        coordinates[:, 0] = data["X"] + data["U"]
+        coordinates[:, 1] = data["Y"] + data["V"]
+        coordinates[:, 2] = data["Z"] + data["W"]
+        new_coordinates = np.empty_like(coordinates)
+
+        xyz_sigmas = np.empty((size_tot, 3))
+        xyz_sigmas[:, 0] = data["SIGMA_X"]
+        xyz_sigmas[:, 1] = data["SIGMA_Y"]
+        xyz_sigmas[:, 2] = data["SIGMA_Z"]
+
+        aoi_n = dataset.num_data()
+        aoi_number_list = []
+        index_in_aoi_list = []
+        for aoi in range(aoi_n):
+            aoi_data = dataset.data(aoi)
+            aoi_number_list.extend(aoi_data.matrix_size() * [aoi])
+            index_in_aoi_list.extend(np.arange(aoi_data.matrix_size()))
+        aoi_number = np.array(aoi_number_list)
+        index_in_aoi = np.array(index_in_aoi_list)
+
+        found_idx = np.nonzero(visibility == 1)[0]
+        found_coordinates = coordinates[found_idx]
+        found_aoi_number = aoi_number[found_idx]
+
+        for blade_idx, blade_name in enumerate(blade_name_list):
+            # Find the points in the blade hub
+            blade_root_idxs = np.nonzero(found_aoi_number == aoi_ids_near_center[blade_idx])[0]
+            blade_root_coords = found_coordinates[blade_root_idxs]
+
+            # Find the AoIs in the current blade
+            aoi_in_blade_array = np.nonzero(blade_number_of_aoi == blade_idx)[0]
+
+            for aoi_in_blade in aoi_in_blade_array[1::-1]:
+                blade_tip_idxs = np.nonzero(found_aoi_number == aoi_in_blade)[0]
+
+                if blade_tip_idxs.size != 0:
+                    blade_tip_coords = found_coordinates[blade_tip_idxs]
+                    break
+                else:
+                    continue
+
+            blade_anchor_pt, blade_dir, blade_rad = find_blade_axis(blade_root_coords, blade_tip_coords)
+
+            # Using the stuff
+            blade_point_idxs = np.nonzero(np.isin(found_aoi_number, aoi_in_blade_array))[0]
+            blade_point_coords = found_coordinates[blade_point_idxs]
+
+            first_rot = calculate_circle_rotation_matrix_2(blade_dir, 1)
             second_rot = rotation_matrix_z(np.deg2rad(pitch_angle[out_file_idx]))
             third_rot = np.linalg.inv(first_rot)
             total_pitch_rot = np.matmul(third_rot, np.matmul(second_rot, first_rot))
