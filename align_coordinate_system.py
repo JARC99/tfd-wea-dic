@@ -426,7 +426,7 @@ if __name__ == "__main__":
         #pitch_angle_data = pd.read_csv(pitch_angle_file, sep=";", decimal=",") # TODO: only for test
         #pitch_angle_data = -pitch_angle_data[" Winkel"].to_numpy()
 
-        pitch_angle_data = np.loadtxt(pitch_angle_file)
+        pitch_angle_data = np.loadtxt(pitch_angle_file) # *-1
 
 
         if SUBSET_FLAG:
