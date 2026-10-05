@@ -318,7 +318,9 @@ def correct_pitch_in_out_file(file_path_queue, pitch_angle, aoi_ids_near_center,
         found_coordinates = coordinates[found_idx]
         found_aoi_number = aoi_number[found_idx]
 
-        for blade_idx, blade_name in enumerate(blade_name_list):
+        for blade_idx, blade_name in enumerate(blade_name_list): #TODO: anpassen
+            print("--------" + blade_name + "--------")
+            found_idx = np.nonzero(visibility == 1)[0]
             # Find the points in the blade hub
             blade_root_idxs = np.nonzero(found_aoi_number == aoi_ids_near_center[blade_idx])[0]
             blade_root_coords = found_coordinates[blade_root_idxs]
@@ -342,7 +344,7 @@ def correct_pitch_in_out_file(file_path_queue, pitch_angle, aoi_ids_near_center,
             blade_point_coords = found_coordinates[blade_point_idxs]
 
             first_rot = calculate_circle_rotation_matrix_2(blade_dir, 1)
-            second_rot = rotation_matrix_z(np.deg2rad(pitch_angle[out_file_idx]))
+            second_rot = rotation_matrix_z(np.deg2rad(pitch_angle[out_file_idx])) # TODO: be careful with Blender modells, rotation around the blade axis is backwards there, use -1
             third_rot = np.linalg.inv(first_rot)
             total_pitch_rot = np.matmul(third_rot, np.matmul(second_rot, first_rot))
 
@@ -350,6 +352,12 @@ def correct_pitch_in_out_file(file_path_queue, pitch_angle, aoi_ids_near_center,
                                                  (blade_point_coords - blade_anchor_pt).T).T + blade_anchor_pt
 
             new_coordinates[found_idx[blade_point_idxs]] = blade_point_coords_wo_pitch
+
+            #     new_coordinates[found_idx[blade_point_idxs]] = blade_point_coords_wo_pitch# if blade_idx == 0: TODO: Use for Blender model where only Blade a is pitched
+            #     new_coordinates[found_idx[blade_point_idxs]] = blade_point_coords_wo_pitch
+            # else:
+            #     new_coordinates[found_idx[blade_point_idxs]] = blade_point_coords
+
 
         new_u = new_coordinates[:, 0] - data["X"]
         new_v = new_coordinates[:, 1] - data["Y"]

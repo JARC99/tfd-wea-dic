@@ -39,7 +39,7 @@ VIC3D_RB_EL_FLAG = True  # Use the built-in VicPy function to eliminate rigid bo
 BLADE_PITCH_CORR_FLAG = True  # Using a pitch angle time-series, eliminate the pitch angle of ech blade
 
 # Specify the number of processors used to read and write on the files.
-N_PROCESSES = 24
+N_PROCESSES = 12
 
 # Specify the number of marked blades. This number is used to identify the AoIs closest to the rotor hub.
 N_MARKED_BLADES = 3
@@ -420,11 +420,11 @@ if __name__ == "__main__":
             os.mkdir(pitch_corrected_dir)
 
         pitch_angle_file = easygui.fileopenbox("Select the .mat file with the pitch angle time-series:")
-        # pitch_angle_data = scipy.io.loadmat(pitch_angle_file)
-        # pitch_angle_data = pitch_angle_data["pitch_wea_bladeA"].flatten()
+        pitch_angle_data = scipy.io.loadmat(pitch_angle_file)
+        pitch_angle_data = pitch_angle_data["pitch_wea_bladeA"].flatten()
 
-        pitch_angle_data = pd.read_csv(pitch_angle_file, sep=";", decimal=",") # TODO: only for test
-        pitch_angle_data = -pitch_angle_data[" Winkel"].to_numpy()
+        #pitch_angle_data = pd.read_csv(pitch_angle_file, sep=";", decimal=",") # TODO: only for test
+        #pitch_angle_data = -pitch_angle_data[" Winkel"].to_numpy()
 
         if SUBSET_FLAG:
             pitch_angle_data = pitch_angle_data[:subset_size]
