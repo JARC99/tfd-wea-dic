@@ -31,7 +31,7 @@ from geomfitty import fit3d, geom3d
 
 # Set the values of the boolean flags used to control the program flow.
 SAVE_OUTPUT_FLAG = False  # Save the transformed .out files / Don't save them
-SUBSET_FLAG = False  # Specify a subset of the complete raw .out file data set / Use the complete dataset
+SUBSET_FLAG = True  # Specify a subset of the complete raw .out file data set / Use the complete dataset
 
 INDIV_FRAME_ROTMAT_FLAG = False  # Transform each .out file with a rotation matrix calculated from its coordinates / Use an average rotation matrix for the whole data set
 VIC3D_RB_EL_FLAG = True  # Use the built-in VicPy function to eliminate rigid body rotation / Don't use it
@@ -425,6 +425,9 @@ if __name__ == "__main__":
 
         #pitch_angle_data = pd.read_csv(pitch_angle_file, sep=";", decimal=",") # TODO: only for test
         #pitch_angle_data = -pitch_angle_data[" Winkel"].to_numpy()
+
+        #pitch_angle_data = np.loadtxt(pitch_angle_file) # *-1
+
 
         if SUBSET_FLAG:
             pitch_angle_data = pitch_angle_data[:subset_size]
