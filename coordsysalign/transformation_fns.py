@@ -318,8 +318,7 @@ def correct_pitch_in_out_file(file_path_queue, pitch_angle, aoi_ids_near_center,
         found_coordinates = coordinates[found_idx]
         found_aoi_number = aoi_number[found_idx]
 
-        for blade_idx, blade_name in enumerate(blade_name_list): #TODO: anpassen
-            print("--------" + blade_name + "--------")
+        for blade_idx, blade_name in enumerate(blade_name_list):
             found_idx = np.nonzero(visibility == 1)[0]
             # Find the points in the blade hub
             blade_root_idxs = np.nonzero(found_aoi_number == aoi_ids_near_center[blade_idx])[0]
