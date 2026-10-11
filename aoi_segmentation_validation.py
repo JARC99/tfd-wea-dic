@@ -50,28 +50,6 @@ def count_visible_aois(img_file):
         img_sigma, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U
     )
 
-    # --- NEW: Hough Line Artifact Remover ---
-    # Detect long straight lines in the sigma map and paint them black (0)
-    edges = cv2.Canny(img_sigma, 50, 150)
-    lines = cv2.HoughLinesP(
-        edges,
-        rho=1,
-        theta=np.pi / 180,
-        threshold=80,
-        minLineLength=150,
-        maxLineGap=10,
-    )
-
-    if lines is not None:
-        # Safely handle different OpenCV output dimensions (N, 1, 4) vs (N, 4)
-        for line in lines:
-            coords = line[0] if line.ndim > 1 else line
-            if len(coords) == 4:
-                x1, y1, x2, y2 = coords
-                cv2.line(img_sigma, (x1, y1), (x2, y2), 0, thickness=3)
-
-    # ----------------------------------------
-
     # Find the Otsu threshold to divide the image between high standard deviation and low standard deviation sections, then apply it to the image
     otsu_thresh, _ = cv2.threshold(
         img_sigma[mask_shrunk > 0], 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
@@ -79,10 +57,10 @@ def count_visible_aois(img_file):
     _, img_thresh = cv2.threshold(img_sigma, otsu_thresh, 255, cv2.THRESH_BINARY)
 
     # Clean up noise using morphological operations
-    kernel_thresh_close = np.ones((25, 25), np.uint8)
+    kernel_thresh_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9))
     img_morph = cv2.morphologyEx(img_thresh, cv2.MORPH_CLOSE, kernel_thresh_close)
 
-    kernel_thresh_open = np.ones((11, 11), np.uint8)
+    kernel_thresh_open = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11))
     img_morph = cv2.morphologyEx(img_morph, cv2.MORPH_OPEN, kernel_thresh_open)
 
     img_final = img_morph  # cv2.bitwise_and(img_morph, img_morph, mask=mask_shrunk)
