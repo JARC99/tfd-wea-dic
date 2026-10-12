@@ -13,11 +13,12 @@ def count_visible_aois(img_file):
     failed_path = img_file.parent / "failed_masks"
     failed_path.mkdir(exist_ok=True)
 
-    # Load the image and convert it to grayscale
+    # Load the image and convert it to grayscale and increase contrast
     img_raw = cv2.imread(img_file, cv2.IMREAD_GRAYSCALE)
+    img_hcont = cv2.convertScaleAbs(img_raw, alpha=5.0)
 
     # Find the pixels within the originally applied mask
-    mask_og = (img_raw > 0).astype(np.uint8) * 255
+    mask_og = (img_hcont > 0).astype(np.uint8) * 255
 
     # Shrink the original mask to avoid capturing its original edges
     shrink_kernel = np.ones((25, 25), np.uint8)
@@ -35,8 +36,8 @@ def count_visible_aois(img_file):
     cv2.circle(mask_shrunk, (width_mask_og, height_mask_og), int(0.35 * height_mask_og), 0, thickness=-1)
 
     # Fill the background of the image with the median value of the shown section to avoid jumps in the next clculations
-    img_raw_med = np.median(img_raw[img_raw > 0])
-    img_med_val = img_raw.copy()
+    img_raw_med = np.median(img_hcont[img_hcont > 0])
+    img_med_val = img_hcont.copy()
     img_med_val[mask_shrunk == 0] = int(img_raw_med)
 
     # Calculate the local standard deviation of each pixel using a 3x3 kernel, then normallize to 8-bit values
@@ -57,10 +58,10 @@ def count_visible_aois(img_file):
     _, img_thresh = cv2.threshold(img_sigma, otsu_thresh, 255, cv2.THRESH_BINARY)
 
     # Clean up noise using morphological operations
-    kernel_thresh_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9))
+    kernel_thresh_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
     img_morph = cv2.morphologyEx(img_thresh, cv2.MORPH_CLOSE, kernel_thresh_close)
 
-    kernel_thresh_open = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11))
+    kernel_thresh_open = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9))
     img_morph = cv2.morphologyEx(img_morph, cv2.MORPH_OPEN, kernel_thresh_open)
 
     img_final = img_morph  # cv2.bitwise_and(img_morph, img_morph, mask=mask_shrunk)
@@ -140,7 +141,7 @@ def count_visible_aois(img_file):
     plt.close(fig)
 
     # If less than 12 AoIs are found (the three hub AoIs are covered by the circle) raise a warning and store the image in the failed_masks folder
-    if n_found_aoi < 12:
+    if n_found_aoi != 12:
         shutil.copy(img_file, failed_path / img_file.name)
         return 1
     else:
