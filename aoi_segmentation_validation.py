@@ -1,12 +1,15 @@
 import shutil
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 from pathlib import Path
 from tkinter import filedialog
 
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
+from rich import console, rule
 from tqdm import tqdm
+
+console = console.Console(force_terminal=True)
 
 
 def count_visible_aois(img_file):
@@ -16,7 +19,7 @@ def count_visible_aois(img_file):
 
     # Load the image and convert it to grayscale and increase contrast
     img_raw = cv2.imread(img_file, cv2.IMREAD_GRAYSCALE)
-    img_hcont = cv2.convertScaleAbs(img_raw, alpha=7.0)
+    img_hcont = cv2.convertScaleAbs(img_raw, alpha=5.0)
 
     # Find the pixels within the originally applied mask
     mask_og = (img_hcont > 0).astype(np.uint8) * 255
@@ -67,9 +70,6 @@ def count_visible_aois(img_file):
 
     img_final = img_morph  # cv2.bitwise_and(img_morph, img_morph, mask=mask_shrunk)
 
-    # Save mask
-    cv2.imwrite("turbine_segmented.png", img_final)
-
     # Find all the connected components in the final binary mask
     n_regions, _, stats, centroids = cv2.connectedComponentsWithStats(
         img_final
@@ -85,9 +85,8 @@ def count_visible_aois(img_file):
             n_found_aoi += 1
             aoi_centroid_list.append(centroids[i])
 
-    # print(f"\n Number of found regions larger than {MIN_REGION_AREA} pixels in {img_file.name}: {n_found_aoi}")
+    # console.print(f"\n Number of found regions larger than {MIN_REGION_AREA} pixels in {img_file.name}: {n_found_aoi}")
 
-    # Plot images
     if False:
         titles = [
             "1. Original Image",
@@ -152,26 +151,41 @@ def count_visible_aois(img_file):
 
 if __name__ == "__main__":
     # Determine optimal number of available CPUs to use
-    N_PROCESSES = 2  # max(1, cpu_count() // 2)
+    N_PROCESSES = max(1, cpu_count() // 2)
 
-    # Select the folder containing the images
-    folder_path = Path(filedialog.askdirectory(
-        title="Select Folder Containing .TIF Images"
-    ))
+    MULT_FOLDER_FLAG = True  # Specify if a list of folders is to be used as input or if a single folder should be selected
 
-    img_file_list = list(folder_path.glob("*.tif"))
+    folder_list = []
+    if MULT_FOLDER_FLAG:
+        folder_list = [
+            "/home/jarc/Desktop/Test_Images/Side_A",
+            "/home/jarc/Desktop/Test_Images/Side_B",
+        ]
 
-    print(f"Selected folder: {folder_path}")
-    print(f"Found {len(img_file_list)} .TIF images to process.")
+        folder_list = [Path(folder) for folder in folder_list]
+    else:
 
-    # Use a multiprocessing pool to execute the process in parallel
-    with Pool(processes=N_PROCESSES) as pool:
-        result_list = list(
-            tqdm(
-                pool.imap(count_visible_aois, img_file_list),
-                total=len(img_file_list),
-                desc="Processing Turbines",
+        # Select the folder containing the images
+        folder_path = Path(filedialog.askdirectory(
+            title="Select Folder Containing .TIF Images"
+        ))
+        folder_list.append(folder_path)
+
+    for folder in folder_list:
+        img_file_list = list(folder.glob("*.tif"))
+
+        console.print(rule.Rule(style="cyan"))
+        console.print(f"[bold yellow]Selected folder:[/bold yellow] {folder}")
+        console.print(f"Found {len(img_file_list)} .TIF images to process")
+
+        # Use a multiprocessing pool to execute the process in parallel
+        with Pool(processes=N_PROCESSES) as pool:
+            result_list = list(
+                tqdm(
+                    pool.imap(count_visible_aois, img_file_list),
+                    total=len(img_file_list),
+                    desc="Processing .TIF Files",
+                )
             )
-        )
 
-    print(f"Batch processing complete!\n Failed masks: {sum(result_list)}/{len(result_list)}")
+        console.print(f"[bold yellow]Failed masks:[/bold yellow] {sum(result_list)}/{len(result_list)}")
