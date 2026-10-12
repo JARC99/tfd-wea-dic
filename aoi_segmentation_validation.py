@@ -6,6 +6,7 @@ from tkinter import filedialog
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
+from tqdm import tqdm
 
 
 def count_visible_aois(img_file):
@@ -15,7 +16,7 @@ def count_visible_aois(img_file):
 
     # Load the image and convert it to grayscale and increase contrast
     img_raw = cv2.imread(img_file, cv2.IMREAD_GRAYSCALE)
-    img_hcont = cv2.convertScaleAbs(img_raw, alpha=5.0)
+    img_hcont = cv2.convertScaleAbs(img_raw, alpha=7.0)
 
     # Find the pixels within the originally applied mask
     mask_og = (img_hcont > 0).astype(np.uint8) * 255
@@ -84,64 +85,65 @@ def count_visible_aois(img_file):
             n_found_aoi += 1
             aoi_centroid_list.append(centroids[i])
 
-    print(f"Number of found regions larger than {MIN_REGION_AREA} pixels in {img_file.name}: {n_found_aoi}")
+    # print(f"\n Number of found regions larger than {MIN_REGION_AREA} pixels in {img_file.name}: {n_found_aoi}")
 
     # Plot images
-    titles = [
-        "1. Original Image",
-        "2. Original Mask w/ Circle",
-        "3. Background-Filled Image",
-        "4. Standard Deviation",
-        "5. Otsu Threshold",
-        "6. Final Mask",
-    ]
-    images = [
-        img_raw,
-        mask_shrunk,
-        img_med_val,
-        img_sigma,
-        img_thresh,
-        img_final,
-    ]
+    if False:
+        titles = [
+            "1. Original Image",
+            "2. Original Mask w/ Circle",
+            "3. Background-Filled Image",
+            "4. Standard Deviation",
+            "5. Otsu Threshold",
+            "6. Final Mask",
+        ]
+        images = [
+            img_raw,
+            mask_shrunk,
+            img_med_val,
+            img_sigma,
+            img_thresh,
+            img_final,
+        ]
 
-    fig = plt.figure()
-    ax = fig.add_subplot()
-    ax.imshow(images[-1], cmap="gray")
-    for cx, cy in aoi_centroid_list:
-        ax.plot(
-            cx,
-            cy,
-            marker="x",
-            color="magenta",
-            markersize=4,
-            linestyle="None",
-        )
-    ax.axis("off")
+        fig = plt.figure()
+        ax = fig.add_subplot()
+        ax.imshow(images[-1], cmap="gray")
+        for cx, cy in aoi_centroid_list:
+            ax.plot(
+                cx,
+                cy,
+                marker="x",
+                color="magenta",
+                markersize=4,
+                linestyle="None",
+            )
+        ax.axis("off")
 
-    # ax_list = []
-    # for i in range(len(images)):
-    #     ax_list.append(fig.add_subplot(2, 3, i + 1))
-    #     ax_list[i].imshow(images[i], cmap="gray")
-    #     ax_list[i].set_title(titles[i], fontsize=10)
-    #     ax_list[i].axis("off")
-    #
-    # if i == 5:
-    #     for cx, cy in aoi_centroid_list:
-    #         ax_list[i].plot(
-    #             cx,
-    #             cy,
-    #             marker="x",
-    #             color="magenta",
-    #             markersize=4,
-    #             linestyle="None",
-    #         )
+        # ax_list = []
+        # for i in range(len(images)):
+        #     ax_list.append(fig.add_subplot(2, 3, i + 1))
+        #     ax_list[i].imshow(images[i], cmap="gray")
+        #     ax_list[i].set_title(titles[i], fontsize=10)
+        #     ax_list[i].axis("off")
+        #
+        # if i == 5:
+        #     for cx, cy in aoi_centroid_list:
+        #         ax_list[i].plot(
+        #             cx,
+        #             cy,
+        #             marker="x",
+        #             color="magenta",
+        #             markersize=4,
+        #             linestyle="None",
+        #         )
 
-    fig.suptitle(img_file.name)
-    plt.show()
-    plt.close(fig)
+        fig.suptitle(img_file.name)
+        plt.show()
+        plt.close(fig)
 
     # If less than 12 AoIs are found (the three hub AoIs are covered by the circle) raise a warning and store the image in the failed_masks folder
-    if n_found_aoi != 12:
+    if n_found_aoi < 12:
         shutil.copy(img_file, failed_path / img_file.name)
         return 1
     else:
@@ -164,6 +166,12 @@ if __name__ == "__main__":
 
     # Use a multiprocessing pool to execute the process in parallel
     with Pool(processes=N_PROCESSES) as pool:
-        result_list = pool.map(count_visible_aois, img_file_list)
+        result_list = list(
+            tqdm(
+                pool.imap(count_visible_aois, img_file_list),
+                total=len(img_file_list),
+                desc="Processing Turbines",
+            )
+        )
 
     print(f"Batch processing complete!\n Failed masks: {sum(result_list)}/{len(result_list)}")
