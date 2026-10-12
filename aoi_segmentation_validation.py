@@ -70,7 +70,7 @@ def count_visible_aois(img_file):
 
     img_final = img_morph  # cv2.bitwise_and(img_morph, img_morph, mask=mask_shrunk)
 
-    # Find all the connected components in the final binary mask
+   # Find all the connected components in the final binary mask
     n_regions, _, stats, centroids = cv2.connectedComponentsWithStats(
         img_final
     )
