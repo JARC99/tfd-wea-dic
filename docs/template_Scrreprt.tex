@@ -8,10 +8,6 @@
 \usepackage{booktabs}
 \usepackage{authblk}
 
-
-\usepackage{mathtools}
-\usepackage{amssymb}
-
 \usepackage{xcolor}
 \usepackage[
 colorlinks=true,
@@ -29,7 +25,7 @@ sorting=nyt
 
 \addbibresource{references.bib}
 
-\usepackage[nameinlink]{cleveref}
+\usepackage[nameinlink, capitalize]{cleveref}
 \usepackage{siunitx}
 	\sisetup{detect-all}
 	\sisetup{per-mode = symbol-or-fraction}
@@ -54,9 +50,27 @@ sorting=nyt
 \chapter{Blade Pitch Angle Correction}
 
 	\section{Problem Statement}
-		When using the current methodology there seems to be a pairing of pitch angle movements of the individul bldes and the variations in readings of the in-plane deformation of the blade
+		When using the current methodology there seems to be a pairing of pitch angle movements of the individul bldes and the variations in readings of the in-plane deformation of the blade. The problem can be appreciated in \cref{fig:problem_statement}. This is thought ot emanate from the fact that the pitch correction was not carried out using the needed individual blade rotations, so as the blades rotate, artifacts are formed in the deformation measurements.
+		\begin{figure}[h]
+			\centering
+			\includegraphics[width=0.7\linewidth]{graphics/problem_statement}
+			\caption{This is the problem being shown in a plot.}
+			\label{fig:problem_statement}
+		\end{figure}
+		
 		
 	\section{Approach}
+		The taken approch ws to use an avaiblbe pitch angle reading to eliminate the rotation of the blades by first finding the blade axis along each of the three blades. This was done before any elimination of the rigid body rotation could be carried out in prder to prevetn further mistakes. \Cref{fig:ansatz} helps visualize this priocess with one blade.
+		
+		The pitch axis was asumed to be te axis of a clinder fitted to the inner most AoI of the rotor as this would be approxmtle the same locatioin as the pitch bearings.
+		\begin{figure}
+			\centering
+			\includegraphics[width=\linewidth]{graphics/ansatz}
+			\caption{Used approach to correct the movement.}
+			\label{fig:ansatz}
+		\end{figure}
+		
+		
 	\section{Results}
 
 
