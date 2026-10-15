@@ -1,0 +1,15 @@
+[0] Config.pm:328> INFO - This is Biber 2.21
+[0] Config.pm:331> INFO - Logfile is 'template_Scrreprt.blg'
+[36] biber:342> INFO - === Thu Oct 15, 2026, 10:33:26
+[45] Biber.pm:421> INFO - Reading 'template_Scrreprt.bcf'
+[82] Biber.pm:1002> INFO - Found 1 citekeys in bib section 0
+[91] Biber.pm:4487> INFO - Processing section 0
+[96] Biber.pm:4678> INFO - Looking for bibtex file 'references.bib' for section 0
+[96] bibtex.pm:1713> INFO - LaTeX decoding ...
+[98] bibtex.pm:1519> INFO - Found BibTeX data source 'references.bib'
+[116] UCollate.pm:68> INFO - Overriding locale 'en-US' defaults 'normalization = NFD' with 'normalization = prenormalized'
+[116] UCollate.pm:68> INFO - Overriding locale 'en-US' defaults 'variable = shifted' with 'variable = non-ignorable'
+[116] Biber.pm:4307> INFO - Sorting list 'nyt/global//global/global/global' of type 'entry' with template 'nyt' and locale 'en-US'
+[116] Biber.pm:4313> INFO - No sort tailoring available for locale 'en-US'
+[117] bbl.pm:676> INFO - Writing 'template_Scrreprt.bbl' with encoding 'UTF-8'
+[117] bbl.pm:779> INFO - Output to template_Scrreprt.bbl

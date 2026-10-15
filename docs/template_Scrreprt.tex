@@ -1,28 +1,75 @@
-\documentclass[11pt, a4paper]{scrreprt}
+\documentclass[12pt, a4paper, bibliography=totoc]{scrreprt}
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage[english]{babel}
 
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{authblk}
+
+
+\usepackage{mathtools}
+\usepackage{amssymb}
+
+\usepackage{xcolor}
+\usepackage[
+colorlinks=true,
+linkcolor=blue!70!black,
+citecolor=blue!70!black,
+urlcolor=blue!70!black
+]{hyperref}
+
+
+\usepackage[
+backend=biber,
+style=numeric,
+sorting=nyt
+]{biblatex}
+
+\addbibresource{references.bib}
+
+\usepackage[nameinlink]{cleveref}
+\usepackage{siunitx}
+	\sisetup{detect-all}
+	\sisetup{per-mode = symbol-or-fraction}
+	\DeclareSIUnit{\revpermin}{rpm}
+	\DeclareSIUnit{\inch}{in}
+
 
 % Title Page
-\title{Pitch Angle Correction DIC}
-\author{José A. Rosas Córdova \& Jasson Printezis}
+\title{Pitch and Azimuth Angle Correction for DIC Measurements}
+\author{José A. Rosas Córdova}
+\author{Jasson Printezis}
 
+\affil[]{Institut für Turbomaschinen und Fluid-Dynamik}
 
 \begin{document}
 \maketitle
 
-\begin{abstract}
-	This is were I will write the abstract.
-\end{abstract}
+
+\tableofcontents
 
 
+\chapter{Blade Pitch Angle Correction}
+
+	\section{Problem Statement}
+		When using the current methodology there seems to be a pairing of pitch angle movements of the individul bldes and the variations in readings of the in-plane deformation of the blade
+		
+	\section{Approach}
+	\section{Results}
+
+
+ksdksdfkdsjlkds
 
 \chapter{Gier Winkel}
 
-\chapter{Blade Pitch Angle}
-
+	\section{Problem Statement}
+	\section{Approach}
+	\section{Results}
+	
+	
+\printbibliography[title=References]
 
 
 \end{document}          
