@@ -60,8 +60,169 @@ sorting=none
 
 \chapter{Yaw Correction}
 	\section{Problem Statement}
+		If the wind turbine changes its yaw angle value during the measurent measuring the torsion valiue4 as can be seen \cref{fig:yaw_problem_statement}.
+		
+		\begin{figure}[h]
+			\centering
+			\includegraphics[width=0.7\linewidth]{example-image-a}
+			\caption{Average torsion.}
+			\label{fig:yaw_problem_statement}
+		\end{figure}
+		
 	\section{Solution Approach}
-	\section{Results}
+		The solution is based in instead of taking a average circle to transform all circle, we take a individual circle for each frame. The old schema is shown in, the new sxhema is shown in. The new blocks are shown in yelow.
+		
+		
+		\begin{figure}[htbp]
+			\centering
+			\begin{tikzpicture}[
+				node distance = 1.2cm and 1.0cm,
+				mybox/.style = {
+					rectangle,
+					rounded corners,
+					draw=black,
+					fill=cyan!30,
+					text width=4.2cm,
+					align=center,
+					minimum height=2.2cm,
+					font=\small,
+					inner sep=6pt
+				},
+				line/.style = {-{Stealth}, thick}
+				]
+				% Row 1 (Left to Right)
+				\node[mybox] (p1) {Find reference point, i.e., highest possible visibility, low uncertainty};
+				\node[mybox, right=of p1] (p2) {Extract and save the coordinates of the point from each \texttt{.out} file};
+				\node[mybox, right=of p2] (p3) {Find the middle circle of the recording using the \texttt{geomfitty} library};
+				
+				% Row 2 (Right to Left)
+				\node[mybox, below=1.2cm of p3] (p4) {Calculate the rotation matrix so that the normal vector of the circle points in the X direction};
+				\node[mybox, left=of p4] (p5) {Check if the rotation direction is correct; if not, adjust};
+				\node[mybox, left=of p5] (p6) {Calculate the required angle so that leaf A always points to 12:00 in the first image};
+				
+				% Row 3 (Left to Right)
+				\node[mybox, below=1.2cm of p6] (p7) {Calculate the total rotation matrix using the product of the two matrices};
+				\node[mybox, right=of p7] (p8) {Transform the coordinates of all \texttt{.out} files using this matrix};
+				\node[mybox, right=of p8] (p9) {Save the transformed \texttt{.out} files};
+				
+				% Arrows - Row 1
+				\draw[line] (p1) -- (p2);
+				\draw[line] (p2) -- (p3);
+				
+				% Transition from Row 1 to Row 2
+				\draw[line] (p3) -- (p4);
+				
+				% Arrows - Row 2
+				\draw[line] (p4) -- (p5);
+				\draw[line] (p5) -- (p6);
+				
+				% Transition from Row 2 to Row 3
+				\draw[line] (p6) -- (p7);
+				
+				% Arrows - Row 3
+				\draw[line] (p7) -- (p8);
+				\draw[line] (p8) -- (p9);
+				
+			\end{tikzpicture}
+			\caption{Processing pipeline flowchart translated into English[cite: 1].}
+			\label{fig:pipeline_flowchart}
+		\end{figure}
+		
+		\begin{figure}[htbp]
+			\centering
+			\begin{tikzpicture}[
+				node distance = 1.0cm and 0.9cm,
+				bluebox/.style = {
+					rectangle,
+					rounded corners,
+					draw=black,
+					fill=cyan!30,
+					text width=4.1cm,
+					align=center,
+					minimum height=2.2cm,
+					font=\small,
+					inner sep=6pt
+				},
+				yellowbox/.style = {
+					rectangle,
+					draw=black,
+					rounded corners,
+					fill=yellow!15,
+					text width=4.1cm,
+					align=center,
+					minimum height=2.2cm,
+					font=\small,
+					inner sep=6pt
+				},
+				line/.style = {-{Stealth}, thick}
+				]
+				% --- Row 1 (Left to Right) ---
+				\node[yellowbox] (p1) {Find points in the inner AoIs with highest possible visibility and low uncertainty};
+				\node[bluebox, right=of p1] (p2) {Extract and save the coordinates of the point from each \texttt{.out} file};
+				\node[yellowbox, right=of p2] (p3) {Find the normal vector of the moving circle using the \texttt{geomfitty} library};
+				
+				% --- Row 2 (Right to Left) ---
+				\node[yellowbox, below=1.0cm of p3] (p4) {Calculate individual rotation matrix so that the normal vector of the circle points in the X direction (``automatic'' yaw angle correction)};
+				\node[bluebox, left=of p4] (p5) {Check if the rotation direction is correct; if not, adjust};
+				\node[bluebox, left=of p5] (p6) {Calculate the rotation matrix so that the normal vector of the circle points in the X direction};
+				
+				% --- Row 3 (Left to Right) ---
+				\node[bluebox, below=1.0cm of p6] (p7) {Calculate the required angle so that leaf A always points to 12:00 in the first image};
+				\node[yellowbox, right=of p7] (p8) {Calculate total rotation matrix using the product of the three matrices for each \texttt{.out} file};
+				\node[bluebox, right=of p8] (p9) {Transform the coordinates of all \texttt{.out} files using this matrix};
+				
+				% --- Row 4 (Bottom Center/Right Flow) ---
+				\node[bluebox, below=1.0cm of p8] (p10) {Save transformed \texttt{.out} files};
+				
+				% --- Connectors ---
+				% Row 1
+				\draw[line] (p1) -- (p2);
+				\draw[line] (p2) -- (p3);
+				
+				% Row 1 -> Row 2
+				\draw[line] (p3) -- (p4);
+				
+				% Row 2
+				\draw[line] (p4) -- (p5);
+				\draw[line] (p5) -- (p6);
+				
+				% Row 2 -> Row 3
+				\draw[line] (p6) -- (p7);
+				
+				% Row 3
+				\draw[line] (p7) -- (p8);
+				\draw[line] (p8) -- (p9);
+				
+				% Row 3 -> Row 4
+				\draw[line] (p9.south) |- (p10.east);
+				
+			\end{tikzpicture}
+			\caption{Updated processing pipeline flowchart translated into English[cite: 2].}
+			\label{fig:updated_pipeline_flowchart}
+		\end{figure}
+		
+		
+	\section{Results and Validation}
+		Form messung 24 you have the results below an then a synthethic model was done to validte using  blender file.
+		
+		\subsection{Messung24}
+		This is messung 24.
+			\begin{figure}[h]
+				\centering
+				\includegraphics[width=0.7\linewidth]{example-image-b}
+				\caption{Average torsion.}
+				\label{fig:yaw_messung24}
+			\end{figure}
+		
+		\subsection{Blender Model}
+			a blender model was made to 
+				\begin{figure}[h]
+					\centering
+					\includegraphics[width=0.7\linewidth]{example-image-c}
+					\caption{Average torsion.}
+					\label{fig:yaw_blender}
+				\end{figure}
+			
 
 \chapter{Blade Pitch Angle Correction}
 
@@ -150,7 +311,7 @@ sorting=none
 	 	Appendix \ref{app:pitch} helps visualize the complete correction process with one a single blade (note that an exaggerated pitch value of \qty{45}{\degreeCelsius} has been used there to aid in visualization). Once all three blades have been corrected for the current frame, a new \textit{.out} file for that frame is written and exported for use in the remaining of the script.
 		
 		
-	\section{Results \& Validation}
+	\section{Results and Validation}
 		A direct comparison of the resulting in-plane deformation values with and without correction can be seen in \cref{fig:mit}. When compared to the original signal, it is pretty evident how the orange line, corresponding to the corrected values, has been decoupled from the changes in the blade pitch, oscillating with a uniform amplitude about a consistent centre value throughout the measurement.
 		\begin{figure}
 			\centering

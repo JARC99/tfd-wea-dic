@@ -34,9 +34,9 @@ SAVE_OUTPUT_FLAG = False  # Save the transformed .out files / Don't save them
 SUBSET_FLAG = False  # Specify a subset of the complete raw .out file data set / Use the complete dataset
 
 INDIV_FRAME_ROTMAT_FLAG = False  # Transform each .out file with a rotation matrix calculated from its coordinates / Use an average rotation matrix for the whole data set
-VIC3D_RB_EL_FLAG = True  # Use the built-in VicPy function to eliminate rigid body rotation / Don't use it
+VIC3D_RB_EL_FLAG = False  # Use the built-in VicPy function to eliminate rigid body rotation / Don't use it
 
-BLADE_PITCH_CORR_FLAG = True  # Using a pitch angle time-series, eliminate the pitch angle of ech blade
+BLADE_PITCH_CORR_FLAG = False  # Using a pitch angle time-series, eliminate the pitch angle of ech blade
 
 # Specify the number of processors used to read and write on the files.
 N_PROCESSES = 12
@@ -45,7 +45,7 @@ N_PROCESSES = 12
 N_MARKED_BLADES = 3
 
 # Specify the number of point pairs used for the torsion calculation
-N_TOR_POINT_PAIRS = 1
+N_TOR_POINT_PAIRS = 25
 
 # List the variables that should be stored in the final .csv files. The first column of the file will always contain
 # the index.

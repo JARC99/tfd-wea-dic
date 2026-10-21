@@ -6,30 +6,35 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 base = easygui.diropenbox(
-    "Select the folder containing the /Tor_* folders:")
+   "Select the folder containing the /Tor_* folders:")
 paths = glob.glob(base + "/Tor_*")
+
+
 assert len(paths) > 0
 
 names = [i for i in range(len(paths))]
 
-# file_3 = "G:/Versuch Rotorblatttorsion Yaw Anderung Torsion/Direkt exportierte Punkte/BLENDER Blade BLADE002.5.csv"
+
+# file_3 = "/home/jarc/Desktop/tfd-wea-dic/sandbox/BLENDER Blade BLADE_A_1.csv"  # "G:/Versuch Rotorblatttorsion Yaw Anderung Torsion/Direkt exportierte Punkte/BLENDER Blade BLADE002.5.csv"
 # df_real = pd.read_csv(file_3, sep=";", decimal=',')
 # real_angle = df_real[" Winkel"].to_numpy()
 # real_angle = real_angle - real_angle[0]
 # Wenn  echte Messung, sodass der echte eingestellte Winkel nicht bekannt ist:
-real_angle = None
+# real_angle = None
 
 # ----------------------------------
 blender_data = pd.read_csv("sandbox/BLENDER Blade BLADE_A_1.csv", sep=";", decimal=",")
 
 real_angle = blender_data[" Winkel"] - blender_data[" Winkel"].iloc[0]
 
-
 # ----------------------------------------
 
 diff_list = []
 point_pair_diff_list = []
 angles = []
+
+
+
 
 for i in range(len(paths)):
 
@@ -131,8 +136,6 @@ plt.ylabel("Änderung Distanz Punkte")
 plt.title("Abstand Punktepaare zu Referenzbild besseren Hälfte an Punktepaaren")
 plt.show()
 
-
-
 angles = np.array(angles)
 angle_mean = np.nanmean(angles[good_values], axis=0)
 
@@ -147,7 +150,7 @@ plt.show()
 
 filename = paths[0][0:paths[0].rfind("/")] + "/Torsion/mean_angle.csv"
 df = pd.DataFrame({"mean_angle": angle_mean})
-#df.to_csv(filename, index=True, quotechar="'", sep=';', decimal=',')
+# df.to_csv(filename, index=True, quotechar="'", sep=';', decimal=',')
 
 if len(diff_list) == 0:
     exit()

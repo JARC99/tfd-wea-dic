@@ -826,13 +826,13 @@ def process_out_files_mult_point_tor(file_path_queue, output_path1, output_path2
         der Torsion exportiert werden."""
         "#1"
 
-        if file_number > 0:
-            data.transform(rotation, True)
-            data.transform(translation, True)
-
-        # if VIC3D_RB_EL_FLAG:  # Starrkörperrotation deaktiviert
+        # if file_number > 0:
         #     data.transform(rotation, True)
         #     data.transform(translation, True)
+
+        if VIC3D_RB_EL_FLAG:  # Starrkörperrotation deaktiviert
+            data.transform(rotation, True)
+            data.transform(translation, True)
 
         if SAVE_OUTPUT_FLAG:
             data.save(output_path2 + tail)
