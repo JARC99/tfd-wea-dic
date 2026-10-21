@@ -1,0 +1,299 @@
+\documentclass[12pt, a4paper, oneside, bibliography=totoc]{scrreprt}
+
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage[margin=2cm]{geometry}
+
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{authblk}
+
+	\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, calc}
+
+\usepackage{pdflscape}
+
+\usepackage{lipsum}
+
+\usepackage{xcolor}
+\usepackage[
+colorlinks=true,
+linkcolor=blue!70!black,
+citecolor=blue!70!black,
+urlcolor=blue!70!black
+]{hyperref}
+
+
+\usepackage[
+backend=biber,
+style=numeric,
+sorting=nyt
+]{biblatex}
+
+\addbibresource{references.bib}
+
+\usepackage[nameinlink, capitalize]{cleveref}
+\usepackage{siunitx}
+	\sisetup{detect-all}
+	\sisetup{per-mode = symbol-or-fraction}
+	\DeclareSIUnit{\revpermin}{rpm}
+	\DeclareSIUnit{\inch}{in}
+
+
+% Title Page
+\title{Pitch Angle Correction for DIC Measurements}
+\author{José A. Rosas Córdova}
+\author{Jasson Printezis}
+
+\affil[]{Institut für Turbomaschinen und Fluid-Dynamik}
+
+\begin{document}
+\maketitle
+
+
+\tableofcontents
+
+\chapter{Introduction}
+Here goes the introduction.
+%\lipsum[1-3]
+
+\chapter{Blade Pitch Angle Correction}
+
+	\section{Problem Statement}
+		
+		The second to last step in the currently employed DIC pipeline (see Appendix \ref{appendix:a}), embodied in the \textit{align\_coordinate\_system.py} script, relies on a series of linear transformations to eliminate
+		the rigid body rotation of the wind turbine rotor. This process is then followed by exporting the location of a point across time for each of the identified AoIs on the blade, values which are then finally used to quantify their in-plane, out-of-plane and torsional deformation.
+		
+		The flow diagram shown in \cref{fig:align_coordinate_system} helps visualize the sequence of  transformations carried out on the \textit{.out} files within the script. These alignment transformations are carried out individually for each recorded frame on the complete point cloud (i.e. all valid points on all three blades), virtually eliminating both the rotor rotation and the changes in wind turbine yaw throughout the measurement.
+		\begin{figure}[h]
+			\centering
+			\begin{tikzpicture}[
+				node distance=1cm and 1cm,
+				mybox/.style={
+				rectangle, 
+				draw=black, 
+				fill=cyan!30, 
+				rounded corners, 
+				text width=4cm, 
+				align=center, 
+				minimum height=3cm,
+				font=\small
+				},
+				arrow/.style={-{Stealth}, thick}
+				]
+				
+				% --- ROW 1 (Left to Right) ---
+				\node (1) [mybox] {Find a set of points in the inner AoIs with the highest possible visibility-to-uncertainty ratio.};
+				\node (2) [mybox, right=of 1] {Extract and save the coordinates of these points for each \textit{.out} file};
+				\node (3) [mybox, right= of 2] {Use the \texttt{geomfitty} Python library to fit a circle to this point collection, this is taken to be the rotor orientation on the respective frame.};
+				
+				% --- ROW 2 (Right to Left) ---
+				\node (4) [mybox, below= of 3] {Calculate an individual rotation matrix so that the vector normal to the fitted circle points in the positive x-direction.};
+				\node (5) [mybox, left= of 4] {Check if the rotation direction is correct, if not, adjust};
+				\node (6) [mybox, left= of 5] {Calculate the required rotation angle so that blade A always points at 12:00 in the first image};
+				
+				% --- ROW 3 (Left to Right) ---
+				\node (7) [mybox, below= of 6] {Clculate total rotation matrix using the product of the previous matrices for each \textit{.out} file};
+				\node (8) [mybox, right= of 7] {Transform coordinates of each \textit{.out} file using their corresponding individual matrix};
+				\node (9) [mybox, right= of 8] {Save the transformed \textit{.out} files};
+				
+				% --- CONNECTING ARROWS ---
+				% Row 1
+				\draw [arrow] (1) -- (2);
+				\draw [arrow] (2) -- (3);
+				\draw [arrow] (3.south) -- (4.north);
+				
+				% Row 2 (Right to Left)
+				\draw [arrow] (4) -- (5);
+				\draw [arrow] (5) -- (6);
+				\draw [arrow] (6.south) -- (7.north);
+				
+				% Row 3 (Left to Right)
+				\draw [arrow] (7) -- (8);
+				\draw [arrow] (8) -- (9);
+				
+				
+			\end{tikzpicture}
+			\caption{Flow diagram of the transformations carried out within the original \textit{align\_coordinate\_system.py} script.}
+			\label{fig:align_coordinate_system}
+		\end{figure}
+		
+		
+		Since the DIC measurement are carried out on a pitch-controlled turbine, each blade can also vary its pitch angle independently during operation.  byproduct of applying global transformations to all points is the inability to remove the effects of these individual pitch rotations out of the points on each blade before calculating their deformation values. This manifests itself as the presence of clearly blade pitch-dependent artifacts on the final deformation time-series. This effect is specially clear in the in-plane deformation values; a clear example of this can be seen in \cref{fig:problem_statement} using data from the \textit{Messung 24} measurement.
+		\begin{figure}[h]
+			\centering
+			\includegraphics[width=0.7\linewidth]{graphics/problem_statement.pdf}
+			\caption{In-plane deformation of blade A during the first 10,000 frames of the \textit{Messung 24} measurement plotted on top of the pitch angle offset.}
+			\label{fig:problem_statement}
+		\end{figure}
+
+
+		
+	\section{Correction Approach}
+		Part of the dateset obtained from each field measurement \textit{.mat} file containing a time series of the blade pitch angle value. In a nutshell, the correction process makes uses these values to virtually "un-pitch" all three blades individually in each frame. These new coordinate values are then stored in as a new set of \textit{.out} files that are then used as base for the rest of the transformations carried out in the script.
+		
+		It is assumed that all points in a given blade rotate about a fixed pitch axis throughout the measurement. The origin and orientation of this axis is approximated by fitting a cylinder to the innermost AoI of each blade; once all three pitch axes have been determined, the points corresponding to each blade are corrected using a sequence of lineal transformations in the following order:
+		\begin{enumerate}
+			\item Bring the blade axis origin to the global origin.
+			\item Rotate the blade points so that its pitch axis is aligned with the global z-axis.
+			\item Rotate the blade points about the corresponding pitch angle offset relative to the first frame (i.e. $\Delta \theta_{i} = \theta_{i} - \theta_{0}$) in the negative direction to "unpitch" the blade.
+			\item Apply the inverse rotation to bring the blade axis back to its original orientation.
+			\item Apply the inverse offset to bring back the blade origin to its original location.
+		\end{enumerate}
+		
+	 	Appendix \ref{app:pitch} helps visualize the complete correction process with one a single blade (note that an exaggerated pitch value of \qty{45}{\degreeCelsius} has been used there to aid in visualization). Once all three blades have been corrected for the current frame, a new \textit{.out} file for that frame is written and exported for use in the remaining of the script.
+		
+		
+	\section{Results \& Validation}
+		A direct comparison of the resulting in-plane deformation values with and without correction can be seen in \cref{fig:mit}. When compared to the original signal, it is pretty evident how the orange line, corresponding to the corrected values, has been decoupled from the changes in the blade pitch, oscillating with a uniform amplitude about a consistent centre value throughout the measurement.
+		\begin{figure}
+			\centering
+			\includegraphics[width=0.7\linewidth]{graphics/results_messung24.pdf}
+			\caption{In-plane deformation time-series for the third AoI in blade A with and without pitch correction.}
+			\label{fig:mit}
+		\end{figure}
+		
+		Although these preliminary results looked qualitatively promising, since the dataset used during the development of the script emanated from a real-world measurement it was not possible to quantitatively evaluate how good the corrected results were with respect to a known baseline. With this in mind, a digital twin was used as a baseline . 
+		
+		The blender model used the pitch angle time series from measurement 24 as an input for pitch, the corrected in-plane and out-of-plane signals for its deformation. The frames were generated and processes using the pipeline shown in Appendix \ref{appendix:a}. The resulting in-plane deformation curves can be seen in \cref{fig:output}
+		\begin{figure}
+			\centering
+			\includegraphics[width=0.7\linewidth]{graphics/results_blender.pdf}
+			\caption{Baseline, corrected, and uncorrected values for the synthetic measurement.}
+			\label{fig:output}
+		\end{figure}
+		
+		
+		The absolute error as a function of the deflection is shown in \cref{fig:errorplot}. In order to determine the measurement uncertainty, the deformation values are separated into 10 equally spaced bins. The error bars show the \qty{95}{\percent} confidence interval for the mean as a measurement of uncertainty \cite{d3162443c3da4dd788bb6822cd65a08c}. \Cref{tab:error_sum} summarizes the error measurements for both the uncorrected and corrected signals.
+		\begin{figure}
+			\centering
+			\includegraphics[width=0.7\linewidth]{graphics/error_bars_binned.pdf}
+			\caption{Average error as a function of the in-plane deformation grouped in 10 equally spaced and sized bins.}
+			\label{fig:errorplot}
+		\end{figure}
+		
+		\begin{table}
+			\centering
+			\begin{tabular}{cccc}
+				\toprule
+				Time Series & MAE & Max. Absolute Error & SEM (\qty{95}{\percent}) \\
+				\midrule
+				w/o Pitch Correction & \qty{91.2}{\milli\metre} & \qty{353.0}{\milli\metre} & \qty{3.29}{\milli\metre} \\
+				w/ Pitch Correction & \qty{43.6}{\milli\metre} & \qty{127.4}{\milli\metre} & \qty{1.9}{\milli\metre} \\
+				\bottomrule
+			\end{tabular}
+			\caption{Summary of error measurements for the corrected and uncorrected in-plane deformation signals.}
+			\label{tab:error_sum}
+		\end{table}
+
+		
+		
+\chapter{Yaw Correction}
+	Here goes the yaw correction.
+	
+\nocite{*}
+\printbibliography[title=References]
+
+
+\appendix
+\chapter{WEA DIC Pipeline}
+\label{appendix:a}
+
+\begin{figure}[htbp]
+	\centering
+	\begin{tikzpicture}[
+		node distance=0.5cm and 0.5cm,
+		mybox/.style={
+			rectangle, 
+			draw=black, 
+			fill=cyan!30, 
+			rounded corners, 
+			text width=5cm, 
+			align=center, 
+			minimum height=0.5cm,
+			font=\tiny
+		},
+		arrow/.style={-{Stealth}, thick}
+		]
+		
+		% --- Main Vertical Flow (Top Part) ---
+		\node (A) [mybox] {Capture pictures in the field};
+		\node (B) [mybox, below=of A] {Apply the rotting mask to reduce file size};
+		\node (B1) [mybox, below=of B] {Delete the first $\sim$500 pictures to reach the correct sampling rate};
+		\node (B2) [mybox, below=of B1] {Make sure the first image in the data set has rotor blade A at the 0\textdegree{} position};
+		
+		% --- Camera Split Branches ---
+		\node (C) [mybox, below left=0.7cm and -1.4cm of B2] {Isolate the AoIs using \texttt{aoi\_segmentation.py} for the images taken with Camera 1};
+		\node (D) [mybox, below right=0.7cm and -1.4cm of B2] {Isolate the AoIs using \texttt{aoi\_segmentation.py} for the imges taken with Camera 2};
+		
+		% --- Merge to Vic3D ---
+		\node (E) [mybox, below=1cm of B2, yshift=-1.75cm] {Import images into a new Vic3D project};
+		\node (F) [mybox, below=of E] {Set a start point for each of the AoIs to help jumpstart the image correlation process};
+		
+		\node (G) [mybox, below=of F] {Wait for all start points to reach 100\%};
+		
+		\node (H) [mybox, below=of G] {Store the Vic3D project in the same directory as the mosaic images};
+		
+		\node (I) [mybox, below=of H] {Bring files into real world coordinate system using \textit{process\_Vic3D\_project\_file.py}};
+		
+		\node (J) [mybox, below=of I] {Run correlation in the newly processed Vic3D project (stored in the same folder as original images)};
+		
+		% --- Final Processing Branch ---
+		\node (K) [mybox, below=of J] {Transform the correlation results into rotor or nacelle coordinate system using \textit{aligning\_coordinate\_system}};
+		
+		\node (L) [mybox, below left=0.7cm and -1.4cm of K] {Calculate out-of-plane deformation};
+		\node (M) [mybox, below right=0.7cm and -1.4cm of K] {Calculate in-plane deformation};
+		\node (N) [mybox, below=1cm of K, yshift=-0.8cm] {Calculate blade torsion};
+		
+		% --- Connecting Arrows ---
+		\draw [arrow] (A) -- node[right, font=\tiny] {Raw images} (B);
+		\draw [arrow] (B) -- node[right, font=\tiny] {Masked images} (B1);
+		\draw [arrow] (B1) -- (B2);
+		
+		% Split to C and D
+		\draw [arrow] (B2) -| node[above left, pos=0.7, font=\tiny] {Truncated dataset} (C);
+		\draw [arrow] (B2) -| node[above right, pos=0.7, font=\tiny] {Truncated dataset} (D);
+		
+		% Into E
+		\draw [arrow] (C) |- node[near start, left, font=\tiny] {Mosaic images} (E);
+		\draw [arrow] (D) |- node[near start, right, font=\tiny] {Mosaic images} (E);
+		
+		% Downward flow
+		\draw [arrow] (E) -- (F);
+		\draw [arrow] (F) -- (G);
+		\draw [arrow] (G) -- node[right, font=\tiny] {Initialized start points} (H);
+		\draw [arrow] (H) -- node[right, font=\tiny]{<\textit{PROJECT\_NAME>.z3d}} (I); 
+		\draw [arrow] (I) -- node[right, font=\tiny] {\textit{Result\_<PROJECT\_NAME>.z3d}} (J);
+		
+		% Post-J processing
+		\draw [arrow] (J) -- node[right, font=\tiny] {\textit{*.out} files} (K);
+		
+		% Final split from K
+		\draw [arrow] (K) -| (L);
+		\draw [arrow] (K) -| (M);
+		\draw [arrow] (K) -- (N);
+		
+	\end{tikzpicture}
+	\caption{Complete processing pipeline for WEA DIC data acquisition and evaluation.}
+	\label{fig:wea_pipeline}
+\end{figure}
+		
+\begin{landscape}
+	\chapter{Pitch Correction of a Single Blade}
+	\label{app:pitch}
+	
+	
+	\vspace{1em} % Optional spacing between title and image
+	\begin{center}
+		\includegraphics[width=0.9\linewidth]{graphics/ansatz.png}
+		\captionof{figure}{Pitch correction process exemplified with a single blade and a exagerated \qty{45}{\degree} pitch value.}
+		\label{fig:ansatz}
+	\end{center}
+\end{landscape}
+
+
+
+
+\end{document}          
