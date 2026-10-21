@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025/Debian) (preloaded format=pdflatex 2026.10.15)  21 OCT 2026 10:35
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025/Debian) (preloaded format=pdflatex 2026.10.15)  21 OCT 2026 12:12
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1258,12 +1258,12 @@ File: graphics/results_blender.pdf Graphic file (type pdf)
 <use graphics/results_blender.pdf>
 Package pdftex.def Info: graphics/results_blender.pdf  used on input line 167.
 (pdftex.def)             Requested size: 338.58632pt x 255.87686pt.
-<graphics/error_bars_binned.pdf, id=139, 642.85109pt x 488.80383pt>
+<graphics/error_bars_binned.pdf, id=139, 449.59698pt x 341.47028pt>
 File: graphics/error_bars_binned.pdf Graphic file (type pdf)
 <use graphics/error_bars_binned.pdf>
 Package pdftex.def Info: graphics/error_bars_binned.pdf  used on input line 176
 .
-(pdftex.def)             Requested size: 338.58632pt x 257.44629pt.
+(pdftex.def)             Requested size: 338.58632pt x 257.15457pt.
  [7{/usr/share/texmf/fonts/enc/dvips/cm-super/cm-super-ts1.enc} <./graphics/res
 ults_messung24.pdf>] [8 <./graphics/results_blender.pdf> <./graphics/error_bars
 _binned.pdf>]
@@ -1324,7 +1324,7 @@ ts/type1/public/cm-super/sfti0600.pfb></usr/share/texmf/fonts/type1/public/cm-s
 uper/sfti1095.pfb></usr/share/texmf/fonts/type1/public/cm-super/sfti1200.pfb></
 usr/share/texmf/fonts/type1/public/cm-super/sftt0800.pfb></usr/share/texmf/font
 s/type1/public/cm-super/sftt1095.pfb>
-Output written on main.pdf (11 pages, 962368 bytes).
+Output written on main.pdf (11 pages, 962219 bytes).
 PDF statistics:
  471 PDF objects out of 1000 (max. 8388607)
  238 compressed objects within 3 object streams
