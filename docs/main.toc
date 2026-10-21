@@ -1,10 +1,13 @@
 \babel@toc {english}{}\relax 
 \contentsline {chapter}{\numberline {1}Introduction}{3}{chapter.1}%
-\contentsline {chapter}{\numberline {2}Blade Pitch Angle Correction}{4}{chapter.2}%
+\contentsline {chapter}{\numberline {2}Yaw Correction}{4}{chapter.2}%
 \contentsline {section}{\numberline {2.1}Problem Statement}{4}{section.2.1}%
-\contentsline {section}{\numberline {2.2}Correction Approach}{5}{section.2.2}%
-\contentsline {section}{\numberline {2.3}Results \& Validation}{6}{section.2.3}%
-\contentsline {chapter}{\numberline {3}Yaw Correction}{8}{chapter.3}%
+\contentsline {section}{\numberline {2.2}Solution Approach}{4}{section.2.2}%
+\contentsline {section}{\numberline {2.3}Results}{4}{section.2.3}%
+\contentsline {chapter}{\numberline {3}Blade Pitch Angle Correction}{5}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Problem Statement}{5}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Correction Approach}{6}{section.3.2}%
+\contentsline {section}{\numberline {3.3}Results \& Validation}{7}{section.3.3}%
 \contentsline {chapter}{\nonumberline References}{9}{chapter*.2}%
 \def \@chapapp {\appendixname }
 \contentsline {chapter}{\numberline {A}WEA DIC Pipeline}{10}{appendix.A}%

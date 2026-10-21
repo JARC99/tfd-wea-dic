@@ -29,7 +29,7 @@ urlcolor=blue!70!black
 \usepackage[
 backend=biber,
 style=numeric,
-sorting=nyt
+sorting=none
 ]{biblatex}
 
 \addbibresource{references.bib}
@@ -56,8 +56,12 @@ sorting=nyt
 \tableofcontents
 
 \chapter{Introduction}
-Here goes the introduction.
-%\lipsum[1-3]
+	\lipsum[1-3]
+
+\chapter{Yaw Correction}
+	\section{Problem Statement}
+	\section{Solution Approach}
+	\section{Results}
 
 \chapter{Blade Pitch Angle Correction}
 
@@ -166,7 +170,7 @@ Here goes the introduction.
 		\end{figure}
 		
 		
-		The absolute error as a function of the deflection is shown in \cref{fig:errorplot}. In order to determine the measurement uncertainty, the deformation values are separated into 10 equally spaced bins. The error bars show the \qty{95}{\percent} confidence interval for the mean as a measurement of uncertainty \cite{d3162443c3da4dd788bb6822cd65a08c}. \Cref{tab:error_sum} summarizes the error measurements for both the uncorrected and corrected signals.
+		The absolute error as a function of the deflection is shown in \cref{fig:errorplot}. In order to determine the measurement uncertainty, the deformation values are separated into 10 equally spaced bins. The error bars show the \qty{95}{\percent} confidence interval for the mean as a measurement of uncertainty \cite{winstroth2020optische}. \Cref{tab:error_sum} summarizes the error measurements for both the uncorrected and corrected signals.
 		\begin{figure}
 			\centering
 			\includegraphics[width=0.7\linewidth]{graphics/error_bars_binned.pdf}
@@ -188,12 +192,7 @@ Here goes the introduction.
 			\label{tab:error_sum}
 		\end{table}
 
-		
-		
-\chapter{Yaw Correction}
-	Here goes the yaw correction.
-	
-\nocite{*}
+%\nocite{*}
 \printbibliography[title=References]
 
 
@@ -276,7 +275,7 @@ Here goes the introduction.
 		\draw [arrow] (K) -- (N);
 		
 	\end{tikzpicture}
-	\caption{Complete processing pipeline for WEA DIC data acquisition and evaluation.}
+	\caption{Complete processing pipeline for WEA DIC data acquisition and evaluation as described in \cite{winstroth2016leitfaden}.}
 	\label{fig:wea_pipeline}
 \end{figure}
 		
@@ -292,8 +291,6 @@ Here goes the introduction.
 		\label{fig:ansatz}
 	\end{center}
 \end{landscape}
-
-
 
 
 \end{document}          

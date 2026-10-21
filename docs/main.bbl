@@ -18,38 +18,66 @@
 
 
 \refsection{0}
-  \datalist[entry]{nyt/global//global/global/global}
-    \entry{d3162443c3da4dd788bb6822cd65a08c}{thesis}{}{}
+  \datalist[entry]{none/global//global/global/global}
+    \entry{winstroth2020optische}{thesis}{}{}
       \name{author}{1}{}{%
-        {{hash=0747279793b691fdf382cbaebaad3bb1}{%
+        {{hash=f44dab605510b0e2df9df511e4e6d361}{%
            family={Winstroth},
            familyi={W\bibinitperiod},
-           given={J.},
+           given={Jan},
            giveni={J\bibinitperiod}}}%
       }
       \list{institution}{1}{%
-        {Gottfried Wilhelm Leibniz Universität Hannover}%
+        {Gottfried Wilhelm Leibniz Universität Hannover, Fakultät für Maschinenbau}%
       }
-      \list{language}{1}{%
-        {Deutsch}%
-      }
-      \strng{namehash}{0747279793b691fdf382cbaebaad3bb1}
-      \strng{fullhash}{0747279793b691fdf382cbaebaad3bb1}
-      \strng{fullhashraw}{0747279793b691fdf382cbaebaad3bb1}
-      \strng{bibnamehash}{0747279793b691fdf382cbaebaad3bb1}
-      \strng{authorbibnamehash}{0747279793b691fdf382cbaebaad3bb1}
-      \strng{authornamehash}{0747279793b691fdf382cbaebaad3bb1}
-      \strng{authorfullhash}{0747279793b691fdf382cbaebaad3bb1}
-      \strng{authorfullhashraw}{0747279793b691fdf382cbaebaad3bb1}
-      \field{sortinit}{W}
-      \field{sortinithash}{4315d78024d0cea9b57a0c6f0e35ed0d}
+      \strng{namehash}{f44dab605510b0e2df9df511e4e6d361}
+      \strng{fullhash}{f44dab605510b0e2df9df511e4e6d361}
+      \strng{fullhashraw}{f44dab605510b0e2df9df511e4e6d361}
+      \strng{bibnamehash}{f44dab605510b0e2df9df511e4e6d361}
+      \strng{authorbibnamehash}{f44dab605510b0e2df9df511e4e6d361}
+      \strng{authornamehash}{f44dab605510b0e2df9df511e4e6d361}
+      \strng{authorfullhash}{f44dab605510b0e2df9df511e4e6d361}
+      \strng{authorfullhashraw}{f44dab605510b0e2df9df511e4e6d361}
+      \field{extraname}{1}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
-      \field{note}{Dissertation}
-      \field{series}{Berichte aus dem Institut für Turbomaschinen und Fluid-Dynamik / Gottfried Wilhelm Leibniz Universität Hannover Institut für Turbomaschinen und Fluid-Dynamik}
       \field{title}{Optische Erfassung der Rotorblattverformungen von Windenergieanlagen der Multi-Megawatt-Klasse durch digitale Bildkorrelation}
-      \field{type}{phdthesis}
+      \field{type}{Dissertation}
       \field{year}{2020}
+    \endentry
+    \entry{winstroth2016leitfaden}{report}{}{}
+      \name{author}{1}{}{%
+        {{hash=f44dab605510b0e2df9df511e4e6d361}{%
+           family={Winstroth},
+           familyi={W\bibinitperiod},
+           given={Jan},
+           giveni={J\bibinitperiod}}}%
+      }
+      \list{institution}{1}{%
+        {Leibniz Universität Hannover, Institut für Turbomaschinen und Fluid-Dynamik (TFD)}%
+      }
+      \strng{namehash}{f44dab605510b0e2df9df511e4e6d361}
+      \strng{fullhash}{f44dab605510b0e2df9df511e4e6d361}
+      \strng{fullhashraw}{f44dab605510b0e2df9df511e4e6d361}
+      \strng{bibnamehash}{f44dab605510b0e2df9df511e4e6d361}
+      \strng{authorbibnamehash}{f44dab605510b0e2df9df511e4e6d361}
+      \strng{authornamehash}{f44dab605510b0e2df9df511e4e6d361}
+      \strng{authorfullhash}{f44dab605510b0e2df9df511e4e6d361}
+      \strng{authorfullhashraw}{f44dab605510b0e2df9df511e4e6d361}
+      \field{extraname}{2}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{day}{26}
+      \field{month}{8}
+      \field{note}{Arbeitsgruppe/Abteilung: TFD -- Gruppe Turbine. Änderungsdatum: 04.05.2018 by Stephanie Lehnhoff}
+      \field{title}{Leitfaden: How to DIC a wind turbine}
+      \field{type}{Leitfaden}
+      \field{year}{2016}
+      \field{dateera}{ce}
     \endentry
   \enddatalist
 \endrefsection
