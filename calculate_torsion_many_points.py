@@ -148,9 +148,6 @@ plt.ylabel("Durchschnittswinkeländerung in °")
 plt.title("Durchschnittswinkeländerung der besseren Hälfte zum Referenzbild")
 plt.show()
 
-filename = paths[0][0:paths[0].rfind("/")] + "/Torsion/mean_angle.csv"
-df = pd.DataFrame({"mean_angle": angle_mean})
-# df.to_csv(filename, index=True, quotechar="'", sep=';', decimal=',')
 
 if len(diff_list) == 0:
     exit()

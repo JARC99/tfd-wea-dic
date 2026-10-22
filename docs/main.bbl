@@ -19,6 +19,102 @@
 
 \refsection{0}
   \datalist[entry]{none/global//global/global/global}
+    \entry{gossling2020qualifizierung}{thesis}{}{}
+      \name{author}{1}{}{%
+        {{hash=56563f31e0d9546eca415009ee8ee63e}{%
+           family={Gö{ß}ling},
+           familyi={G\bibinitperiod},
+           given={Jan},
+           giveni={J\bibinitperiod}}}%
+      }
+      \list{institution}{1}{%
+        {Leibniz Universität Hannover, Institut für Turbomaschinen und Fluid-Dynamik (TFD)}%
+      }
+      \list{location}{1}{%
+        {Garbsen}%
+      }
+      \strng{namehash}{56563f31e0d9546eca415009ee8ee63e}
+      \strng{fullhash}{56563f31e0d9546eca415009ee8ee63e}
+      \strng{fullhashraw}{56563f31e0d9546eca415009ee8ee63e}
+      \strng{bibnamehash}{56563f31e0d9546eca415009ee8ee63e}
+      \strng{authorbibnamehash}{56563f31e0d9546eca415009ee8ee63e}
+      \strng{authornamehash}{56563f31e0d9546eca415009ee8ee63e}
+      \strng{authorfullhash}{56563f31e0d9546eca415009ee8ee63e}
+      \strng{authorfullhashraw}{56563f31e0d9546eca415009ee8ee63e}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{day}{18}
+      \field{month}{2}
+      \field{note}{Matr.-Nr.: 3016210; Erstprüfer: Prof. Jörg Seume; Zweitprüfer: Lars Panning-von Scheidt}
+      \field{title}{Qualifizierung eines optischen Messsystems für die Ermittlung der Schaufel\-schwingung in einem Low-Speed-Fan}
+      \field{type}{mastersthesis}
+      \field{year}{2020}
+      \field{dateera}{ce}
+    \endentry
+    \entry{steimer2026auswertung}{thesis}{}{}
+      \name{author}{1}{}{%
+        {{hash=0615b09b47ecf9ec13b25427c76f0b69}{%
+           family={Valle\bibnamedelima Steimer},
+           familyi={V\bibinitperiod\bibinitdelim S\bibinitperiod},
+           given={Lucas},
+           giveni={L\bibinitperiod},
+           prefix={del},
+           prefixi={d\bibinitperiod}}}%
+      }
+      \list{institution}{1}{%
+        {Leibniz Universität Hannover, Institut für Turbomaschinen und Fluid-Dynamik (TFD)}%
+      }
+      \list{location}{1}{%
+        {Garbsen}%
+      }
+      \strng{namehash}{0615b09b47ecf9ec13b25427c76f0b69}
+      \strng{fullhash}{0615b09b47ecf9ec13b25427c76f0b69}
+      \strng{fullhashraw}{0615b09b47ecf9ec13b25427c76f0b69}
+      \strng{bibnamehash}{0615b09b47ecf9ec13b25427c76f0b69}
+      \strng{authorbibnamehash}{0615b09b47ecf9ec13b25427c76f0b69}
+      \strng{authornamehash}{0615b09b47ecf9ec13b25427c76f0b69}
+      \strng{authorfullhash}{0615b09b47ecf9ec13b25427c76f0b69}
+      \strng{authorfullhashraw}{0615b09b47ecf9ec13b25427c76f0b69}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{month}{4}
+      \field{note}{Matrikelnummer: 10054845; Prüfer: Prof. Dr.-Ing. Jörg R. Seume, Dr.-Ing. Lars Panning-von Scheidt genannt Weschpfennig}
+      \field{title}{Auswertung von flächigen Rotorblattdeformationen einer Offshore Windenergieanlage mittels digitaler Bildkorrelation}
+      \field{type}{mastersthesis}
+      \field{year}{2026}
+      \field{dateera}{ce}
+    \endentry
+    \entry{lehnhoff2026validation}{thesis}{}{}
+      \name{author}{1}{}{%
+        {{hash=d481a0bf483a00d6119ddc4e21a328eb}{%
+           family={Lehnhoff},
+           familyi={L\bibinitperiod},
+           given={Stephanie},
+           giveni={S\bibinitperiod}}}%
+      }
+      \list{institution}{1}{%
+        {Gottfried Wilhelm Leibniz Universität Hannover, Fakultät für Maschinenbau}%
+      }
+      \strng{namehash}{d481a0bf483a00d6119ddc4e21a328eb}
+      \strng{fullhash}{d481a0bf483a00d6119ddc4e21a328eb}
+      \strng{fullhashraw}{d481a0bf483a00d6119ddc4e21a328eb}
+      \strng{bibnamehash}{d481a0bf483a00d6119ddc4e21a328eb}
+      \strng{authorbibnamehash}{d481a0bf483a00d6119ddc4e21a328eb}
+      \strng{authornamehash}{d481a0bf483a00d6119ddc4e21a328eb}
+      \strng{authorfullhash}{d481a0bf483a00d6119ddc4e21a328eb}
+      \strng{authorfullhashraw}{d481a0bf483a00d6119ddc4e21a328eb}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{On the validation of aeroelastic simulations of wind turbines using digital image correlation}
+      \field{type}{Dissertation}
+      \field{year}{2026}
+    \endentry
     \entry{winstroth2020optische}{thesis}{}{}
       \name{author}{1}{}{%
         {{hash=f44dab605510b0e2df9df511e4e6d361}{%
@@ -47,6 +143,17 @@
       \field{type}{Dissertation}
       \field{year}{2020}
     \endentry
+    \entry{automatisierung_auswertung_dic_2025}{unpublished}{}{}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labeltitlesource}{title}
+      \field{day}{27}
+      \field{month}{10}
+      \field{note}{Unpublished document / Internal report}
+      \field{title}{Automatisierung Auswertung DIC}
+      \field{year}{2025}
+      \field{dateera}{ce}
+    \endentry
     \entry{winstroth2016leitfaden}{report}{}{}
       \name{author}{1}{}{%
         {{hash=f44dab605510b0e2df9df511e4e6d361}{%
@@ -67,8 +174,8 @@
       \strng{authorfullhash}{f44dab605510b0e2df9df511e4e6d361}
       \strng{authorfullhashraw}{f44dab605510b0e2df9df511e4e6d361}
       \field{extraname}{2}
-      \field{sortinit}{2}
-      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{sortinit}{5}
+      \field{sortinithash}{20e9b4b0b173788c5dace24730f47d8c}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{day}{26}
