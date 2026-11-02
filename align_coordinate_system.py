@@ -30,11 +30,10 @@ from geomfitty import fit3d, geom3d
 # ----------------------------------------------------------------------------------------------------------------------
 
 # Set the values of the boolean flags used to control the program flow.
-SAVE_OUTPUT_FLAG = False  # Save the transformed .out files / Don't save them
+SAVE_OUTPUT_FLAG = True  # Save the transformed .out files / Don't save them
 SUBSET_FLAG = False  # Specify a subset of the complete raw .out file data set / Use the complete dataset
 
 INDIV_FRAME_ROTMAT_FLAG = False  # Transform each .out file with a rotation matrix calculated from its coordinates / Use an average rotation matrix for the whole data set
-VIC3D_RB_EL_FLAG = False  # Use the built-in VicPy function to eliminate rigid body rotation / Don't use it
 
 BLADE_PITCH_CORR_FLAG = False  # Using a pitch angle time-series, eliminate the pitch angle of ech blade
 
@@ -45,7 +44,7 @@ N_PROCESSES = 12
 N_MARKED_BLADES = 3
 
 # Specify the number of point pairs used for the torsion calculation
-N_TOR_POINT_PAIRS = 1
+N_TOR_POINT_PAIRS = 25
 
 # List the variables that should be stored in the final .csv files. The first column of the file will always contain
 # the index.
@@ -423,11 +422,10 @@ if __name__ == "__main__":
         pitch_angle_data = scipy.io.loadmat(pitch_angle_file)
         pitch_angle_data = pitch_angle_data["pitch_wea_bladeA"].flatten()
 
-        #pitch_angle_data = pd.read_csv(pitch_angle_file, sep=";", decimal=",") # TODO: only for test
-        #pitch_angle_data = -pitch_angle_data[" Winkel"].to_numpy()
+        # pitch_angle_data = pd.read_csv(pitch_angle_file, sep=";", decimal=",") # TODO: only for test
+        # pitch_angle_data = -pitch_angle_data[" Winkel"].to_numpy()
 
-        #pitch_angle_data = np.loadtxt(pitch_angle_file) # *-1
-
+        # pitch_angle_data = np.loadtxt(pitch_angle_file) # *-1
 
         if SUBSET_FLAG:
             pitch_angle_data = pitch_angle_data[:subset_size]
@@ -975,7 +973,6 @@ if __name__ == "__main__":
                 shared_mem,
                 interesting_subsets_id_vicpy,
                 variables_export_name_out_file,
-                VIC3D_RB_EL_FLAG,
                 N_TOR_POINT_PAIRS,
                 SAVE_OUTPUT_FLAG,
             ),
