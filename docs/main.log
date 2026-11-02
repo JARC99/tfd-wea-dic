@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025/Debian) (preloaded format=pdflatex 2026.10.15)  22 OCT 2026 13:39
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025/Debian) (preloaded format=pdflatex 2026.10.15)  2 NOV 2026 10:33
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1252,27 +1252,26 @@ Package pdftex.def Info: graphics/problem_statement.pdf  used on input line 266
 .
 (pdftex.def)             Requested size: 290.22107pt x 226.15968pt.
  [5{/usr/share/texmf/fonts/enc/dvips/cm-super/cm-super-ts1.enc} <./graphics/yaw
-_error_bars_binned.pdf>]
-<graphics/results_messung24.pdf, id=300, 453.92447pt x 353.7215pt>
+_error_bars_binned.pdf>] [6 <./graphics/problem_statement.pdf>]
+<graphics/results_messung24.pdf, id=365, 453.92447pt x 353.7215pt>
 File: graphics/results_messung24.pdf Graphic file (type pdf)
 <use graphics/results_messung24.pdf>
-Package pdftex.def Info: graphics/results_messung24.pdf  used on input line 292
+Package pdftex.def Info: graphics/results_messung24.pdf  used on input line 293
 .
 (pdftex.def)             Requested size: 290.22107pt x 226.15968pt.
- [6 <./graphics/problem_statement.pdf>]
-<graphics/results_blender.pdf, id=367, 643.23148pt x 486.10567pt>
+<graphics/results_blender.pdf, id=368, 643.23148pt x 486.10567pt>
 File: graphics/results_blender.pdf Graphic file (type pdf)
 <use graphics/results_blender.pdf>
-Package pdftex.def Info: graphics/results_blender.pdf  used on input line 302.
+Package pdftex.def Info: graphics/results_blender.pdf  used on input line 303.
 (pdftex.def)             Requested size: 290.22107pt x 219.32408pt.
 
 
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
-<graphics/error_bars_binned.pdf, id=369, 454.34822pt x 339.34546pt>
+<graphics/error_bars_binned.pdf, id=370, 454.34822pt x 339.34546pt>
 File: graphics/error_bars_binned.pdf Graphic file (type pdf)
 <use graphics/error_bars_binned.pdf>
-Package pdftex.def Info: graphics/error_bars_binned.pdf  used on input line 310
+Package pdftex.def Info: graphics/error_bars_binned.pdf  used on input line 311
 .
 (pdftex.def)             Requested size: 290.22107pt x 216.76093pt.
 
@@ -1280,21 +1279,21 @@ LaTeX Warning: `!h' float specifier changed to `!ht'.
 
 [7 <./graphics/results_messung24.pdf>] [8 <./graphics/results_blender.pdf> <./g
 raphics/error_bars_binned.pdf>]
-Overfull \hbox (2.23451pt too wide) in paragraph at lines 330--330
+Overfull \hbox (2.23451pt too wide) in paragraph at lines 331--331
 []\T1/cmr/m/n/12 Jan Win-stroth. \T1/cmr/m/it/12 Leit-faden: How to DIC a wind 
 tur-bine\T1/cmr/m/n/12 . Leit-faden. Ar-beits-gruppe/Abteilung:
  []
 
 [9]
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <5> on input line 358.
+(Font)              <5> on input line 359.
  [10
 
 ]
-<graphics/ansatz.png, id=560, 1387.584pt x 702.4644pt>
+<graphics/ansatz.png, id=561, 1387.584pt x 702.4644pt>
 File: graphics/ansatz.png Graphic file (type png)
 <use graphics/ansatz.png>
-Package pdftex.def Info: graphics/ansatz.png  used on input line 423.
+Package pdftex.def Info: graphics/ansatz.png  used on input line 424.
 (pdftex.def)             Requested size: 731.23584pt x 370.19278pt.
  [11
 
@@ -1308,9 +1307,9 @@ Package logreq Info: Writing requests to 'main.run.xml'.
 
  ) 
 Here is how much of TeX's memory you used:
- 38576 strings out of 469388
- 814761 string characters out of 5466080
- 1790005 words of memory out of 5000000
+ 38577 strings out of 469388
+ 814767 string characters out of 5466080
+ 1790013 words of memory out of 5000000
  66734 multiletter control sequences out of 15000+600000
  640726 words of font info for 65 fonts, out of 8000000 for 9000
  59 hyphenation exceptions out of 8191
@@ -1330,10 +1329,10 @@ ts/type1/public/cm-super/sfsx2488.pfb></usr/share/texmf/fonts/type1/public/cm-s
 uper/sfti0600.pfb></usr/share/texmf/fonts/type1/public/cm-super/sfti0800.pfb></
 usr/share/texmf/fonts/type1/public/cm-super/sfti1200.pfb></usr/share/texmf/font
 s/type1/public/cm-super/sftt0800.pfb>
-Output written on main.pdf (11 pages, 1228775 bytes).
+Output written on main.pdf (11 pages, 1231422 bytes).
 PDF statistics:
- 700 PDF objects out of 1000 (max. 8388607)
- 298 compressed objects within 3 object streams
- 49 named destinations out of 1000 (max. 500000)
+ 701 PDF objects out of 1000 (max. 8388607)
+ 299 compressed objects within 3 object streams
+ 50 named destinations out of 1000 (max. 500000)
  154 words of extra memory for PDF output out of 10000 (max. 10000000)
 

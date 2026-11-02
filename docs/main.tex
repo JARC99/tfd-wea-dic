@@ -44,7 +44,7 @@ sorting=none
 
 
 % Title Page
-\title{Pitch Angle Correction for DIC Measurements}
+\title{Yaw and Pitch Angle Correction for DIC Measurements}
 \author{José A. Rosas Córdova}
 \author{Jasson Printezis}
 
@@ -275,6 +275,7 @@ sorting=none
 	
 	It is assumed that all points in a given blade rotate about a fixed pitch axis throughout the measurement. The origin and orientation of this axis is approximated by fitting a cylinder to the innermost AoI of each blade; once all three pitch axes have been determined, the points corresponding to each blade are corrected using a sequence of linear transformations in the following order:
 	\begin{enumerate}
+		\item Load the points contained within each blade.
 		\item Bring the blade axis origin to the global origin.
 		\item Rotate the blade points so that its pitch axis is aligned with the global z-axis.
 		\item Rotate the blade points about the corresponding pitch angle offset relative to the first frame (i.e. $\Delta \theta_{i} = \theta_{i} - \theta_{0}$) in the negative direction to "unpitch" the blade.
