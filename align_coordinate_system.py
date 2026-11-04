@@ -30,12 +30,12 @@ from geomfitty import fit3d, geom3d
 # ----------------------------------------------------------------------------------------------------------------------
 
 # Set the values of the boolean flags used to control the program flow.
-SAVE_OUTPUT_FLAG = True  # Save the transformed .out files / Don't save them
-SUBSET_FLAG = False  # Specify a subset of the complete raw .out file data set / Use the complete dataset
+SAVE_OUTPUT_FLAG = False  # Save the transformed .out files / Don't save them
+SUBSET_FLAG = True  # Specify a subset of the complete raw .out file data set / Use the complete dataset
 
-INDIV_FRAME_ROTMAT_FLAG = False  # Transform each .out file with a rotation matrix calculated from its coordinates / Use an average rotation matrix for the whole data set
+INDIV_FRAME_ROTMAT_FLAG = True  # Transform each .out file with a rotation matrix calculated from its coordinates / Use an average rotation matrix for the whole data set
 
-BLADE_PITCH_CORR_FLAG = False  # Using a pitch angle time-series, eliminate the pitch angle of ech blade
+BLADE_PITCH_CORR_FLAG = True  # Using a pitch angle time-series, eliminate the pitch angle of ech blade
 
 # Specify the number of processors used to read and write on the files.
 N_PROCESSES = 12
@@ -44,7 +44,7 @@ N_PROCESSES = 12
 N_MARKED_BLADES = 3
 
 # Specify the number of point pairs used for the torsion calculation
-N_TOR_POINT_PAIRS = 25
+N_TOR_POINT_PAIRS = 1
 
 # List the variables that should be stored in the final .csv files. The first column of the file will always contain
 # the index.
@@ -82,7 +82,7 @@ if __name__ == "__main__":
     out_file_list = sorted(glob.glob(out_file_dir + "/*.out"))
 
     if SUBSET_FLAG:
-        subset_size = int(input(f"Specify how many files should be considered (must be <= {len(out_file_list)}): "))
+        subset_size = 200  # int(input(f"Specify how many files should be considered (must be <= {len(out_file_list)}): "))
         if subset_size <= len(out_file_list):
             out_file_list = out_file_list[:subset_size]
         else:
@@ -650,24 +650,24 @@ if __name__ == "__main__":
     if INDIV_FRAME_ROTMAT_FLAG:
         for idx, out_file in enumerate(out_file_list):
             visibility_b, coordinates_b, _, _, _ = read_file(out_file, test_subsets_list)
-
             better_center = np.mean(coordinates_b[indices_of_inner_subsets])
 
             better_rad = np.mean(
                 np.linalg.norm(
-                    better_center - coordinates_b[indices_of_inner_subsets],
+                    mean_position_array[aoi_ids_near_center] - np.mean(coordinates_b[indices_of_inner_subsets][np.nonzero(visibility_b[indices_of_inner_subsets])[0]], axis=0),
                     axis=1,
                 )
-                / 1000
+                / 1
             )
 
             initial_guess = geom3d.Circle3D(
-                np.mean(coordinates_b[indices_of_inner_subsets], axis=0),
+
+                np.mean(coordinates_b[indices_of_inner_subsets][np.nonzero(visibility_b[indices_of_inner_subsets])[0]], axis=0),
                 [1, 0, 0],
                 better_rad,
             )
             better_circle = fit3d.circle3D_fit(
-                coordinates_b[indices_of_inner_subsets],
+                coordinates_b[indices_of_inner_subsets][np.nonzero(visibility_b[indices_of_inner_subsets])[0]],
                 initial_guess=initial_guess,
             )
 
