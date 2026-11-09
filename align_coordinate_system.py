@@ -45,7 +45,7 @@ N_PROCESSES = 12
 N_MARKED_BLADES = 3
 
 # Specify the number of point pairs used for the torsion calculation
-N_TOR_POINT_PAIRS = 1
+N_TOR_POINT_PAIRS = 5
 
 # List the variables that should be stored in the final .csv files. The first column of the file will always contain
 # the index.
@@ -809,31 +809,35 @@ if __name__ == "__main__":
     print("\r", "Step 4/5: Search points for rotor blade torsion calculation...  100 %")
 
     fig4 = plt.figure(figsize=(10, 10))
-    ax4 = plt.axes(projection="3d")
+    ax4 = plt.axes(projection='3d')
     ax4.grid()
-    ax4.scatter(
-        coordinates_f0[found_indices_f0].T[0],
-        coordinates_f0[found_indices_f0].T[1],
-        coordinates_f0[found_indices_f0].T[2],
-        c="b",
-        alpha=0.25,
-        s=10,
-    )
-    ax4.scatter(
-        coordinates_f0[index_array].T[0],
-        coordinates_f0[index_array].T[1],
-        coordinates_f0[index_array].T[2],
-        c="r",
-        s=80,
-        label="Good Points for the torsion calculations",
-    )
-    ax4.set_aspect("equal")
-    ax4.set_title("Transformed Coordinate System")
+
+    for aoi_index in range(len(available_aoi_ids)):
+        for i in range(0, len(index_array[aoi_index]), 2):
+            index_start = index_array[aoi_index, i]
+            index_end = index_array[aoi_index, i + 1]
+            ax4.plot([coordinates_f0[index_start][0], coordinates_f0[index_end][0]],
+                     [coordinates_f0[index_start][1], coordinates_f0[index_end][1]],
+                     zs=[coordinates_f0[index_start][2], coordinates_f0[index_end][2]], label=None)
+            ax4.scatter([coordinates_f0[index_start][0]],
+                        [coordinates_f0[index_start][1]],
+                        zs=[coordinates_f0[index_start][2]], s=80, marker="o")
+            ax4.scatter([coordinates_f0[index_end][0]],
+                        [coordinates_f0[index_end][1]],
+                        zs=[coordinates_f0[index_end][2]], s=80, marker="x")
+
+    ax4.scatter(coordinates_f0[found_indices].T[0], coordinates_f0[found_indices].T[1],
+                coordinates_f0[found_indices].T[2], c='b',
+                alpha=.35, s=5)
+
+    handles, labels = ax4.get_legend_handles_labels()
+    ax4.legend(handles[1:2], labels[1:2])
+
+    ax4.set_title("Points used for Torsion Calculation")
     ax4.set_xlabel("x")
     ax4.set_ylabel("y")
     ax4.set_zlabel("z")
-    ax4.set_xlim((-60000, 60000))
-    ax4.legend()
+    ax4.set_aspect("equal")
 
     # ------------------------------------------------------------------------------------------------------------------
     # Save the transformed .out files into the previously created folders.
@@ -880,8 +884,8 @@ if __name__ == "__main__":
                 np.max(two_d_coordinates.T[1]) - two_d_coordinates.T[1][aoi_id],
             ),
         )
-    plt.show(block=False)
-    # fig5.savefig(out_file_dir + "/AoI_Naming.png", dpi=fig5.dpi)
+
+    plt.show()
 
     # If not existent already, create the folders needed to store the processed .out files.
     if not os.path.isdir(out_file_dir + "/koordNachGL/"):
@@ -1101,4 +1105,4 @@ if __name__ == "__main__":
                 )
 
     print("\r", "Step 5/5: Store adjusted measurement points...  100 %")
-    exit()
+    # exit()
