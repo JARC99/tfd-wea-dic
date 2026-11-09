@@ -446,10 +446,19 @@ def process_out_files(file_path_queue, output_path1, output_path2, translation_v
         rotation = RigidTransformation()
         rotation.setRotation(rotation_obj)
 
+        """ToggleNR. Hier lässt sich die Eliminierung der Rotation einstellen. Wird der erste Code Block aktiviert wird die Eliminierung
+        durchgeführt. Ist der zweite Block aktiv kommt es nicht zur Eliminierung der Rotation, bevor die Punktepaare zur späteren Bestimmung 
+        der Torsion exportiert werden."""
+        "#1"
 
-        if file_number > 0:
-            data.transform(rotation, True)
-            data.transform(translation, True)
+        #if file_number > 0:
+         #   data.transform(rotation, True)
+          #  data.transform(translation, True)
+
+        if False:  # Starrkörperrotation deaktiviert
+           data.transform(rotation, True)
+           data.transform(translation, True)
+
 
         #data.save(output_path2 + tail)
 
@@ -844,9 +853,10 @@ if __name__ == '__main__':
 
     print('\r', "Step 2/5: Create circle...  100 % ")
     # Array auf die Stelle kuerzen, bis zu welcher die Messpunkt abgespeichert worden sind
+
     #coordinates = coordinates[0 : file_counter - not_found_counter]
 
-    coordinates = coordinates[29:200] # TODO: Zum Verwednen der ersten X Frames zum Ausrichten des Koordinatensystems
+    coordinates = coordinates[0:1000] # TODO: Zum Verwednen der ersten X Frames zum Ausrichten des Koordinatensystems
 
     # Parameter des Kreises berechnen. Hierfuer wird die Bibliothek geomfitty verwendet. Diese muss allerdings minimal angepasst werden. Die direkte Version von GitHub kann Probleme bereiten
     print('\r', "Step 3/5: Calculate circle...", end='')

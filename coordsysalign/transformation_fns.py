@@ -8,6 +8,7 @@ from vicpyx import VicDataSet
 from geomfitty import fit3d, geom3d
 
 
+
 def quaternion_to_rotation_matrix(Q):
     """
     Calculate quaternions.
@@ -312,7 +313,6 @@ def correct_pitch_in_out_file(file_path_queue, pitch_angle, aoi_ids_near_center,
             aoi_number_list.extend(aoi_data.matrix_size() * [aoi])
             index_in_aoi_list.extend(np.arange(aoi_data.matrix_size()))
         aoi_number = np.array(aoi_number_list)
-        index_in_aoi = np.array(index_in_aoi_list)
 
         found_idx = np.nonzero(visibility == 1)[0]
         found_coordinates = coordinates[found_idx]
@@ -320,6 +320,7 @@ def correct_pitch_in_out_file(file_path_queue, pitch_angle, aoi_ids_near_center,
 
         for blade_idx, blade_name in enumerate(blade_name_list):
             found_idx = np.nonzero(visibility == 1)[0]
+
             # Find the points in the blade hub
             blade_root_idxs = np.nonzero(found_aoi_number == aoi_ids_near_center[blade_idx])[0]
             blade_root_coords = found_coordinates[blade_root_idxs]
@@ -338,12 +339,12 @@ def correct_pitch_in_out_file(file_path_queue, pitch_angle, aoi_ids_near_center,
 
             blade_anchor_pt, blade_dir, blade_rad = find_blade_axis(blade_root_coords, blade_tip_coords)
 
-            # Using the stuff
             blade_point_idxs = np.nonzero(np.isin(found_aoi_number, aoi_in_blade_array))[0]
             blade_point_coords = found_coordinates[blade_point_idxs]
 
             first_rot = calculate_circle_rotation_matrix_2(blade_dir, 1)
-            second_rot = rotation_matrix_z(np.deg2rad(pitch_angle[out_file_idx])) # TODO: be careful with Blender modells, rotation around the blade axis is backwards there, use -1
+            second_rot = rotation_matrix_z(np.deg2rad(pitch_angle[
+                                                          out_file_idx]))
             third_rot = np.linalg.inv(first_rot)
             total_pitch_rot = np.matmul(third_rot, np.matmul(second_rot, first_rot))
 
@@ -351,12 +352,6 @@ def correct_pitch_in_out_file(file_path_queue, pitch_angle, aoi_ids_near_center,
                                                  (blade_point_coords - blade_anchor_pt).T).T + blade_anchor_pt
 
             new_coordinates[found_idx[blade_point_idxs]] = blade_point_coords_wo_pitch
-
-            #     new_coordinates[found_idx[blade_point_idxs]] = blade_point_coords_wo_pitch# if blade_idx == 0: TODO: Use for Blender model where only Blade a is pitched
-            #     new_coordinates[found_idx[blade_point_idxs]] = blade_point_coords_wo_pitch
-            # else:
-            #     new_coordinates[found_idx[blade_point_idxs]] = blade_point_coords
-
 
         new_u = new_coordinates[:, 0] - data["X"]
         new_v = new_coordinates[:, 1] - data["Y"]
@@ -371,6 +366,8 @@ def correct_pitch_in_out_file(file_path_queue, pitch_angle, aoi_ids_near_center,
             "\r", "Step 1.5/5: Remove pitch angle from the individual blades... {0} % ".format(
                 int(out_file_idx / len(pitch_angle) * 100)), end="")
         # return os.path.join(corrected_folder, os.path.basename(out_file))
+
+
 
 
 if __name__ == "__main__":

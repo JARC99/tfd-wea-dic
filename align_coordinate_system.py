@@ -18,10 +18,11 @@ from coordsysalign.multiprocessing_fns import (
     read_file_mean_aoi_pos_2d,
     read_file_point_loop,
     read_file_pos_2d_at_index,
+    calculate_indiv_yaw_rotmat,
 )
 from coordsysalign.transformation_fns import (
     calculate_circle_rotation_matrix,
-    find_x_rotation_matrix, correct_pitch_in_out_file
+    find_x_rotation_matrix, correct_pitch_in_out_file,
 )
 from geomfitty import fit3d, geom3d
 
@@ -31,11 +32,11 @@ from geomfitty import fit3d, geom3d
 
 # Set the values of the boolean flags used to control the program flow.
 SAVE_OUTPUT_FLAG = False  # Save the transformed .out files / Don't save them
-SUBSET_FLAG = True  # Specify a subset of the complete raw .out file data set / Use the complete dataset
+SUBSET_FLAG = False  # Specify a subset of the complete raw .out file data set / Use the complete dataset
 
 INDIV_FRAME_ROTMAT_FLAG = True  # Transform each .out file with a rotation matrix calculated from its coordinates / Use an average rotation matrix for the whole data set
 
-BLADE_PITCH_CORR_FLAG = True  # Using a pitch angle time-series, eliminate the pitch angle of ech blade
+BLADE_PITCH_CORR_FLAG = False  # Use a pitch angle time-series to eliminate the pitch angle of ech blade
 
 # Specify the number of processors used to read and write on the files.
 N_PROCESSES = 12
@@ -82,7 +83,7 @@ if __name__ == "__main__":
     out_file_list = sorted(glob.glob(out_file_dir + "/*.out"))
 
     if SUBSET_FLAG:
-        subset_size = 200  # int(input(f"Specify how many files should be considered (must be <= {len(out_file_list)}): "))
+        subset_size = int(input(f"Specify how many files should be considered (must be <= {len(out_file_list)}): "))
         if subset_size <= len(out_file_list):
             out_file_list = out_file_list[:subset_size]
         else:
@@ -274,7 +275,7 @@ if __name__ == "__main__":
     # rotor the AoI is located.
     mean_speed_array = np.empty((len(available_aoi_ids)))
     mean_position_array = np.empty((len(available_aoi_ids), 3))
-    for aoi_index in available_aoi_ids:  # TODO: Unify these two for loops into one
+    for aoi_index in available_aoi_ids:
         # Get the indices of the points located within the current AoI and are visible.
         indices_for_aoi = np.nonzero(aoi_number_f0 == aoi_index)[0]
 
@@ -422,11 +423,6 @@ if __name__ == "__main__":
         pitch_angle_data = scipy.io.loadmat(pitch_angle_file)
         pitch_angle_data = pitch_angle_data["pitch_wea_bladeA"].flatten()
 
-        # pitch_angle_data = pd.read_csv(pitch_angle_file, sep=";", decimal=",") # TODO: only for test
-        # pitch_angle_data = -pitch_angle_data[" Winkel"].to_numpy()
-
-        # pitch_angle_data = np.loadtxt(pitch_angle_file) # *-1
-
         if SUBSET_FLAG:
             pitch_angle_data = pitch_angle_data[:subset_size]
         else:
@@ -474,18 +470,7 @@ if __name__ == "__main__":
 
     print("\r", "Step 2/5: Create circle... ", end="")
 
-    # FRAME 0: Start by using the innermost points to estimate the orientation of the rotor on the first frame by first
-    # calculating the radius to the root AoIs.
-    hub_aoi_rad = np.mean(
-        np.linalg.norm(
-            mean_position_array[aoi_ids_near_center]
-            - np.mean(coordinates_f0[indices_of_inner_subsets], axis=0),
-            axis=1,
-        )
-        / 1000
-    )
-
-    # AVERAGED: Initialize the multiprocessing class instances needed for reading the point-cloud data to compute the averaged circle.
+    # Initialize the multiprocessing class instances needed for reading the point-cloud data to compute the averaged circle.
     shared_mem = SharedMemory([found_array_f0[[0]], coordinates_f0[[0]]])
     file_path_queue = Queue(maxsize=30)
 
@@ -533,7 +518,16 @@ if __name__ == "__main__":
 
     print("\r", "Step 3/5: Calculate circle...", end="")
 
-    # FRAME 0: Fit a 3D circle to the points found using the first frame.
+    # Start by using the innermost points to estimate the orientation of the rotor on the first frame by first
+    # calculating the radius to the root AoIs.
+    hub_aoi_rad = np.mean(
+        np.linalg.norm(
+            mean_position_array[aoi_ids_near_center]
+            - np.mean(coordinates_f0[indices_of_inner_subsets], axis=0),
+            axis=1,
+        )
+    )
+
     initial_guess = geom3d.Circle3D(
         np.mean(coordinates_f0[indices_of_inner_subsets], axis=0),
         [1, 0, 0],
@@ -628,7 +622,7 @@ if __name__ == "__main__":
     else:
         angle = 360 - math.degrees(math.asin(x1))
         angle += 180
-    angle += -120 * most_moved_point_blade  # TOdo: COMMENT?
+    angle += -120 * most_moved_point_blade
 
     x_rot_angle = math.radians(angle)
     rot_x = np.array(
@@ -641,61 +635,45 @@ if __name__ == "__main__":
 
     rotation_matrix_ave = np.matmul(rot_x, rotation_matrix)
 
+    print("\r", "Step 3/5: Calculate circle...  100 %")
+
     # ------------------------------------------------------------------------------------------------------------------
-    # Calculate rotation matrices based on individual circles TODO: Parallelize
+    # Calculate rotation matrices based on individual circles
     # ------------------------------------------------------------------------------------------------------------------
 
     failed_list = []
     rotation_matrix_list = []
     if INDIV_FRAME_ROTMAT_FLAG:
-        for idx, out_file in enumerate(out_file_list):
-            visibility_b, coordinates_b, _, _, _ = read_file(out_file, test_subsets_list)
-            better_center = np.mean(coordinates_b[indices_of_inner_subsets])
+        shared_mem = SharedMemory(
+            [
+                rotation_matrix_ave,
+            ]
+        )
 
-            better_rad = np.mean(
-                np.linalg.norm(
-                    mean_position_array[aoi_ids_near_center] - np.mean(coordinates_b[indices_of_inner_subsets][np.nonzero(visibility_b[indices_of_inner_subsets])[0]], axis=0),
-                    axis=1,
-                )
-                / 1
+        file_path_queue = Queue(maxsize=30)
+
+        put_to_queue_process = Process(
+            target=put_to_queue, args=(out_file_list, file_path_queue, N_PROCESSES)
+        )
+        put_to_queue_process.start()
+
+        workers = []
+        for _ in range(N_PROCESSES):
+            worker = Process(
+                target=calculate_indiv_yaw_rotmat,
+                args=(file_path_queue, shared_mem, test_subsets_list, indices_of_inner_subsets, rot_x,
+                      mean_position_array, aoi_ids_near_center, out_file_list)
             )
+            worker.start()
+            workers.append(worker)
 
-            initial_guess = geom3d.Circle3D(
-
-                np.mean(coordinates_b[indices_of_inner_subsets][np.nonzero(visibility_b[indices_of_inner_subsets])[0]], axis=0),
-                [1, 0, 0],
-                better_rad,
-            )
-            better_circle = fit3d.circle3D_fit(
-                coordinates_b[indices_of_inner_subsets][np.nonzero(visibility_b[indices_of_inner_subsets])[0]],
-                initial_guess=initial_guess,
-            )
-
-            try:
-                better_circle_dir = better_circle.direction
-
-                if better_circle_dir[-1] > 0:
-                    better_circle_dir = better_circle_dir * -1
-
-                # Try to calculate the rotation matrix using the circle's direction
-                rotation_matrix_current = calculate_circle_rotation_matrix(
-                    better_circle_dir, 1
-                )
-
-                old_direction = better_circle_dir
-            except AttributeError as e:
-                print(
-                    f"Failed to calculate rotation matrix. 'better_circle' is not a valid circle object: {better_circle}"
-                )
-                failed_list.append(idx)
-                print(out_file)
-                rotation_matrix_current = calculate_circle_rotation_matrix(
-                    old_direction, 1
-                )
-
-            rotation_matrix_current = np.matmul(rot_x, rotation_matrix_current)
-
+        for idx in range(len(out_file_list)):
+            rotation_matrix_current = shared_mem.get()[0]
             rotation_matrix_list.append(rotation_matrix_current)
+
+        put_to_queue_process.join()
+        for worker in workers:
+            worker.join()
 
     else:
 
@@ -708,7 +686,7 @@ if __name__ == "__main__":
     # Rotate the points obtained from all the frame to visualize them.
     coordinates = np.dot(rotation_matrix_ave, (coordinates - circle_center).T).T
 
-    print("\r", "Step 3/5: Calculate circle...  100 %")  # TODO: make dynamic and parallel progess bar.
+    print("\r", "Step 3.5/5: Calculate individual rotation matrices to correct yaw...  100 %")
 
     # Plot the reference circles after applying the coordinate transformations.
     fig3 = plt.figure(figsize=(10, 10))
@@ -805,9 +783,11 @@ if __name__ == "__main__":
             assert best_points_list[i] is not None, (
                 "Too few points available to find {0} good pairs for the torsion calculation".format(N_TOR_POINT_PAIRS)
             )
+            angle_p1 = np.atan(coordinates_f0[best_points_list[i][0]][1] / coordinates_f0[best_points_list[i][0]][2])
+            angle_p2 = np.atan(coordinates_f0[best_points_list[i][1]][1] / coordinates_f0[best_points_list[i][1]][2])
+
             if (
-                    coordinates_f0[best_points_list[i][0]][1]
-                    > coordinates_f0[best_points_list[i][1]][1]
+                    angle_p1 > angle_p2
             ):
                 best_points_list[i][0], best_points_list[i][1] = (
                     best_points_list[i][1],

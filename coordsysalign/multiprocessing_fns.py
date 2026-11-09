@@ -14,7 +14,8 @@ from vicpyx import (
     VicDataSet,
 )
 
-from coordsysalign.transformation_fns import find_rotation, find_translation
+from coordsysalign.transformation_fns import find_rotation, find_translation, calculate_circle_rotation_matrix
+from geomfitty import fit3d, geom3d
 
 
 # -------------------------------------
@@ -864,6 +865,72 @@ def process_out_files_mult_point_tor(file_path_queue, output_path1, output_path2
             #     coordinates_for_ret[aoi, i] = np.array(d.values(interesting_subsets_id_vicpy[aoi, i], var_ids))
 
         shared_mem.put(file_number, [coordinates_for_ret])
+
+
+def calculate_indiv_yaw_rotmat(file_path_queue, shared_memory: SharedMemory, test_subsets_list,
+                               indices_of_inner_subsets, rot_x, mean_position_array, aoi_ids_near_center, out_file_list):
+    dataset = VicDataSet()
+
+    while True:
+        content = file_path_queue.get()
+
+        if content is None:
+            break
+
+        out_file_idx, out_file = content
+
+        if dataset.load(out_file) == False:
+            print("Could not load data set\n")
+            exit(-1)
+
+        visibility_b, coordinates_b, _, _, _ = read_file(out_file, test_subsets_list)
+
+        better_rad = np.mean(
+            np.linalg.norm(
+                mean_position_array[aoi_ids_near_center] - np.mean(
+                    coordinates_b[indices_of_inner_subsets][np.nonzero(visibility_b[indices_of_inner_subsets])[0]],
+                    axis=0),
+                axis=1,
+            )
+        )
+
+        initial_guess = geom3d.Circle3D(
+
+            np.mean(coordinates_b[indices_of_inner_subsets][np.nonzero(visibility_b[indices_of_inner_subsets])[0]],
+                    axis=0),
+            [1, 0, 0],
+            better_rad,
+        )
+        better_circle = fit3d.circle3D_fit(
+            coordinates_b[indices_of_inner_subsets][np.nonzero(visibility_b[indices_of_inner_subsets])[0]],
+            initial_guess=initial_guess,
+        )
+
+        try:
+            better_circle_dir = better_circle.direction
+
+            if better_circle_dir[-1] > 0:
+                better_circle_dir = better_circle_dir * -1
+
+            # Try to calculate the rotation matrix using the circle's direction
+            rotation_matrix_current = calculate_circle_rotation_matrix(
+                better_circle_dir, 1
+            )
+
+            old_direction = better_circle_dir
+        except AttributeError as e:
+            print(
+                f"Failed to calculate rotation matrix. 'better_circle' is not a valid circle object: {better_circle}"
+            )
+            rotation_matrix_current = np.full((3, 3), np.nan)
+
+        rotation_matrix_current = np.matmul(rot_x, rotation_matrix_current)
+
+        print(
+            "\r", "Step 3.5/5: Calculate individual rotation matrices to correct yaw... {0} % ".format(
+                int(out_file_idx / len(out_file_list) * 100)), end="")
+
+        shared_memory.put(out_file_idx, [rotation_matrix_current])
 
 
 if __name__ == "__main__":
