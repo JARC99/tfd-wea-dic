@@ -76,7 +76,7 @@ def count_visible_aois(img_file):
     )
 
     # Specify a minimum size in pixels to consider a region a valid AoI
-    MIN_REGION_AREA = 500  # Minimum pixel count to be considered a valid part
+    MIN_REGION_AREA = 400  # Minimum pixel count to be considered a valid part
     n_found_aoi = 0
     aoi_centroid_list = []
     for i in range(1, n_regions):  # Start at 1 to skip background with index 0
@@ -153,7 +153,7 @@ if __name__ == "__main__":
     # Determine optimal number of available CPUs to use
     N_PROCESSES = max(1, cpu_count() // 2)
 
-    MULT_FOLDER_FLAG = True  # Specify if a list of folders is to be used as input or if a single folder should be selected
+    MULT_FOLDER_FLAG = False  # Specify if a list of folders is to be used as input or if a single folder should be selected
 
     folder_list = []
     if MULT_FOLDER_FLAG:
