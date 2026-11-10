@@ -452,8 +452,8 @@ def process_out_files(file_path_queue, output_path1, output_path2, translation_v
         "#1"
 
         #if file_number > 0:
-         #   data.transform(rotation, True)
-          #  data.transform(translation, True)
+            #data.transform(rotation, True)
+            #data.transform(translation, True)
 
         if False:  # Starrkörperrotation deaktiviert
            data.transform(rotation, True)
@@ -856,7 +856,7 @@ if __name__ == '__main__':
 
     #coordinates = coordinates[0 : file_counter - not_found_counter]
 
-    coordinates = coordinates[0:1000] # TODO: Zum Verwednen der ersten X Frames zum Ausrichten des Koordinatensystems
+    coordinates = coordinates[2000:10000] # TODO: Zum Verwednen der ersten X Frames zum Ausrichten des Koordinatensystems
 
     # Parameter des Kreises berechnen. Hierfuer wird die Bibliothek geomfitty verwendet. Diese muss allerdings minimal angepasst werden. Die direkte Version von GitHub kann Probleme bereiten
     print('\r', "Step 3/5: Calculate circle...", end='')
