@@ -1,0 +1,14 @@
+\babel@toc {english}{}\relax 
+\contentsline {section}{\numberline {1}Introduction}{2}{section.1}%
+\contentsline {section}{\numberline {2}Yaw Correction}{2}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Problem Statement}{2}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Solution Approach}{2}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Results and Validation}{3}{subsection.2.3}%
+\contentsline {section}{\numberline {3}Blade Pitch Angle Correction}{5}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Problem Statement}{5}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Correction Approach}{6}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Results and Validation}{7}{subsection.3.3}%
+\contentsline {section}{\nonumberline References}{8}{section*.1}%
+\contentsline {section}{\numberline {A}WEA DIC Pipeline}{10}{appendix.A}%
+\contentsline {section}{\numberline {B}Pitch Correction of a Single Blade}{11}{appendix.B}%
+\providecommand \tocbasic@end@toc@file {}\tocbasic@end@toc@file 
