@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 import os
 import math
 from geomfitty import geom3d, fit3d
-from vicpyx import *
+from VicPy import *
 #from Blender import *
 import time
 from multiprocessing import Process, Value, shared_memory, Lock, Condition, Queue, Semaphore
@@ -16,7 +16,7 @@ import pandas as pd
 input_folder = None
 
 # Anzahl an Prozessoren zum Einlesen der Datein
-number_of_processes = 2
+number_of_processes = 8
 
 # Gibt an, wie viele Rotorblaetter ausgewertet werden sollen/können. Dient zur Identifikation der Wurzel-ROI. Ist z.B. nur ein Blatt beklebt, dann eine eins eintregen
 number_of_marked_blades = 3
@@ -59,9 +59,9 @@ def read_file(file_name, subset_index, check_aoi_is_empty = False):
         exit(-1)
 
     size = 0
-    for aoi in range(data.num_data()):
+    for aoi in range(data.numData()):
         d = data.data(aoi)
-        size += d.matrix_size()
+        size += d.matrixSize()
 
     found_array = np.empty((size), int) # gibt an, ob ein Subset gefunden wurde. 1 wenn gefunden, sonst 0
     coordinates = np.empty((size,3), float) # enthaelt die Koordinaten der Subsets
@@ -70,9 +70,9 @@ def read_file(file_name, subset_index, check_aoi_is_empty = False):
     index_in_aoi = np.empty((size), int) # Index des Subsets innerhalb der AOI
 
     index = 0
-    for aoi in range(data.num_data()):
+    for aoi in range(data.numData()):
         d = data.data(aoi)
-        rows = d.as_array(["sigma", "X", "Y", "Z", "U", "V", "W", "SIGMA_X", "SIGMA_Y", "SIGMA_Z"])
+        rows = d.asArray(["sigma", "X", "Y", "Z", "U", "V", "W", "SIGMA_X", "SIGMA_Y", "SIGMA_Z"])
         rows = rows.view(np.float32).reshape(rows.shape[0], -1)
 
         rows = rows.T
@@ -117,10 +117,10 @@ def read_file_mean_aoi_pos_2d(file_name):
     if (data.load(file_name) == False):
         print("Could not load data set\n\n")
         exit(-1)
-    coordinates = np.empty((data.num_data(),2), float) # enthaelt die Koordinaten der Subsets
-    for aoi in range(data.num_data()):
+    coordinates = np.empty((data.numData(),2), float) # enthaelt die Koordinaten der Subsets
+    for aoi in range(data.numData()):
         d = data.data(aoi)
-        rows = d.as_array(["sigma", "x", "y", "u", "v"])
+        rows = d.asArray(["sigma", "x", "y", "u", "v"])
         rows = rows.view(np.float32).reshape(rows.shape[0], -1)
         rows = rows.T
         found_array_for_aoi = np.where(rows[0] < 0, 0, 1)
@@ -145,11 +145,11 @@ def read_file_pos_2d_at_index(file_name, interesting_subsets_id_vicpy):
         print("Could not load data set\n\n")
         exit(-1)
     coordinates = np.empty((0,2), int) # enthaelt die Koordinaten der Subsets
-    for aoi in range(data.num_data()):
+    for aoi in range(data.numData()):
         d = data.data(aoi)
         if len(var_ids) == 0:
             for var in ["x", "y", "u", "v"]:
-                idx = d.variable_index(var)
+                idx = d.varIndex(var)
                 if (idx < 0):
                     print("Could not find variable %s" % var)
                 else:
@@ -253,9 +253,9 @@ def read_file_point_loop(file_name_queue, shared_memory : SharedMemory, subset_i
 
         startindex_roi = 0
         coordinate = None
-        for aoi in range(data.num_data()):
+        for aoi in range(data.numData()):
             d = data.data(aoi)
-            current_size = d.matrix_size()
+            current_size = d.matrixSize()
             if subset_index < startindex_roi or subset_index > startindex_roi + current_size:
                 startindex_roi += current_size
                 continue
@@ -264,7 +264,7 @@ def read_file_point_loop(file_name_queue, shared_memory : SharedMemory, subset_i
 
             if len(var_ids) == 0:
                 for var in var_names:
-                    idx = d.variable_index(var)
+                    idx = d.varIndex(var)
                     if (idx < 0):
                         print("Could not find variable %s" % var)
                     else:
@@ -302,9 +302,9 @@ def read_file_loop(file_name_queue, shared_memory : SharedMemory, subset_index):
             exit(-1)
 
         size = 0
-        for aoi in range(data.num_data()):
+        for aoi in range(data.numData()):
             d = data.data(aoi)
-            size += d.matrix_size()
+            size += d.matrixSize()
 
         found_array = np.empty((size), int) # gibt an, ob ein Subset gefunden wurde. 1 wenn gefunden, sonst 0
         coordinates = np.empty((size,3), float) # enthaelt die Koordinaten der Subsets
@@ -312,9 +312,9 @@ def read_file_loop(file_name_queue, shared_memory : SharedMemory, subset_index):
         aoi_number = np.empty((size), int) # gibt an in welcher AOI ein Subset liegt
 
         index = 0
-        for aoi in range(data.num_data()):
+        for aoi in range(data.numData()):
             d = data.data(aoi)
-            rows = d.as_array(["sigma", "X", "Y", "Z", "U", "V", "W", "SIGMA_X", "SIGMA_Y", "SIGMA_Z"])
+            rows = d.asArray(["sigma", "X", "Y", "Z", "U", "V", "W", "SIGMA_X", "SIGMA_Y", "SIGMA_Z"])
             rows = rows.view(np.float32).reshape(rows.shape[0], -1)
 
             rows = rows.T
@@ -371,10 +371,10 @@ def process_out_files(file_path_queue, output_path1, output_path2, translation_v
         translation_vector = (translation_vector_arg[0], translation_vector_arg[1], translation_vector_arg[2])
         rotation_matrix = rotation_matrix_arg.copy()
 
-        translation.set_translation(translation_vector)
-        rotation_obj.set_matrix(rotation_matrix)
+        translation.setTranslation(translation_vector)
+        rotation_obj.setMatrix(rotation_matrix)
 
-        rotation.set_rotation(rotation_obj)
+        rotation.setRotation(rotation_obj)
         if (data.load(file) == False):
             print("Could not load data set\n\n")
             exit(-1)
@@ -382,13 +382,12 @@ def process_out_files(file_path_queue, output_path1, output_path2, translation_v
         data.transform(rotation, False)
         data.save(output_path1 + tail)
 
-         # Part 2
-        coordinates_for_ret = np.empty((data.num_data(), 3, len(variables_export_name_out_file)), float)
-        for aoi in range(data.num_data()):
+        coordinates_for_ret = np.empty((data.numData(), 3, len(variables_export_name_out_file)), float)
+        for aoi in range(data.numData()):
             d = data.data(aoi)
             if len(var_ids) == 0:
                 for var in variables_export_name_out_file:
-                    idx = d.variable_index(var)
+                    idx = d.varIndex(var)
                     if idx < 0:
                         print("Could not find variable %s" % var)
                     else:
@@ -403,8 +402,7 @@ def process_out_files(file_path_queue, output_path1, output_path2, translation_v
         for aoi in roi_ids_near_center:
             d = data.data(aoi)
 
-            #rows = d.as_array(["sigma", "X", "Y", "Z", "U", "V", "W"])
-            rows = d.get_values(["sigma", "X", "Y", "Z", "U", "V", "W"])
+            rows = d.asArray(["sigma", "X", "Y", "Z", "U", "V", "W"])
             rows = rows.view(np.float32).reshape(rows.shape[0], -1)
 
             rows = rows.T
@@ -434,19 +432,16 @@ def process_out_files(file_path_queue, output_path1, output_path2, translation_v
         found_rot_mat = find_rotation(coordinates_in_ref_frame, coordinates_in_current_frame)
         root_points_current_image_both = np.dot(found_rot_mat, coordinates_in_current_frame.T).T
         found_translation = find_translation(coordinates_in_ref_frame, root_points_current_image_both)
-        print("--------------------------------------")
-        print(found_translation)
-        print("--------------------------------------")
+
         translation = RigidTransformation()
         translation_vector = (found_translation[0], found_translation[1], found_translation[2])
-        print(type(translation_vector[0]))
-        translation.set_translation(translation_vector)
+        translation.setTranslation(translation_vector)
 
         rotation_obj = Rotation()
-        rotation_obj.set_matrix(found_rot_mat)
+        rotation_obj.setMatrix(found_rot_mat)
 
         rotation = RigidTransformation()
-        rotation.set_rotation(rotation_obj)
+        rotation.setRotation(rotation_obj)
 
 
         if file_number > 0:
@@ -456,11 +451,11 @@ def process_out_files(file_path_queue, output_path1, output_path2, translation_v
         data.save(output_path2 + tail)
 
 
-        for aoi in range(data.num_data()):
+        for aoi in range(data.numData()):
             d = data.data(aoi)
             if len(var_ids) == 0:
                 for var in variables_export_name_out_file:
-                    idx = d.variable_index(var)
+                    idx = d.varIndex(var)
                     if (idx < 0):
                         print("Could not find variable %s" % var)
                     else:
@@ -522,8 +517,7 @@ def find_rotation(right_co, left_co):
                   [M[1,2]-M[2,1],               M[0,0]-M[1,1]-M[2,2],   M[0,1]+M[1,0],            M[2,0]+M[0,2]],
                   [M[2,0]-M[0,2],               M[0,1]+M[1,0],         -M[0,0]+M[1,1]-M[2,2],     M[1,2]+M[2,1]],
                   [M[0,1]-M[1,0],               M[2,0]+M[0,2],          M[1,2]+M[2,1],           -M[0,0]-M[1,1]+M[2,2]]])
-    #eigenvalues, eigenvectors = np.linalg.eig(N)
-    eigenvalues, eigenvectors = np.linalg.eigh(N) #TODO:modification
+    eigenvalues, eigenvectors = np.linalg.eig(N)
     eigenvectors = eigenvectors.T
     max_index = np.argmax(eigenvalues)
     test = eigenvectors[max_index] / np.linalg.norm(eigenvectors[max_index])
@@ -609,10 +603,10 @@ if __name__ == '__main__':
 
     # Den Benutzer den Eingabeordner waehlen lassen...
     if input_folder is None:
-        input_folder = "/mnt/Acer SSD/Messung24" #easygui.diropenbox("Select Folder with out-Files")
+        input_folder = easygui.diropenbox("Select Folder with out-Files")
     print("Inputfolder: ", input_folder)
-    input_out_file_folder = sorted(glob.glob(input_folder + '/*.out'))
-    input_out_file_folder = input_out_file_folder[:500]
+    input_out_file_folder = glob.glob(input_folder + '/*.out')
+    #input_out_file_folder = input_out_file_folder[:200]
 
     #print("Step 1/5: Search for suitable measurement points...", end="\r")
     print('\r', "Step 1/5: Search for suitable measurement points...", end='')
@@ -823,6 +817,8 @@ if __name__ == '__main__':
     ax = plt.gca()
     plt.legend()
     ax.set_aspect('equal', adjustable='box')
+    fig.show()
+    plt.pause(10000)
 
 
     #index_least_movement = 225
@@ -851,7 +847,7 @@ if __name__ == '__main__':
     file_counter = 0
     not_found_counter = 0
 
-    # Abspeichern der Koordinaten
+    # Abspeichern der Koordinaten 
     for file_path  in input_out_file_folder:
         found_array, real_points = shared_mem.get()
         if found_array[0] == 1:
@@ -870,7 +866,7 @@ if __name__ == '__main__':
     # Array auf die Stelle kuerzen, bis zu welcher die Messpunkt abgespeichert worden sind
     coordinates = coordinates[0 : file_counter - not_found_counter]
 
-    #coordinates = coordinates[0:400] # TODO: Wieder entfernen
+    #coordinates = coordinates[0:8000] # TODO: Wieder entfernen
 
     # Parameter des Kreises berechnen. Hierfuer wird die Bibliothek geomfitty verwendet. Diese muss allerdings minimal angepasst werden. Die direkte Version von GitHub kann Probleme bereiten
     print('\r', "Step 3/5: Calculate circle...", end='')
@@ -886,7 +882,8 @@ if __name__ == '__main__':
     ax.set_ylabel('y-Achse')
     ax.set_zlabel('z-Achse')
     ax = plt.gca()
-
+    fig.show()
+    plt.pause(10000)
 
 
     circle_center = circle.center
@@ -899,7 +896,7 @@ if __name__ == '__main__':
     # Richte Kreisbahn um die yz-Ebene aus und lege den Koordinatenursprung in die Mittle der Kreisbahn
     coordinates_temp = np.dot(rotation_matrix, (coordinates - circle_center).T).T
 
-    # Im Folgenden wird ermittelt, in welche Richtung sich der verfolgte Punkt um die x-Achse dreht. Also im Uhrzeigersinn oder gegen den Uhrzeigersinn.
+    # Im Folgenden wird ermittelt, in welche Richtung sich der verfolgte Punkt um die x-Achse dreht. Also im Uhrzeigersinn oder gegen den Uhrzeigersinn. 
     # Das ist wichtig, damit die x-Achse "in Windrichtung aufsteigend ist". Um die Richtung zu bestimmen wird das Kreuzprodukt aus dem Geschwindigkeitsvektor und dem zugehörigen Messpunkt berechnet.
     direction_array = np.zeros((len(coordinates_temp)-1), np.int8)
     for i in range(len(coordinates_temp)-1):
@@ -975,7 +972,8 @@ if __name__ == '__main__':
     ax.set_ylabel('y-Achse')
     ax.set_zlabel('z-Achse')
     ax = plt.gca()
-
+    fig.show()
+    plt.pause(10000)
 
 
     print('\r', "Step 4/5: Search points for rotor blade torsion calculation...", end='')
@@ -1034,7 +1032,8 @@ if __name__ == '__main__':
     ax.set_zlabel('z-Achse')
     ax.set_xlim((-60000,60000))
     plt.legend()
-
+    fig.show()
+    plt.pause(10000)
 
 
 
@@ -1061,8 +1060,9 @@ if __name__ == '__main__':
     for aoi_id in range(len(two_d_coordinates)):
         annotation = "B: " + str(int(blade_number_of_aoi[aoi_id])) + "  A: " + str(int(aoi_to_blade_aoi[aoi_id]))
         ax.annotate(annotation, (two_d_coordinates.T[0][aoi_id], np.max(two_d_coordinates.T[1]) -  two_d_coordinates.T[1][aoi_id]))
+    plt.show()
     fig.savefig(input_folder +'/AOI Benennung.png', dpi=fig.dpi)
-    plt.show(block=False)
+    plt.pause(1)
 
     # Erzeuge Ordner, in welchen die angepassten Out-Dateien abgespeichert werden
     if not os.path.isdir(input_folder + "/koordNachGL/"):
