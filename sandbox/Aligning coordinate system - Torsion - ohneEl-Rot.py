@@ -17,7 +17,7 @@ import sys
 input_folder = None
 
 # Anzahl an Prozessoren zum Einlesen der Datein
-number_of_processes = 8
+number_of_processes = 12
 
 # Gibt an, wie viele Rotorblaetter ausgewertet werden sollen/können. Dient zur Identifikation der Wurzel-ROI. Ist z.B. nur ein Blatt beklebt, dann eine eins eintregen
 number_of_marked_blades = 3
@@ -806,7 +806,7 @@ if __name__ == '__main__':
     plt.legend()
     ax.set_aspect('equal', adjustable='box')
     fig.show()
-    plt.pause(10000)
+    plt.pause(1)
 
     # Die Koordinaten des Ermittelten Punktes zur Beschreibung der Kreisbahn werden nun ueber die ganze Messung hinweg eingelesen
     print('\r', "Step 2/5: Create circle... ", end='')
@@ -873,7 +873,7 @@ if __name__ == '__main__':
     ax.set_zlabel('z-Achse')
     ax = plt.gca()
     fig.show()
-    plt.pause(10000)
+    plt.pause(1)
 
 
     circle_center = circle.center
@@ -964,7 +964,7 @@ if __name__ == '__main__':
     ax.set_zlabel('z-Achse')
     ax = plt.gca()
     fig.show()
-    plt.pause(10000)
+    plt.pause(1)
 
 
     print('\r', "Step 4/5: Search points for rotor blade torsion calculation...", end='')
@@ -1047,7 +1047,7 @@ if __name__ == '__main__':
     ax.set_zlabel('z-Achse')
     ax.set_xlim((-60000,60000))
     fig.show()
-    plt.pause(10000)
+    plt.pause(1)
 
 
 

@@ -32,9 +32,9 @@ from geomfitty import fit3d, geom3d
 
 # Set the values of the boolean flags used to control the program flow.
 SAVE_OUTPUT_FLAG = False  # Save the transformed .out files / Don't save them
-SUBSET_FLAG = False  # Specify a subset of the complete raw .out file data set / Use the complete dataset
+SUBSET_FLAG = True  # Specify a subset of the complete raw .out file data set / Use the complete dataset
 
-INDIV_FRAME_ROTMAT_FLAG = True  # Transform each .out file with a rotation matrix calculated from its coordinates / Use an average rotation matrix for the whole data set
+INDIV_FRAME_ROTMAT_FLAG = False  # Transform each .out file with a rotation matrix calculated from its coordinates / Use an average rotation matrix for the whole data set
 
 BLADE_PITCH_CORR_FLAG = False  # Use a pitch angle time-series to eliminate the pitch angle of ech blade
 
@@ -45,7 +45,7 @@ N_PROCESSES = 12
 N_MARKED_BLADES = 3
 
 # Specify the number of point pairs used for the torsion calculation
-N_TOR_POINT_PAIRS = 5
+N_TOR_POINT_PAIRS = 25
 
 # List the variables that should be stored in the final .csv files. The first column of the file will always contain
 # the index.
@@ -83,7 +83,7 @@ if __name__ == "__main__":
     out_file_list = sorted(glob.glob(out_file_dir + "/*.out"))
 
     if SUBSET_FLAG:
-        subset_size = int(input(f"Specify how many files should be considered (must be <= {len(out_file_list)}): "))
+        subset_size = 5000 #int(input(f"Specify how many files should be considered (must be <= {len(out_file_list)}): "))
         if subset_size <= len(out_file_list):
             out_file_list = out_file_list[:subset_size]
         else:
@@ -622,7 +622,7 @@ if __name__ == "__main__":
     else:
         angle = 360 - math.degrees(math.asin(x1))
         angle += 180
-    angle += -120 * most_moved_point_blade
+    #FIXME TODO angle += -120 * most_moved_point_blade
 
     x_rot_angle = math.radians(angle)
     rot_x = np.array(
@@ -718,7 +718,7 @@ if __name__ == "__main__":
 
     # Rotate the coordinates of the AoIs mean position using the first frame rotation matrix.
     mean_position_array = np.dot(
-        rotation_matrix_f0, (mean_position_array - circle_center_f0).T
+        rotation_matrix_f0, (mean_position_array - circle_center_f0).T # TODO: diferenciea
     ).T
 
     # Create an 3D array where you will store the rotation matrices around the x-axis for each individual AoI.
@@ -734,7 +734,7 @@ if __name__ == "__main__":
 
     # Extract the information of each AoI and determine what points are the best to calculate the blade torsion.
     indices_for_aoi_inter_org = np.arange(len(coordinates_f0))
-    found_indices = np.nonzero(found_array_f0 == 1)[0]
+    found_indices = np.nonzero(found_array_f0 == 1)#[0] # TODO diferencia
 
     index_array = np.empty((len(available_aoi_ids), 2 * N_TOR_POINT_PAIRS),
                            int)
@@ -766,7 +766,7 @@ if __name__ == "__main__":
                         )
                 )
 
-                for k in range(0, N_TOR_POINT_PAIRS):
+                for k in range(0, N_TOR_POINT_PAIRS): #TODO: DIFERENCIA
                     if value < current_best_value_list[k]:
                         current_best_value_list.insert(k, value)
                         best_points_list.insert(
