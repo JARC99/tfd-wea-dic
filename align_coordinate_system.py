@@ -294,13 +294,13 @@ if __name__ == "__main__":
     # Get the indexes of the AoIs with the smallest speed values.
     aoi_ids_near_center = np.argsort(mean_speed_array)[:N_MARKED_BLADES]
 
-    # # Determine which AoI belongs to blade A using its averaged coordinates.
-    # idx_bladeA = np.argmax(mean_position_array[aoi_ids_near_center, 1])
-    # idx_bladeB = np.argmin(mean_position_array[aoi_ids_near_center, 0])
-    # idx_bladeC = np.argmax(mean_position_array[aoi_ids_near_center, 0])
-    #
-    # # Re-arrange the array based on the found indices.
-    # aoi_ids_near_center = aoi_ids_near_center[[idx_bladeA, idx_bladeB, idx_bladeC]] FIXME TODO
+    # Determine which AoI belongs to blade A using its averaged coordinates.
+    idx_bladeA = np.argmax(mean_position_array[aoi_ids_near_center, 1])
+    idx_bladeB = np.argmin(mean_position_array[aoi_ids_near_center, 0])
+    idx_bladeC = np.argmax(mean_position_array[aoi_ids_near_center, 0])
+
+    # Re-arrange the array based on the found indices.
+    aoi_ids_near_center = aoi_ids_near_center[[idx_bladeA, idx_bladeB, idx_bladeC]]
 
     # Store all the points that belong to the innermost AoIs (this will be used for visualization).
     indices_of_inner_subsets = np.array([], dtype=int)
@@ -543,7 +543,7 @@ if __name__ == "__main__":
     circle_direction_f0 = circle_f0.direction
 
     # AVERAGED: Slice the array to only consider the length of the array with valid coordinate values.
-    coordinates_pt_trckd = coordinates_pt_trckd[0: 1000] #FIXME TODO coordinates[0: file_counter - not_found_counter]
+    coordinates_pt_trckd = coordinates_pt_trckd[0: file_counter - not_found_counter]
 
     # Fit a 3D circle to the points found throughout the dataset.
     initial_guess = geom3d.Circle3D(np.mean(coordinates_pt_trckd, axis=0), [1, 0, 0], 7)
@@ -608,7 +608,7 @@ if __name__ == "__main__":
 
     # Calculate the needed rotation around the x-axis, so that Blade A is always at 12:00.
     most_moved_point = np.dot(
-        rotation_matrix, (coordinates_f0[index_most_movement] - circle_center).T #FIXME TODO cambié el circle centrer al promedio
+        rotation_matrix, (coordinates_f0[index_most_movement] - circle_center).T
     ).T
     most_moved_point_blade = blade_number_of_aoi[aoi_number_f0[index_most_movement]]
 
@@ -622,7 +622,7 @@ if __name__ == "__main__":
     else:
         angle = 360 - math.degrees(math.asin(x1))
         angle += 180
-    #angle += -120 * most_moved_point_blade # FIXME: DIFERENCIA
+    angle += -120 * most_moved_point_blade
 
     x_rot_angle = math.radians(angle)
     rot_x = np.array(
@@ -714,12 +714,11 @@ if __name__ == "__main__":
     )
 
     # Center and rotate the coordinate points of all the points read from the first .out file.
-    #FIXME TODO I changed the circle center coordinates_f0 = np.dot(rotation_matrix_f0, (coordinates_f0 - circle_center_f0).T).T
     coordinates_f0 = np.dot(rotation_matrix_ave, (coordinates_f0 - circle_center).T).T
 
     # Rotate the coordinates of the AoIs mean position using the first frame rotation matrix.
     mean_position_array = np.dot(
-        rotation_matrix_f0, (mean_position_array - circle_center).T # FIXME TODO chnged the circle center as well
+        rotation_matrix_f0, (mean_position_array - circle_center).T
     ).T
 
     # Create an 3D array where you will store the rotation matrices around the x-axis for each individual AoI.
@@ -735,7 +734,7 @@ if __name__ == "__main__":
 
     # Extract the information of each AoI and determine what points are the best to calculate the blade torsion.
     indices_for_aoi_inter_org = np.arange(len(coordinates_f0))
-    found_indices = np.nonzero(found_array_f0 == 1)#[0] # TODO diferencia
+    found_indices = np.nonzero(found_array_f0 == 1)[0]
 
     index_array = np.empty((len(available_aoi_ids), 2 * N_TOR_POINT_PAIRS),
                            int)
@@ -767,7 +766,7 @@ if __name__ == "__main__":
                         )
                 )
 
-                for k in range(0, 10): #FIXME TODO: CHANGE BACK TO N_TOR_POINT_PAIRS
+                for k in range(0, N_TOR_POINT_PAIRS):
                     if value < current_best_value_list[k]:
                         current_best_value_list.insert(k, value)
                         best_points_list.insert(
