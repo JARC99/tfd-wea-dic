@@ -8,7 +8,6 @@ from vicpyx import VicDataSet
 from geomfitty import fit3d, geom3d
 
 
-
 def quaternion_to_rotation_matrix(Q):
     """
     Calculate quaternions.
@@ -366,8 +365,6 @@ def correct_pitch_in_out_file(file_path_queue, pitch_angle, aoi_ids_near_center,
             "\r", "Step 1.5/5: Remove pitch angle from the individual blades... {0} % ".format(
                 int(out_file_idx / len(pitch_angle) * 100)), end="")
         # return os.path.join(corrected_folder, os.path.basename(out_file))
-
-
 
 
 if __name__ == "__main__":

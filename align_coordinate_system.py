@@ -32,9 +32,9 @@ from geomfitty import fit3d, geom3d
 
 # Set the values of the boolean flags used to control the program flow.
 SAVE_OUTPUT_FLAG = False  # Save the transformed .out files / Don't save them
-SUBSET_FLAG = False  # Specify a subset of the complete raw .out file data set / Use the complete dataset
+SUBSET_FLAG = True  # Specify a subset of the complete raw .out file data set / Use the complete dataset
 
-INDIV_FRAME_ROTMAT_FLAG = True  # Transform each .out file with a rotation matrix calculated from its coordinates / Use an average rotation matrix for the whole data set
+INDIV_FRAME_ROTMAT_FLAG = False  # Transform each .out file with a rotation matrix calculated from its coordinates / Use an average rotation matrix for the whole data set
 
 BLADE_PITCH_CORR_FLAG = False  # Use a pitch angle time-series to eliminate the pitch angle of ech blade
 
@@ -45,7 +45,7 @@ N_PROCESSES = 12
 N_MARKED_BLADES = 3
 
 # Specify the number of point pairs used for the torsion calculation
-N_TOR_POINT_PAIRS = 5
+N_TOR_POINT_PAIRS = 25
 
 # List the variables that should be stored in the final .csv files. The first column of the file will always contain
 # the index.
@@ -83,7 +83,7 @@ if __name__ == "__main__":
     out_file_list = sorted(glob.glob(out_file_dir + "/*.out"))
 
     if SUBSET_FLAG:
-        subset_size = int(input(f"Specify how many files should be considered (must be <= {len(out_file_list)}): "))
+        subset_size = 250 #int(input(f"Specify how many files should be considered (must be <= {len(out_file_list)}): "))
         if subset_size <= len(out_file_list):
             out_file_list = out_file_list[:subset_size]
         else:
@@ -111,7 +111,7 @@ if __name__ == "__main__":
 
     # Fill the index list with 1 out of 10 of the visible points and then turn it into an array.
     test_subsets_list = []
-    for i in range(0, len(found_indices_f0), 10):
+    for i in range(0, len(found_indices_f0), 4):
         test_subsets_list.append(found_indices_f0[i])
     test_subsets_list = np.array(test_subsets_list)
 
@@ -155,7 +155,7 @@ if __name__ == "__main__":
     # uncertainty (sigmas), and distance.
     file_counter = 0
     for out_file in out_file_list:
-        found_array, coordinates, xyz_sigmas, aoi_number = shared_mem.get()
+        found_array, coordinates_pt_trckd, xyz_sigmas, aoi_number = shared_mem.get()
 
         # Count how many times each point was visible throughout the measurement.
         visible_counter = visible_counter + found_array
@@ -170,7 +170,7 @@ if __name__ == "__main__":
 
         # Capture the edge case for the first file.
         if last_coordinates is None:
-            last_coordinates = coordinates
+            last_coordinates = coordinates_pt_trckd
             found_last_time = found_array
             continue
 
@@ -180,11 +180,11 @@ if __name__ == "__main__":
 
             # Compute the distance traveled between the last and the current frame
             distance[indices_found_2f] = (
-                    distance + np.linalg.norm(last_coordinates - coordinates, axis=1)
+                    distance + np.linalg.norm(last_coordinates - coordinates_pt_trckd, axis=1)
             )[indices_found_2f]
 
             # Prepare the last_coordinates and found_last_time arrays for the next loop of calculations
-            last_coordinates = coordinates.copy()
+            last_coordinates = coordinates_pt_trckd.copy()
             found_last_time = found_array
 
         file_counter = file_counter + 1
@@ -490,7 +490,7 @@ if __name__ == "__main__":
 
     # Pre-allocate an array where the point's coordinates in every frame should be stored. If the chosen point is not
     # visible in a certain frame, nothing is stored.
-    coordinates = np.zeros((len(out_file_list), 3), float)
+    coordinates_pt_trckd = np.zeros((len(out_file_list), 3), float)
     file_counter = 0
     not_found_counter = 0
 
@@ -498,7 +498,7 @@ if __name__ == "__main__":
     for out_file in out_file_list:
         found_array, real_points = shared_mem.get()
         if found_array[0] == 1:
-            coordinates[file_counter - not_found_counter] = real_points.copy()
+            coordinates_pt_trckd[file_counter - not_found_counter] = real_points.copy()
         else:
             not_found_counter += 1
         file_counter = file_counter + 1
@@ -518,7 +518,7 @@ if __name__ == "__main__":
 
     print("\r", "Step 3/5: Calculate circle...", end="")
 
-    # Start by using the innermost points to estimate the orientation of the rotor on the first frame by first
+    # FRAME 0: Start by using the innermost points to estimate the orientation of the rotor on the first frame by first
     # calculating the radius to the root AoIs.
     hub_aoi_rad = np.mean(
         np.linalg.norm(
@@ -543,13 +543,13 @@ if __name__ == "__main__":
     circle_direction_f0 = circle_f0.direction
 
     # AVERAGED: Slice the array to only consider the length of the array with valid coordinate values.
-    coordinates = coordinates[0: file_counter - not_found_counter]
+    coordinates_pt_trckd = coordinates_pt_trckd[0: 1000] #FIXME TODO coordinates[0: file_counter - not_found_counter]
 
     # Fit a 3D circle to the points found throughout the dataset.
-    initial_guess = geom3d.Circle3D(np.mean(coordinates, axis=0), [1, 0, 0], 7)
-    circle = fit3d.circle3D_fit(coordinates, initial_guess=initial_guess)
-    circle_center = circle.center.copy()
-    circle_direction = circle.direction.copy()
+    initial_guess = geom3d.Circle3D(np.mean(coordinates_pt_trckd, axis=0), [1, 0, 0], 7)
+    circle = fit3d.circle3D_fit(coordinates_pt_trckd, initial_guess=initial_guess)
+    circle_center = circle.center
+    circle_direction = circle.direction
 
     # Verify that the circle's x-axis points in the correct direction. If not, flip the vector.
     if circle_direction[-1] > 0:
@@ -564,7 +564,7 @@ if __name__ == "__main__":
     fig2 = plt.figure(figsize=(10, 10))
     ax2 = plt.axes(projection="3d")
     ax2.grid()
-    ax2.scatter(coordinates.T[0], coordinates.T[1], coordinates.T[2])
+    ax2.scatter(coordinates_pt_trckd.T[0], coordinates_pt_trckd.T[1], coordinates_pt_trckd.T[2])
     # ax2.scatter(coordinates_f0.T[0], coordinates_f0.T[1], coordinates_f0.T[2])
     ax2.set_aspect("equal")
     ax2.set_title("Average and First Frame Circle")
@@ -582,7 +582,7 @@ if __name__ == "__main__":
     rotation_matrix = calculate_circle_rotation_matrix(circle_direction, 1)
 
     # Center and rotate the found rotor points so the rotor is on the y-z plane.
-    coordinates_temp = np.matmul(rotation_matrix, (coordinates - circle_center).T).T
+    coordinates_temp = np.matmul(rotation_matrix, (coordinates_pt_trckd - circle_center).T).T
 
     # TODO: Verify that the obtained rotation is in the correct direction (this is probably not needed anymore).
     direction_array = np.zeros((len(coordinates_temp) - 1), np.int8)
@@ -608,7 +608,7 @@ if __name__ == "__main__":
 
     # Calculate the needed rotation around the x-axis, so that Blade A is always at 12:00.
     most_moved_point = np.dot(
-        rotation_matrix, (coordinates_f0[index_most_movement] - circle_center_f0).T
+        rotation_matrix, (coordinates_f0[index_most_movement] - circle_center).T #FIXME TODO cambié el circle centrer al promedio
     ).T
     most_moved_point_blade = blade_number_of_aoi[aoi_number_f0[index_most_movement]]
 
@@ -622,7 +622,7 @@ if __name__ == "__main__":
     else:
         angle = 360 - math.degrees(math.asin(x1))
         angle += 180
-    angle += -120 * most_moved_point_blade
+    #angle += -120 * most_moved_point_blade # FIXME: DIFERENCIA
 
     x_rot_angle = math.radians(angle)
     rot_x = np.array(
@@ -684,7 +684,7 @@ if __name__ == "__main__":
     rotation_matrix_f0 = rotation_matrix_list[0]
 
     # Rotate the points obtained from all the frame to visualize them.
-    coordinates = np.dot(rotation_matrix_ave, (coordinates - circle_center).T).T
+    coordinates_pt_trckd = np.dot(rotation_matrix_ave, (coordinates_pt_trckd - circle_center).T).T
 
     print("\r", "Step 3.5/5: Calculate individual rotation matrices to correct yaw...  100 %")
 
@@ -693,7 +693,7 @@ if __name__ == "__main__":
     ax3 = plt.axes(projection="3d")
     ax3.grid()
     ax3.scatter(
-        coordinates.T[0], coordinates.T[1], coordinates.T[2], label="Point Cloud"
+        coordinates_pt_trckd.T[0], coordinates_pt_trckd.T[1], coordinates_pt_trckd.T[2], label="Point Cloud"
     )
     ax3.set_title("Circular Path Used for the Coordinate Transformation")
     ax3.set_xlabel("x")
@@ -714,11 +714,12 @@ if __name__ == "__main__":
     )
 
     # Center and rotate the coordinate points of all the points read from the first .out file.
-    coordinates_f0 = np.dot(rotation_matrix_f0, (coordinates_f0 - circle_center_f0).T).T
+    #FIXME TODO I changed the circle center coordinates_f0 = np.dot(rotation_matrix_f0, (coordinates_f0 - circle_center_f0).T).T
+    coordinates_f0 = np.dot(rotation_matrix_ave, (coordinates_f0 - circle_center).T).T
 
     # Rotate the coordinates of the AoIs mean position using the first frame rotation matrix.
     mean_position_array = np.dot(
-        rotation_matrix_f0, (mean_position_array - circle_center_f0).T
+        rotation_matrix_f0, (mean_position_array - circle_center).T # FIXME TODO chnged the circle center as well
     ).T
 
     # Create an 3D array where you will store the rotation matrices around the x-axis for each individual AoI.
@@ -766,7 +767,7 @@ if __name__ == "__main__":
                         )
                 )
 
-                for k in range(0, N_TOR_POINT_PAIRS):
+                for k in range(0, 10): #FIXME TODO: CHANGE BACK TO N_TOR_POINT_PAIRS
                     if value < current_best_value_list[k]:
                         current_best_value_list.insert(k, value)
                         best_points_list.insert(
