@@ -83,7 +83,7 @@ if __name__ == "__main__":
     out_file_list = sorted(glob.glob(out_file_dir + "/*.out"))
 
     if SUBSET_FLAG:
-        subset_size = 250 #int(input(f"Specify how many files should be considered (must be <= {len(out_file_list)}): "))
+        subset_size = 3000 #int(input(f"Specify how many files should be considered (must be <= {len(out_file_list)}): "))
         if subset_size <= len(out_file_list):
             out_file_list = out_file_list[:subset_size]
         else:
@@ -784,11 +784,20 @@ if __name__ == "__main__":
             assert best_points_list[i] is not None, (
                 "Too few points available to find {0} good pairs for the torsion calculation".format(N_TOR_POINT_PAIRS)
             )
-            angle_p1 = np.atan(coordinates_f0[best_points_list[i][0]][1] / coordinates_f0[best_points_list[i][0]][2])
-            angle_p2 = np.atan(coordinates_f0[best_points_list[i][1]][1] / coordinates_f0[best_points_list[i][1]][2])
+            # angle_p1 = np.atan(coordinates_f0[best_points_list[i][0]][1] / coordinates_f0[best_points_list[i][0]][2])
+            # angle_p2 = np.atan(coordinates_f0[best_points_list[i][1]][1] / coordinates_f0[best_points_list[i][1]][2])
+            #
+            # if (
+            #         angle_p1 > angle_p2
+            # ):
+            #     best_points_list[i][0], best_points_list[i][1] = (
+            #         best_points_list[i][1],
+            #         best_points_list[i][0],
+            #     )
 
             if (
-                    angle_p1 > angle_p2
+                    coordinates_f0[best_points_list[i][0]][1]
+                    > coordinates_f0[best_points_list[i][1]][1]
             ):
                 best_points_list[i][0], best_points_list[i][1] = (
                     best_points_list[i][1],
