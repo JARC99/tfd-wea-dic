@@ -735,7 +735,7 @@ if __name__ == "__main__":
 
     # Extract the information of each AoI and determine what points are the best to calculate the blade torsion.
     indices_for_aoi_inter_org = np.arange(len(coordinates_f0))
-    found_indices = np.nonzero(found_array_f0 == 1)[0]
+    found_indices = np.nonzero(found_array_f0 == 1)#[0] # TODO diferencia
 
     index_array = np.empty((len(available_aoi_ids), 2 * N_TOR_POINT_PAIRS),
                            int)
