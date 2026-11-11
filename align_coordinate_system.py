@@ -83,7 +83,7 @@ if __name__ == "__main__":
     out_file_list = sorted(glob.glob(out_file_dir + "/*.out"))
 
     if SUBSET_FLAG:
-        subset_size = 3000 #int(input(f"Specify how many files should be considered (must be <= {len(out_file_list)}): "))
+        subset_size = 250 #int(input(f"Specify how many files should be considered (must be <= {len(out_file_list)}): "))
         if subset_size <= len(out_file_list):
             out_file_list = out_file_list[:subset_size]
         else:
@@ -294,13 +294,13 @@ if __name__ == "__main__":
     # Get the indexes of the AoIs with the smallest speed values.
     aoi_ids_near_center = np.argsort(mean_speed_array)[:N_MARKED_BLADES]
 
-    # Determine which AoI belongs to blade A using its averaged coordinates.
-    idx_bladeA = np.argmax(mean_position_array[aoi_ids_near_center, 1])
-    idx_bladeB = np.argmin(mean_position_array[aoi_ids_near_center, 0])
-    idx_bladeC = np.argmax(mean_position_array[aoi_ids_near_center, 0])
-
-    # Re-arrange the array based on the found indices.
-    aoi_ids_near_center = aoi_ids_near_center[[idx_bladeA, idx_bladeB, idx_bladeC]]
+    # # Determine which AoI belongs to blade A using its averaged coordinates.
+    # idx_bladeA = np.argmax(mean_position_array[aoi_ids_near_center, 1])
+    # idx_bladeB = np.argmin(mean_position_array[aoi_ids_near_center, 0])
+    # idx_bladeC = np.argmax(mean_position_array[aoi_ids_near_center, 0])
+    #
+    # # Re-arrange the array based on the found indices.
+    # aoi_ids_near_center = aoi_ids_near_center[[idx_bladeA, idx_bladeB, idx_bladeC]] FIXME TODO
 
     # Store all the points that belong to the innermost AoIs (this will be used for visualization).
     indices_of_inner_subsets = np.array([], dtype=int)
@@ -867,7 +867,7 @@ if __name__ == "__main__":
     found_array_first_frame = found_array_f0[indices_of_inner_subsets]
     coordinates_first_frame = coordinates_f0[indices_of_inner_subsets]
     coordinates_first_frame = np.dot(
-        rotation_matrix_f0, (coordinates_first_frame - circle_center_f0).T
+        rotation_matrix_f0, (coordinates_first_frame - circle_center).T #FIXME TODO: AQUÍ CMbién también el circle center
     ).T
 
     print("\r", "Step 5/5: Store adjusted measurement points...", end="")
@@ -959,7 +959,7 @@ if __name__ == "__main__":
                 file_path_queue,
                 output_path1,
                 output_path2,
-                -circle_center_f0,
+                -circle_center, #FIXME TODO AQUÍ TAMBIÉN CAMBIÉ EL CIRCLE CENTER
                 rotation_matrix_list,
                 aoi_ids_near_center,
                 found_array_first_frame,
